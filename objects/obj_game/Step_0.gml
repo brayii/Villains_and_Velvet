@@ -1,13 +1,6 @@
 var pointer_x = device_mouse_x_to_gui(0);
 var pointer_y = device_mouse_y_to_gui(0);
-if (action_cooldown > 0) action_cooldown--;
-if (auto_timer > 0 && prompt_mode == "" && !game_over) {
-    auto_timer--;
-    if (auto_timer == 0) {
-        if (phase == "enemy_continue_wait") draw_next_enemy_card();
-        else command_action();
-    }
-}
+vv_turn_update();
 if (!device_mouse_check_button_pressed(0, mb_left)) exit;
 
 if (game_over) {

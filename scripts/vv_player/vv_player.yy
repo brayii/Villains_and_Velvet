@@ -1,0 +1,10 @@
+{
+  "$GMScript":"v1",
+  "%Name":"vv_player",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"vv_player",
+  "parent":{"name":"cards","path":"cards.yyp"},
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0"
+}

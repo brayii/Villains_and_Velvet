@@ -1,4 +1,4 @@
-/// Card definitions for Villains & Velvet.
+/// Stable card, Leader, deck, and artwork-path definitions for Villains & Velvet.
 
 #macro ART_BACKGROUND "card_art/backgrounds/battlefield.png"
 
@@ -125,14 +125,6 @@ function array_shuffle_copy(_source) {
         var held = result[shuffle_i];
         result[shuffle_i] = result[swap_i];
         result[swap_i] = held;
-    }
-    return result;
-}
-
-function array_remove_index(_source, _index) {
-    var result = [];
-    for (var source_i = 0; source_i < array_length(_source); source_i++) {
-        if (source_i != _index) array_push(result, _source[source_i]);
     }
     return result;
 }

@@ -43,7 +43,11 @@
   "resources":[
     {"id":{"name":"obj_game","path":"objects/obj_game/obj_game.yy",},},
     {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
-    {"id":{"name":"scr_card_data","path":"scripts/scr_card_data/scr_card_data.yy",},},
+    {"id":{"name":"vv_data","path":"scripts/vv_data/vv_data.yy",},},
+    {"id":{"name":"vv_state","path":"scripts/vv_state/vv_state.yy",},},
+    {"id":{"name":"vv_enemy","path":"scripts/vv_enemy/vv_enemy.yy",},},
+    {"id":{"name":"vv_player","path":"scripts/vv_player/vv_player.yy",},},
+    {"id":{"name":"vv_turn","path":"scripts/vv_turn/vv_turn.yy",},},
   ],
   "resourceType":"GMProject",
   "resourceVersion":"2.0",
