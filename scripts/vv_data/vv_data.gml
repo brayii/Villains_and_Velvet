@@ -158,8 +158,3 @@ function make_enemy_deck() {
     array_add_copies(deck, card_enemy("twist", "Reinforcements", "The Minion in Area 2 attacks."), 5);
     return array_shuffle_copy(deck);
 }
-
-function point_in_rect(_px, _py, _rect) {
-    return _px >= _rect.x && _px <= _rect.x + _rect.w
-        && _py >= _rect.y && _py <= _rect.y + _rect.h;
-}

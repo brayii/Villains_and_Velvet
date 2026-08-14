@@ -48,6 +48,7 @@
     {"id":{"name":"vv_enemy","path":"scripts/vv_enemy/vv_enemy.yy",},},
     {"id":{"name":"vv_player","path":"scripts/vv_player/vv_player.yy",},},
     {"id":{"name":"vv_turn","path":"scripts/vv_turn/vv_turn.yy",},},
+    {"id":{"name":"vv_ui","path":"scripts/vv_ui/vv_ui.yy",},},
   ],
   "resourceType":"GMProject",
   "resourceVersion":"2.0",
