@@ -1,7 +1,30 @@
 /// Card definitions for Villains & Velvet.
 
 #macro ART_BACKGROUND "card_art/backgrounds/battlefield.png"
-#macro ART_ENEMY_LEADER "card_art/enemies/leader_velvet_queen.png"
+
+// Stable gameplay IDs. Display names can change without changing behavior.
+#macro ABILITY_NONE "none"
+#macro ABILITY_OVERPOWER "overpower"
+#macro ABILITY_RELENTLESS "relentless"
+#macro ABILITY_RALLY "rally"
+#macro ABILITY_UNITY "unity"
+#macro ABILITY_GUARD "guard"
+#macro ABILITY_FORTRESS "fortress"
+#macro ABILITY_DISRUPT "disrupt"
+#macro ABILITY_CRUSH "crush"
+#macro ABILITY_PROTECTOR "protector"
+#macro ABILITY_SHATTER "shatter"
+#macro ABILITY_DEVASTATE "devastate"
+
+function make_enemy_leader() {
+    return {
+        id: "velvet_queen",
+        name: "The Velvet Queen",
+        max_hp: 175,
+        attack: 8,
+        art_file: "card_art/enemies/leader_velvet_queen.png"
+    };
+}
 
 function player_character_name(_hero) {
     if (_hero == "B") return "Skeleton";
@@ -48,20 +71,21 @@ function enemy_event_art(_type) {
         : "card_art/enemies/twist_reinforcements.png";
 }
 
-function card_player(_hero, _kind, _atk, _hp, _ability, _effect) {
+function card_player(_hero, _kind, _atk, _hp, _ability_id, _ability, _effect) {
     return {
         hero: _hero,
         kind: _kind,
         name: player_character_name(_hero),
         atk: _atk,
         hp: _hp,
+        ability_id: _ability_id,
         ability: _ability,
         effect: _effect,
         art_file: player_card_art(_hero, _kind)
     };
 }
 
-function card_minion(_name, _kind, _atk, _hp, _ability, _effect, _escape, _escape_value) {
+function card_minion(_name, _kind, _atk, _hp, _ability_id, _ability, _effect, _escape, _escape_value) {
     return {
         card_type: "minion",
         code: _name,
@@ -69,6 +93,7 @@ function card_minion(_name, _kind, _atk, _hp, _ability, _effect, _escape, _escap
         kind: _kind,
         atk: _atk,
         hp: _hp,
+        ability_id: _ability_id,
         ability: _ability,
         effect: _effect,
         escape: _escape,
@@ -87,7 +112,9 @@ function card_enemy(_type, _name, _effect) {
 }
 
 function array_add_copies(_array, _value, _count) {
-    for (var copy_i = 0; copy_i < _count; copy_i++) array_push(_array, _value);
+    // Each physical card is independent so future temporary state cannot leak
+    // from one copy to every matching card in the deck.
+    for (var copy_i = 0; copy_i < _count; copy_i++) array_push(_array, variable_clone(_value));
 }
 
 function array_shuffle_copy(_source) {
@@ -112,29 +139,30 @@ function array_remove_index(_source, _index) {
 
 function make_player_deck() {
     var deck = [];
-    array_add_copies(deck, card_player("A", "Normal", 5, 3, "", ""), 7);
-    array_add_copies(deck, card_player("A", "Ability", 4, 2, "Overpower", "After you defeat a Minion, gain +2 Attack."), 5);
-    array_add_copies(deck, card_player("A", "Special", 7, 2, "Relentless", "After you defeat a Minion, gain +3 Attack."), 3);
-    array_add_copies(deck, card_player("B", "Normal", 4, 4, "", ""), 7);
-    array_add_copies(deck, card_player("B", "Ability", 3, 4, "Rally", "Your other Build cards gain +1 Attack."), 5);
-    array_add_copies(deck, card_player("B", "Special", 4, 4, "Unity", "Gain +2 Attack for each other Hero type in your Build."), 3);
-    array_add_copies(deck, card_player("C", "Normal", 3, 5, "", ""), 7);
-    array_add_copies(deck, card_player("C", "Ability", 2, 6, "Guard", "Enemies must attack this card first."), 5);
-    array_add_copies(deck, card_player("C", "Special", 2, 8, "Fortress", "Enemies must attack this card first."), 3);
+    array_add_copies(deck, card_player("A", "Normal", 5, 3, ABILITY_NONE, "", ""), 7);
+    array_add_copies(deck, card_player("A", "Ability", 4, 2, ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack."), 5);
+    array_add_copies(deck, card_player("A", "Special", 7, 2, ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack."), 3);
+    array_add_copies(deck, card_player("B", "Normal", 4, 4, ABILITY_NONE, "", ""), 7);
+    array_add_copies(deck, card_player("B", "Ability", 3, 4, ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack."), 5);
+    array_add_copies(deck, card_player("B", "Special", 4, 4, ABILITY_UNITY, "Unity", "Gain +2 Attack for each other Hero type in your Build."), 3);
+    array_add_copies(deck, card_player("C", "Normal", 3, 5, ABILITY_NONE, "", ""), 7);
+    array_add_copies(deck, card_player("C", "Ability", 2, 6, ABILITY_GUARD, "Guard", "Enemies must attack this card first."), 5);
+    array_add_copies(deck, card_player("C", "Special", 2, 8, ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first."), 3);
     return array_shuffle_copy(deck);
 }
 
 function make_enemy_deck() {
     var deck = [];
-    array_add_copies(deck, card_minion("NA", "Normal", 4, 6, "", "Attacks when played.", "heal", 5), 7);
-    array_add_copies(deck, card_minion("NB", "Normal", 6, 8, "", "Attacks when played.", "heal", 7), 3);
-    array_add_copies(deck, card_minion("NC", "Normal", 8, 10, "", "Attacks when played.", "heal", 9), 2);
-    array_add_copies(deck, card_minion("AA", "Ability", 5, 7, "Disrupt", "Discard a Build card, then attack.", "heal", 6), 5);
-    array_add_copies(deck, card_minion("AB", "Ability", 7, 9, "Crush", "Attacks twice when played.", "heal", 8), 3);
-    array_add_copies(deck, card_minion("SA", "Special", 6, 12, "Protector", "The Enemy Leader cannot be attacked.", "heal", 10), 2);
-    array_add_copies(deck, card_minion("SB", "Special", 8, 9, "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1), 2);
-    array_add_copies(deck, card_minion("SC", "Special", 10, 14, "Devastate", "Attacks twice when played.", "heal", 12), 1);
-    array_add_copies(deck, card_enemy("strike", "Direct Assault", "The Enemy Leader attacks for 8."), 3);
+    array_add_copies(deck, card_minion("NA", "Normal", 4, 6, ABILITY_NONE, "", "Attacks when played.", "heal", 5), 7);
+    array_add_copies(deck, card_minion("NB", "Normal", 6, 8, ABILITY_NONE, "", "Attacks when played.", "heal", 7), 3);
+    array_add_copies(deck, card_minion("NC", "Normal", 8, 10, ABILITY_NONE, "", "Attacks when played.", "heal", 9), 2);
+    array_add_copies(deck, card_minion("AA", "Ability", 5, 7, ABILITY_DISRUPT, "Disrupt", "Discard a Build card, then attack.", "heal", 6), 5);
+    array_add_copies(deck, card_minion("AB", "Ability", 7, 9, ABILITY_CRUSH, "Crush", "Attacks twice when played.", "heal", 8), 3);
+    array_add_copies(deck, card_minion("SA", "Special", 6, 12, ABILITY_PROTECTOR, "Protector", "The Enemy Leader cannot be attacked.", "heal", 10), 2);
+    array_add_copies(deck, card_minion("SB", "Special", 8, 9, ABILITY_SHATTER, "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1), 2);
+    array_add_copies(deck, card_minion("SC", "Special", 10, 14, ABILITY_DEVASTATE, "Devastate", "Attacks twice when played.", "heal", 12), 1);
+    var leader = make_enemy_leader();
+    array_add_copies(deck, card_enemy("strike", "Direct Assault", "The Enemy Leader attacks for " + string(leader.attack) + "."), 3);
     array_add_copies(deck, card_enemy("twist", "Reinforcements", "The Minion in Area 2 attacks."), 5);
     return array_shuffle_copy(deck);
 }

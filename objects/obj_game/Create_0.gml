@@ -25,6 +25,7 @@ restart_rect = {x:525, y:470, w:230, h:70};
 
 debug_event_log = false;
 art_sprites = {};
+enemy_leader = make_enemy_leader();
 
 function art_cache_key(_file) {
     var key = string_replace_all(_file, "/", "_");
@@ -76,7 +77,7 @@ function validate_state(_context) {
         + count_occupied_hand() + count_occupied_build();
     var enemy_total = array_length(enemy_deck) + array_length(enemy_used) + count_live_minions();
     var valid = player_total == 45 && enemy_total == 33
-        && leader_hp >= 0 && leader_hp <= 175 && attack_left >= 0;
+        && leader_hp >= 0 && leader_hp <= enemy_leader.max_hp && attack_left >= 0;
     if (!valid) {
         var state_message = _context + ": Player " + string(player_total)
             + "/45, Enemy " + string(enemy_total) + "/33";
@@ -86,7 +87,7 @@ function validate_state(_context) {
 }
 
 function reset_game() {
-    leader_hp = 175;
+    leader_hp = enemy_leader.max_hp;
     player_deck = make_player_deck();
     player_discard = [];
     enemy_deck = make_enemy_deck();
@@ -149,7 +150,7 @@ function build_has_cards() {
 function build_has_priority() {
     for (var priority_i = 0; priority_i < 3; priority_i++) {
         if (!is_undefined(build[priority_i])
-        && (build[priority_i].ability == "Guard" || build[priority_i].ability == "Fortress")) return true;
+        && (build[priority_i].ability_id == ABILITY_GUARD || build[priority_i].ability_id == ABILITY_FORTRESS)) return true;
     }
     return false;
 }
@@ -157,7 +158,7 @@ function build_has_priority() {
 function enemy_target_is_legal(_index, _amount) {
     if (_index < 0 || _index > 2 || is_undefined(build[_index])) return false;
     if (build_has_priority()
-    && build[_index].ability != "Guard" && build[_index].ability != "Fortress") return false;
+    && build[_index].ability_id != ABILITY_GUARD && build[_index].ability_id != ABILITY_FORTRESS) return false;
     return _amount >= build[_index].hp;
 }
 
@@ -282,11 +283,11 @@ function resume_after_prompts() {
 }
 
 function heal_leader(_amount) {
-    var healing_room = 175 - leader_hp;
+    var healing_room = enemy_leader.max_hp - leader_hp;
     var healed = min(_amount, healing_room);
     var overflow = _amount - healed;
     leader_hp += healed;
-    log_add("Leader heals " + string(healed) + " HP (" + string(leader_hp) + "/175).");
+    log_add("Leader heals " + string(healed) + " HP (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
     if (overflow > 0) {
         log_add(string(overflow) + " excess healing becomes Overflow Attack.");
         queue_enemy_attack(overflow, "Overflow");
@@ -315,16 +316,16 @@ function begin_advance_phase() {
 function resolve_minion_entry(_minion) {
     log_add(_minion.name + " enters Minion Area 1.");
     resume_action = "finish_enemy";
-    if (_minion.ability == "Disrupt" && build_has_cards()) {
+    if (_minion.ability_id == ABILITY_DISRUPT && build_has_cards()) {
         prompt_mode = "disrupt";
         prompt_value = _minion.atk;
         log_add("AA uses Disrupt. Choose a highlighted Build card to discard.");
         return;
     }
-    if (_minion.ability == "Crush") {
+    if (_minion.ability_id == ABILITY_CRUSH) {
         queue_enemy_attack(7, "AB — Crush (1 of 2)");
         queue_enemy_attack(7, "AB — Crush (2 of 2)");
-    } else if (_minion.ability == "Shatter") {
+    } else if (_minion.ability_id == ABILITY_SHATTER) {
         var tied = lowest_build_indices();
         if (array_length(tied) == 1) destroy_build_card(tied[0], "SB Shatter");
         else if (array_length(tied) > 1) {
@@ -334,7 +335,7 @@ function resolve_minion_entry(_minion) {
             return;
         }
         queue_enemy_attack(8, "SB — Attack");
-    } else if (_minion.ability == "Devastate") {
+    } else if (_minion.ability_id == ABILITY_DEVASTATE) {
         queue_enemy_attack(10, "SC — Devastate (1 of 2)");
         queue_enemy_attack(10, "SC — Devastate (2 of 2)");
     } else {
@@ -363,7 +364,7 @@ function draw_next_enemy_card() {
         revealed_enemy_card = enemy_card;
         array_push(enemy_used, enemy_card);
         log_add("Enemy Draw: Direct Assault.");
-        queue_enemy_attack(8, "Direct Assault");
+        queue_enemy_attack(enemy_leader.attack, "Direct Assault");
         resume_action = "continue_enemy_draw";
         resume_after_prompts();
     } else if (enemy_card.card_type == "twist") {
@@ -417,15 +418,15 @@ function compute_attack_summary() {
     var gained_after_kill = 0;
     for (var card_i = 0; card_i < 3; card_i++) if (!is_undefined(build[card_i])) {
         total += build[card_i].atk;
-        if (build[card_i].ability == "Rally") rally_cards++;
-        if (build[card_i].ability == "Overpower") gained_after_kill += 2;
-        if (build[card_i].ability == "Relentless") gained_after_kill += 3;
+        if (build[card_i].ability_id == ABILITY_RALLY) rally_cards++;
+        if (build[card_i].ability_id == ABILITY_OVERPOWER) gained_after_kill += 2;
+        if (build[card_i].ability_id == ABILITY_RELENTLESS) gained_after_kill += 3;
     }
     for (var card_i = 0; card_i < 3; card_i++) if (!is_undefined(build[card_i])) {
         var other_rallies = rally_cards;
-        if (build[card_i].ability == "Rally") other_rallies--;
+        if (build[card_i].ability_id == ABILITY_RALLY) other_rallies--;
         total += max(0, other_rallies);
-        if (build[card_i].ability == "Unity") {
+        if (build[card_i].ability_id == ABILITY_UNITY) {
             var hero_a = false;
             var hero_b = false;
             var hero_c = false;
@@ -577,7 +578,7 @@ function command_attack_minion(_index) {
 
 function leader_is_protected() {
     for (var minion_i = 0; minion_i < 2; minion_i++) {
-        if (!is_undefined(minions[minion_i]) && minions[minion_i].ability == "Protector") return true;
+        if (!is_undefined(minions[minion_i]) && minions[minion_i].ability_id == ABILITY_PROTECTOR) return true;
     }
     return false;
 }
@@ -595,7 +596,7 @@ function command_attack_leader() {
     var damage = attack_left;
     leader_hp = max(0, leader_hp - damage);
     attack_left = 0;
-    log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/175).");
+    log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
     if (leader_hp == 0) {
         game_over = true;
         victory = true;
@@ -679,4 +680,4 @@ function command_action() {
 
 reset_game();
 background_art_sprite = get_art_sprite(ART_BACKGROUND);
-leader_art_sprite = get_art_sprite(ART_ENEMY_LEADER);
+leader_art_sprite = get_art_sprite(enemy_leader.art_file);

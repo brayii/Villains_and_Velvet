@@ -29,3 +29,9 @@ Villains & Velvet is a single-player card game built with GameMaker. The complet
 - A failed attack against a Minion does not spend the player's remaining Attack.
 - If SB escapes while the Hand is empty, its Escape has no effect.
 - Unused Attack is lost when the turn ends.
+
+## Artwork Folders
+
+- `card_art/` contains the source artwork used while preparing and reviewing cards.
+- `datafiles/card_art/` contains the game-ready copies included in GameMaker builds.
+- Add or replace playable artwork in both locations so the source files and exported game stay synchronized.
