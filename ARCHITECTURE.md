@@ -30,3 +30,9 @@ The authoritative `CORE_*` constants are defined once at the top of `vv_data.gml
 `vv_state.gml` validates both totals and composition. Player validation discovers the three Hero IDs from the cards instead of assuming A/B/C. Enemy validation checks every structural Minion slot and requires Leader Strikes plus Twists to occupy exactly eight event slots.
 
 Hero identity is a stable content ID. Player rules such as Unity compare IDs dynamically and count unique other Heroes; gameplay code does not maintain a fixed list of Hero IDs.
+
+## Leader Definitions
+
+Leader definitions live in `vv_data.gml`. Each Leader has a stable ID, display name, separate starting and maximum Health, basic Attack, artwork, ability and Special-move arrays, and its available Leader Strike definitions. `reset_game()` initializes the Leader from `starting_hp`; healing and state validation use `max_hp`.
+
+The Velvet Queen currently owns Direct Assault with a default selection of three copies. Enemy Draw still resolves that current Strike directly until the generic event resolver is introduced in its dedicated roadmap phase.

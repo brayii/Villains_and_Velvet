@@ -36,12 +36,22 @@
 #macro ABILITY_DEVASTATE "devastate"
 
 function make_enemy_leader() {
+    var leader_attack = 8;
     return {
         id: "velvet_queen",
         name: "The Velvet Queen",
+        starting_hp: 175,
         max_hp: 175,
-        attack: 8,
-        art_file: "card_art/enemies/leader_velvet_queen.png"
+        attack: leader_attack,
+        art_file: "card_art/enemies/leader_velvet_queen.png",
+        abilities: [],
+        special_moves: [],
+        leader_strikes: [
+            {
+                card: card_enemy("strike", "Direct Assault", "The Enemy Leader attacks for " + string(leader_attack) + "."),
+                default_copies: 3
+            }
+        ]
     };
 }
 
@@ -173,7 +183,10 @@ function make_enemy_deck() {
     array_add_copies(deck, card_minion("SB", "Special", 8, 9, ABILITY_SHATTER, "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1), CORE_MINION_SB_COPIES);
     array_add_copies(deck, card_minion("SC", "Special", 10, 14, ABILITY_DEVASTATE, "Devastate", "Attacks twice when played.", "heal", 12), CORE_MINION_SC_COPIES);
     var leader = make_enemy_leader();
-    array_add_copies(deck, card_enemy("strike", "Direct Assault", "The Enemy Leader attacks for " + string(leader.attack) + "."), 3);
+    for (var strike_i = 0; strike_i < array_length(leader.leader_strikes); strike_i++) {
+        var strike_definition = leader.leader_strikes[strike_i];
+        array_add_copies(deck, strike_definition.card, strike_definition.default_copies);
+    }
     array_add_copies(deck, card_enemy("twist", "Reinforcements", "The Minion in Area 2 attacks."), 5);
     return array_shuffle_copy(deck);
 }
