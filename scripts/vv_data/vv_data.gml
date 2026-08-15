@@ -140,6 +140,30 @@ function card_enemy(_type, _name, _effect) {
     };
 }
 
+function make_scenario_the_assault() {
+    return {
+        id: "the_assault",
+        name: "The Assault",
+        setup_rules: [],
+        minions: {
+            na: card_minion("NA", "Normal", 4, 6, ABILITY_NONE, "", "Attacks when played.", "heal", 5),
+            nb: card_minion("NB", "Normal", 6, 8, ABILITY_NONE, "", "Attacks when played.", "heal", 7),
+            nc: card_minion("NC", "Normal", 8, 10, ABILITY_NONE, "", "Attacks when played.", "heal", 9),
+            aa: card_minion("AA", "Ability", 5, 7, ABILITY_DISRUPT, "Disrupt", "Discard a Build card, then attack.", "heal", 6),
+            ab: card_minion("AB", "Ability", 7, 9, ABILITY_CRUSH, "Crush", "Attacks twice when played.", "heal", 8),
+            sa: card_minion("SA", "Special", 6, 12, ABILITY_PROTECTOR, "Protector", "The Enemy Leader cannot be attacked.", "heal", 10),
+            sb: card_minion("SB", "Special", 8, 9, ABILITY_SHATTER, "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1),
+            sc: card_minion("SC", "Special", 10, 14, ABILITY_DEVASTATE, "Devastate", "Attacks twice when played.", "heal", 12)
+        },
+        twists: [
+            {
+                card: card_enemy("twist", "Reinforcements", "The Minion in Area 2 attacks."),
+                default_copies: 5
+            }
+        ]
+    };
+}
+
 function array_add_copies(_array, _value, _count) {
     // Each physical card is independent so future temporary state cannot leak
     // from one copy to every matching card in the deck.
@@ -172,21 +196,23 @@ function make_player_deck() {
     return array_shuffle_copy(deck);
 }
 
-function make_enemy_deck() {
+function make_enemy_deck(_leader, _scenario) {
     var deck = [];
-    array_add_copies(deck, card_minion("NA", "Normal", 4, 6, ABILITY_NONE, "", "Attacks when played.", "heal", 5), CORE_MINION_NA_COPIES);
-    array_add_copies(deck, card_minion("NB", "Normal", 6, 8, ABILITY_NONE, "", "Attacks when played.", "heal", 7), CORE_MINION_NB_COPIES);
-    array_add_copies(deck, card_minion("NC", "Normal", 8, 10, ABILITY_NONE, "", "Attacks when played.", "heal", 9), CORE_MINION_NC_COPIES);
-    array_add_copies(deck, card_minion("AA", "Ability", 5, 7, ABILITY_DISRUPT, "Disrupt", "Discard a Build card, then attack.", "heal", 6), CORE_MINION_AA_COPIES);
-    array_add_copies(deck, card_minion("AB", "Ability", 7, 9, ABILITY_CRUSH, "Crush", "Attacks twice when played.", "heal", 8), CORE_MINION_AB_COPIES);
-    array_add_copies(deck, card_minion("SA", "Special", 6, 12, ABILITY_PROTECTOR, "Protector", "The Enemy Leader cannot be attacked.", "heal", 10), CORE_MINION_SA_COPIES);
-    array_add_copies(deck, card_minion("SB", "Special", 8, 9, ABILITY_SHATTER, "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1), CORE_MINION_SB_COPIES);
-    array_add_copies(deck, card_minion("SC", "Special", 10, 14, ABILITY_DEVASTATE, "Devastate", "Attacks twice when played.", "heal", 12), CORE_MINION_SC_COPIES);
-    var leader = make_enemy_leader();
-    for (var strike_i = 0; strike_i < array_length(leader.leader_strikes); strike_i++) {
-        var strike_definition = leader.leader_strikes[strike_i];
+    array_add_copies(deck, _scenario.minions.na, CORE_MINION_NA_COPIES);
+    array_add_copies(deck, _scenario.minions.nb, CORE_MINION_NB_COPIES);
+    array_add_copies(deck, _scenario.minions.nc, CORE_MINION_NC_COPIES);
+    array_add_copies(deck, _scenario.minions.aa, CORE_MINION_AA_COPIES);
+    array_add_copies(deck, _scenario.minions.ab, CORE_MINION_AB_COPIES);
+    array_add_copies(deck, _scenario.minions.sa, CORE_MINION_SA_COPIES);
+    array_add_copies(deck, _scenario.minions.sb, CORE_MINION_SB_COPIES);
+    array_add_copies(deck, _scenario.minions.sc, CORE_MINION_SC_COPIES);
+    for (var strike_i = 0; strike_i < array_length(_leader.leader_strikes); strike_i++) {
+        var strike_definition = _leader.leader_strikes[strike_i];
         array_add_copies(deck, strike_definition.card, strike_definition.default_copies);
     }
-    array_add_copies(deck, card_enemy("twist", "Reinforcements", "The Minion in Area 2 attacks."), 5);
+    for (var twist_i = 0; twist_i < array_length(_scenario.twists); twist_i++) {
+        var twist_definition = _scenario.twists[twist_i];
+        array_add_copies(deck, twist_definition.card, twist_definition.default_copies);
+    }
     return array_shuffle_copy(deck);
 }

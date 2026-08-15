@@ -36,3 +36,9 @@ Hero identity is a stable content ID. Player rules such as Unity compare IDs dyn
 Leader definitions live in `vv_data.gml`. Each Leader has a stable ID, display name, separate starting and maximum Health, basic Attack, artwork, ability and Special-move arrays, and its available Leader Strike definitions. `reset_game()` initializes the Leader from `starting_hp`; healing and state validation use `max_hp`.
 
 The Velvet Queen currently owns Direct Assault with a default selection of three copies. Enemy Draw still resolves that current Strike directly until the generic event resolver is introduced in its dedicated roadmap phase.
+
+## Scenario Definitions
+
+Scenario definitions live in `vv_data.gml`. A Scenario has a stable ID, display name, setup-rule array, definitions for the fixed NA/NB/NC/AA/AB/SA/SB/SC Minion slots, and its available Twist definitions.
+
+`make_scenario_the_assault()` owns the current eight Minion definitions and Reinforcements. The deck builder accepts the selected Leader and Scenario, applies the permanent core copy counts, and clones every physical card. The controller currently selects The Velvet Queen and The Assault before reset; a later setup phase will make those selections configurable.

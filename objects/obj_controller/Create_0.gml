@@ -3,6 +3,7 @@ randomize();
 gpu_set_texfilter(true);
 vv_ui_init();
 enemy_leader = make_enemy_leader();
+enemy_scenario = make_scenario_the_assault();
 reset_game();
 vv_assets_init();
 vv_assets_load_initial();

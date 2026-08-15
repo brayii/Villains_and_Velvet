@@ -152,7 +152,7 @@ function reset_game() {
     leader_hp = enemy_leader.starting_hp;
     player_deck = make_player_deck();
     player_discard = [];
-    enemy_deck = make_enemy_deck();
+    enemy_deck = make_enemy_deck(enemy_leader, enemy_scenario);
     enemy_used = [];
     hand = [undefined, undefined, undefined];
     build = [undefined, undefined, undefined];
