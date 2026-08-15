@@ -40,7 +40,9 @@ function core_minion_slot_copies(_slot) {
 }
 
 function core_minion_slots_are_valid(_minion_set) {
-    if (is_undefined(_minion_set) || !variable_struct_exists(_minion_set, "minion_slots")) return false;
+    if (is_undefined(_minion_set) || !is_struct(_minion_set)
+    || !variable_struct_exists(_minion_set, "minion_slots")
+    || !is_array(_minion_set.minion_slots)) return false;
     var expected_slots = core_minion_slot_ids();
     if (array_length(_minion_set.minion_slots) != array_length(expected_slots)) return false;
     var seen_slots = [];
@@ -50,7 +52,8 @@ function core_minion_slots_are_valid(_minion_set) {
         if (!is_struct(definition)) return false;
         if (!variable_struct_exists(definition, "slot") || !variable_struct_exists(definition, "card")) return false;
         if (!is_struct(definition.card)) return false;
-        if (!variable_struct_exists(definition.card, "id") || definition.card.id == "") return false;
+        if (!variable_struct_exists(definition.card, "id")
+        || !is_string(definition.card.id) || definition.card.id == "") return false;
         if (core_minion_slot_copies(definition.slot) <= 0) return false;
         for (var seen_i = 0; seen_i < array_length(seen_slots); seen_i++) {
             if (seen_slots[seen_i] == definition.slot) return false;

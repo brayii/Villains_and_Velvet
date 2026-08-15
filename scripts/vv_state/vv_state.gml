@@ -258,7 +258,8 @@ function validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes
         }
         for (var minion_i = 0; minion_i < array_length(minion_set.minion_slots); minion_i++) {
             var minion = minion_set.minion_slots[minion_i].card;
-            if (string_lower(minion.id) != minion.id || !variable_struct_exists(minion, "name")
+            if (!is_string(minion.id) || string_lower(minion.id) != minion.id
+            || !variable_struct_exists(minion, "name")
             || !variable_struct_exists(minion, "abilities") || !is_array(minion.abilities)
             || !variable_struct_exists(minion, "escape_effects") || !is_array(minion.escape_effects)) {
                 return content_validation_result(false, "Minion definition '" + string(minion.id) + "' is incomplete or not lowercase.");

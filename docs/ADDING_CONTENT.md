@@ -69,8 +69,6 @@ Add each Scenario constructor to `make_scenario_registry()`. Every registered Sc
 
 Use `make_minion_set_velvet_menagerie()` as the complete Minion Set example. Each Minion slot is stored as:
 
-Each Minion slot is stored as:
-
 ```gml
 {slot: "NA", card: minion_card_definition}
 ```
