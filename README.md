@@ -1,6 +1,6 @@
 # Villains & Velvet
 
-Villains & Velvet is a single-player card game prototype built with GameMaker. Build a three-card team from a growing roster of Heroes, manage incoming Minions, and defeat the Enemy Leader before the Enemy Deck runs out.
+Villains & Velvet is a single-player card game prototype built with GameMaker. Build a three-card Hero team, manage incoming Minions, and defeat the Enemy Leader before the Enemy Deck runs out.
 
 ## Project Status
 
@@ -10,6 +10,7 @@ This project is an in-development prototype. Gameplay rules and content may chan
 
 - GameMaker (the project metadata was last saved with IDE version `2026.0.0.16`)
 - A GameMaker target available for the platform on which you want to run or export the game
+- Optional: Python 3 for the artwork verification tool, plus Pillow for the source-sheet extraction tool
 
 ## Open and Run
 
@@ -17,7 +18,7 @@ This project is an in-development prototype. Gameplay rules and content may chan
 2. Open `VillainsAndVelvet.yyp` in GameMaker.
 3. Select an available target and run the project from the GameMaker IDE.
 
-The game opens on a battle setup screen. Review the selected Leader, Scenario, and three Heroes, then adjust the Leader Strike and Twist counts if desired. Exactly eight Enemy Events are required before **Start Game** is enabled.
+The game opens on a battle setup screen. The current build displays The Velvet Queen, The Assault, and the three current Heroes. Use the plus and minus controls to adjust Leader Strike and Twist counts. Exactly eight Enemy Events are required before **Start Game** is enabled.
 
 `CardGamePrototype.exe` is a prebuilt Windows prototype. The GameMaker project is the source of truth for development.
 
@@ -25,6 +26,15 @@ The game opens on a battle setup screen. Review the selected Leader, Scenario, a
 
 - [Core Game Rules](CORE_GAME_RULES.md) — the basic gameplay rules shared by current and future content.
 - [Architecture](ARCHITECTURE.md) — code organization and guidance about where changes belong.
+- [Adding Content](docs/ADDING_CONTENT.md) — the tested workflow for extending cards, Leaders, Scenarios, effects, and artwork.
+
+## Basic Controls
+
+- Tap the large action button when it is offered. Automatic resolutions pause briefly between steps so the current step and its result remain visible.
+- During Build, tap a Hand card and then a Build space. Select occupied spaces to swap cards between the Hand and Build.
+- During Player Attack, tap a Minion the available Attack can defeat or tap the Enemy Leader. Failed Minion attacks do not spend Attack.
+- During an Enemy effect, choose one of the highlighted legal cards. Cards that cannot be defeated or targeted are not highlighted.
+- The turn-step list in the upper-right corner always shows the full seven-step sequence and highlights the current step.
 
 ## Repository Layout
 

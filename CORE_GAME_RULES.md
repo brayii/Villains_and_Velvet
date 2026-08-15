@@ -1,6 +1,6 @@
 # Core Game Rules
 
-This document defines the rules shared by every game of Villains & Velvet. Specific Leaders, Heroes, Minions, Scenarios, card counts, and numeric values are content definitions rather than permanent core rules. New content may introduce exceptions through card text.
+This document defines the rules shared by every game of Villains & Velvet. Leader Health and Attack, card statistics, abilities, and named effects are content definitions. The deck structure and turn sequence below are core rules. New content may introduce exceptions through card text.
 
 ## 1. Objective
 
@@ -21,14 +21,14 @@ The game uses:
 - a Player Deck and Player Discard Pile; and
 - an Enemy Deck and an Enemy used-card pile.
 
-New Minions enter Area 1, advance to Area 2, and then escape.
+New Minions enter Area 1. A Minion advances to Area 2 when that space is empty. A Minion in Area 2 escapes only when a Minion in Area 1 pushes it out during a later Advance step.
 
 ## 3. Setup
 
-1. Choose an Enemy Leader and set it to the starting Health printed for that Leader.
-2. Choose a Scenario and assemble its Enemy Deck, including the appropriate Minions, Twists, and Leader Strikes.
-3. Assemble and shuffle the Player Deck from the available Heroes.
-4. Shuffle the Enemy Deck.
+1. Choose an Enemy Leader and set it to that Leader's starting Health.
+2. Choose a Scenario.
+3. Choose exactly three different Heroes. Add seven Normal, five Ability, and three Special cards for each Hero, then shuffle the 45-card Player Deck.
+4. Assemble the 33-card Enemy Deck from the Scenario's 25 Minions and exactly eight Enemy Events selected from the Leader's Leader Strikes and the Scenario's Twists. Shuffle the deck.
 5. Leave the Hand, Build, Minion Areas, and discard or used-card piles empty.
 6. Begin the first turn.
 
@@ -44,8 +44,10 @@ Draw three cards from the Player Deck. If the deck empties during the draw, recy
 
 ### Step 2: Advance Minions and Resolve Escapes
 
-1. If a Minion is in Area 2, resolve its Escape effect and any resulting effects, then remove it from play.
-2. Move the Minion in Area 1, if any, to Area 2.
+1. If both Minion Areas are occupied, the Minion in Area 1 pushes the Area 2 Minion out. Resolve the escaping Minion's Escape effects and any resulting prompts or attacks, then remove it from play.
+2. After the Escape finishes, move the Area 1 Minion into Area 2.
+3. If Area 2 is occupied and Area 1 is empty, the Area 2 Minion stays in play and does not Escape.
+4. If Area 2 is empty, move the Area 1 Minion into Area 2.
 
 A Minion normally gives the player two Attack phases in which to defeat it before it escapes.
 
@@ -55,7 +57,7 @@ Draw and resolve Enemy cards until a Minion enters play or the Enemy Deck is emp
 
 - Resolve a **Leader Strike** immediately, then continue drawing.
 - Resolve a **Twist** immediately, then continue drawing.
-- Place a **Minion** in Area 1, resolve its Entry effects, and stop drawing.
+- Place a **Minion** in Area 1, resolve its Entry effects and attack, and stop drawing. A Minion normally attacks the Build for its Attack value when it enters; its ability may change the order or number of attacks.
 
 If a card specifies an order for its effects, follow its text.
 

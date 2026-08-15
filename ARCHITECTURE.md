@@ -21,6 +21,8 @@
 - Change turn sequencing only in `vv_turn.gml`.
 - Keep UI code limited to presentation and input routing; gameplay legality belongs in the relevant gameplay module.
 
+For constructor examples, registration limits, artwork steps, and verification, see [`docs/ADDING_CONTENT.md`](docs/ADDING_CONTENT.md).
+
 Runtime artwork is loaded with `sprite_add()` and owned by the cache in `vv_assets.gml`. The `obj_controller` Clean Up event calls `vv_assets_cleanup()` so each cached dynamic sprite is released once.
 
 `datafiles/card_art/` is the single authoritative location for game-ready artwork. GameMaker packages those files as Included Files, so runtime card paths begin with `card_art/`. The extraction utility writes directly to this folder, and `tools/verify_card_assets.py` checks the files, project entries, and code references without maintaining a duplicate artwork tree.
@@ -70,3 +72,31 @@ Available Leader Strike definitions belong to the selected Leader, and available
 The selected Hero IDs are also separate from the available Hero definitions. `validate_hero_selection()` requires exactly three different IDs that exist in the available content. `refresh_setup_validation()` combines the Hero and Enemy Event checks, and `command_start_game_from_setup()` is the only setup command that starts a match.
 
 The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
+
+The current setup screen displays one active Leader, one active Scenario, and the first three Hero definitions. It adjusts the counts of the current Leader Strike and Twist definitions but does not yet provide Leader, Scenario, or Hero browsing controls. Adding more definitions is safe, but exposing player selection for them requires a separate setup-UI change.
+
+## Runtime Flow and Ownership
+
+`obj_controller` owns the live match variables. Its Create event builds the current content definitions, resets the match, initializes the UI, and loads initial artwork. Its Step event advances timers and routes taps. Its Draw GUI event delegates the full screen to `vv_ui_draw_game()`. Its Clean Up event releases dynamic sprites through `vv_assets_cleanup()`.
+
+Rules that need a player choice set `prompt_mode`, `prompt_value`, and `prompt_source`, then return. The UI highlights only legal targets. After a valid command clears the prompt, `resume_after_prompts()` continues queued Enemy attacks or the suspended turn action. New prompt-producing rules must preserve this pause-and-resume pattern.
+
+Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
+
+## Adding New Behavior
+
+Existing abilities and effects are reusable content IDs. Assigning an existing ID to another card requires no new rule branch.
+
+For a genuinely new Hero ability, add its stable `ABILITY_*` macro and implement its calculation or command behavior in `vv_player.gml`. For a new Minion ability, add the ID and implement Entry, targeting, or protection behavior in `vv_enemy.gml`. For a new Escape, Leader Strike, or Twist effect, add an `EFFECT_*` macro and the appropriate resolver case in `vv_enemy.gml`.
+
+Display names never select behavior. Gameplay checks `abilities[]`, `escape_effects[]`, or Enemy Event `effects[]` by stable ID. Keep card-specific numeric values in the entry's `params` struct when the resolver supports them.
+
+## Verification
+
+After a content or structural change:
+
+1. run `python tools/verify_card_assets.py` when artwork or artwork paths changed;
+2. compile the GameMaker project;
+3. open the setup screen and start a match;
+4. exercise the changed rule or content; and
+5. confirm the Player and Enemy deck-composition checks remain valid.
