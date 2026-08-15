@@ -2,6 +2,25 @@
 
 #macro ART_BACKGROUND "card_art/backgrounds/battlefield.png"
 
+// Permanent core deck structure. Content supplies the cards that fill these slots.
+#macro CORE_HERO_COUNT 3
+#macro CORE_HERO_NORMAL_COPIES 7
+#macro CORE_HERO_ABILITY_COPIES 5
+#macro CORE_HERO_SPECIAL_COPIES 3
+#macro CORE_PLAYER_DECK_SIZE 45
+
+#macro CORE_MINION_NA_COPIES 7
+#macro CORE_MINION_NB_COPIES 3
+#macro CORE_MINION_NC_COPIES 2
+#macro CORE_MINION_AA_COPIES 5
+#macro CORE_MINION_AB_COPIES 3
+#macro CORE_MINION_SA_COPIES 2
+#macro CORE_MINION_SB_COPIES 2
+#macro CORE_MINION_SC_COPIES 1
+#macro CORE_MINION_TOTAL 25
+#macro CORE_ENEMY_EVENT_SLOTS 8
+#macro CORE_ENEMY_DECK_SIZE 33
+
 // Stable gameplay IDs. Display names can change without changing behavior.
 #macro ABILITY_NONE "none"
 #macro ABILITY_OVERPOWER "overpower"
@@ -131,28 +150,28 @@ function array_shuffle_copy(_source) {
 
 function make_player_deck() {
     var deck = [];
-    array_add_copies(deck, card_player("A", "Normal", 5, 3, ABILITY_NONE, "", ""), 7);
-    array_add_copies(deck, card_player("A", "Ability", 4, 2, ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack."), 5);
-    array_add_copies(deck, card_player("A", "Special", 7, 2, ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack."), 3);
-    array_add_copies(deck, card_player("B", "Normal", 4, 4, ABILITY_NONE, "", ""), 7);
-    array_add_copies(deck, card_player("B", "Ability", 3, 4, ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack."), 5);
-    array_add_copies(deck, card_player("B", "Special", 4, 4, ABILITY_UNITY, "Unity", "Gain +2 Attack for each other Hero type in your Build."), 3);
-    array_add_copies(deck, card_player("C", "Normal", 3, 5, ABILITY_NONE, "", ""), 7);
-    array_add_copies(deck, card_player("C", "Ability", 2, 6, ABILITY_GUARD, "Guard", "Enemies must attack this card first."), 5);
-    array_add_copies(deck, card_player("C", "Special", 2, 8, ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first."), 3);
+    array_add_copies(deck, card_player("A", "Normal", 5, 3, ABILITY_NONE, "", ""), CORE_HERO_NORMAL_COPIES);
+    array_add_copies(deck, card_player("A", "Ability", 4, 2, ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack."), CORE_HERO_ABILITY_COPIES);
+    array_add_copies(deck, card_player("A", "Special", 7, 2, ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack."), CORE_HERO_SPECIAL_COPIES);
+    array_add_copies(deck, card_player("B", "Normal", 4, 4, ABILITY_NONE, "", ""), CORE_HERO_NORMAL_COPIES);
+    array_add_copies(deck, card_player("B", "Ability", 3, 4, ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack."), CORE_HERO_ABILITY_COPIES);
+    array_add_copies(deck, card_player("B", "Special", 4, 4, ABILITY_UNITY, "Unity", "Gain +2 Attack for each other Hero type in your Build."), CORE_HERO_SPECIAL_COPIES);
+    array_add_copies(deck, card_player("C", "Normal", 3, 5, ABILITY_NONE, "", ""), CORE_HERO_NORMAL_COPIES);
+    array_add_copies(deck, card_player("C", "Ability", 2, 6, ABILITY_GUARD, "Guard", "Enemies must attack this card first."), CORE_HERO_ABILITY_COPIES);
+    array_add_copies(deck, card_player("C", "Special", 2, 8, ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first."), CORE_HERO_SPECIAL_COPIES);
     return array_shuffle_copy(deck);
 }
 
 function make_enemy_deck() {
     var deck = [];
-    array_add_copies(deck, card_minion("NA", "Normal", 4, 6, ABILITY_NONE, "", "Attacks when played.", "heal", 5), 7);
-    array_add_copies(deck, card_minion("NB", "Normal", 6, 8, ABILITY_NONE, "", "Attacks when played.", "heal", 7), 3);
-    array_add_copies(deck, card_minion("NC", "Normal", 8, 10, ABILITY_NONE, "", "Attacks when played.", "heal", 9), 2);
-    array_add_copies(deck, card_minion("AA", "Ability", 5, 7, ABILITY_DISRUPT, "Disrupt", "Discard a Build card, then attack.", "heal", 6), 5);
-    array_add_copies(deck, card_minion("AB", "Ability", 7, 9, ABILITY_CRUSH, "Crush", "Attacks twice when played.", "heal", 8), 3);
-    array_add_copies(deck, card_minion("SA", "Special", 6, 12, ABILITY_PROTECTOR, "Protector", "The Enemy Leader cannot be attacked.", "heal", 10), 2);
-    array_add_copies(deck, card_minion("SB", "Special", 8, 9, ABILITY_SHATTER, "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1), 2);
-    array_add_copies(deck, card_minion("SC", "Special", 10, 14, ABILITY_DEVASTATE, "Devastate", "Attacks twice when played.", "heal", 12), 1);
+    array_add_copies(deck, card_minion("NA", "Normal", 4, 6, ABILITY_NONE, "", "Attacks when played.", "heal", 5), CORE_MINION_NA_COPIES);
+    array_add_copies(deck, card_minion("NB", "Normal", 6, 8, ABILITY_NONE, "", "Attacks when played.", "heal", 7), CORE_MINION_NB_COPIES);
+    array_add_copies(deck, card_minion("NC", "Normal", 8, 10, ABILITY_NONE, "", "Attacks when played.", "heal", 9), CORE_MINION_NC_COPIES);
+    array_add_copies(deck, card_minion("AA", "Ability", 5, 7, ABILITY_DISRUPT, "Disrupt", "Discard a Build card, then attack.", "heal", 6), CORE_MINION_AA_COPIES);
+    array_add_copies(deck, card_minion("AB", "Ability", 7, 9, ABILITY_CRUSH, "Crush", "Attacks twice when played.", "heal", 8), CORE_MINION_AB_COPIES);
+    array_add_copies(deck, card_minion("SA", "Special", 6, 12, ABILITY_PROTECTOR, "Protector", "The Enemy Leader cannot be attacked.", "heal", 10), CORE_MINION_SA_COPIES);
+    array_add_copies(deck, card_minion("SB", "Special", 8, 9, ABILITY_SHATTER, "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1), CORE_MINION_SB_COPIES);
+    array_add_copies(deck, card_minion("SC", "Special", 10, 14, ABILITY_DEVASTATE, "Devastate", "Attacks twice when played.", "heal", 12), CORE_MINION_SC_COPIES);
     var leader = make_enemy_leader();
     array_add_copies(deck, card_enemy("strike", "Direct Assault", "The Enemy Leader attacks for " + string(leader.attack) + "."), 3);
     array_add_copies(deck, card_enemy("twist", "Reinforcements", "The Minion in Area 2 attacks."), 5);
