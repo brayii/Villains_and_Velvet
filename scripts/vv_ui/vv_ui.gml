@@ -145,11 +145,8 @@ function draw_art_cover(_sprite, _rect) {
 function draw_card(_card, _rect, _selected, _legal) {
     var fill = COL_PANEL;
     if (!is_undefined(_card)) {
-        if (variable_struct_exists(_card, "hero")) {
-            if (_card.hero == "A") fill = make_color_rgb(91, 42, 53);
-            if (_card.hero == "B") fill = make_color_rgb(54, 67, 112);
-            if (_card.hero == "C") fill = make_color_rgb(42, 91, 74);
-        } else fill = make_color_rgb(92, 47, 48);
+        if (variable_struct_exists(_card, "theme_color")) fill = _card.theme_color;
+        else fill = make_color_rgb(92, 47, 48);
     }
     var outline = COL_EDGE;
     if (_legal) outline = COL_LEGAL;

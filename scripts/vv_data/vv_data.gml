@@ -88,64 +88,26 @@ function make_enemy_leader() {
     };
 }
 
-function player_character_name(_hero) {
-    if (_hero == "B") return "Skeleton";
-    if (_hero == "C") return "Orc";
-    return "Goblin";
-}
-
-function minion_character_name(_name) {
-    switch (_name) {
-        case "NA": return "Bunny";
-        case "NB": return "Corgi";
-        case "NC": return "Red Panda";
-        case "AA": return "Otter";
-        case "AB": return "Highland Cow";
-        case "SA": return "Capybara";
-        case "SB": return "Raccoon";
-        case "SC": return "Harp Seal";
-    }
-    return _name;
-}
-
-function player_card_art(_hero, _kind) {
-    var character = string_lower(player_character_name(_hero));
-    return "card_art/heroes/hero_" + string_lower(_hero) + "_" + string_lower(_kind) + "_" + character + ".png";
-}
-
-function minion_card_art(_name) {
-    switch (_name) {
-        case "NA": return "card_art/enemies/minion_na_bunny.png";
-        case "NB": return "card_art/enemies/minion_nb_corgi.png";
-        case "NC": return "card_art/enemies/minion_nc_red_panda.png";
-        case "AA": return "card_art/enemies/minion_aa_otter.png";
-        case "AB": return "card_art/enemies/minion_ab_highland_cow.png";
-        case "SA": return "card_art/enemies/minion_sa_capybara.png";
-        case "SB": return "card_art/enemies/minion_sb_raccoon.png";
-        case "SC": return "card_art/enemies/minion_sc_harp_seal.png";
-    }
-    return "";
-}
-
-function card_player(_hero, _kind, _atk, _hp, _abilities, _ability, _effect) {
+function card_player(_hero, _name, _kind, _atk, _hp, _abilities, _ability, _effect, _art_file, _theme_color) {
     return {
         hero: _hero,
         kind: _kind,
-        name: player_character_name(_hero),
+        name: _name,
         atk: _atk,
         hp: _hp,
         abilities: _abilities,
         ability: _ability,
         effect: _effect,
-        art_file: player_card_art(_hero, _kind)
+        art_file: _art_file,
+        theme_color: _theme_color
     };
 }
 
-function card_minion(_name, _kind, _atk, _hp, _abilities, _ability, _effect, _escape_effects) {
+function card_minion(_code, _name, _kind, _atk, _hp, _abilities, _ability, _effect, _escape_effects, _art_file) {
     return {
         card_type: "minion",
-        code: _name,
-        name: minion_character_name(_name),
+        code: _code,
+        name: _name,
         kind: _kind,
         atk: _atk,
         hp: _hp,
@@ -153,7 +115,7 @@ function card_minion(_name, _kind, _atk, _hp, _abilities, _ability, _effect, _es
         ability: _ability,
         effect: _effect,
         escape_effects: _escape_effects,
-        art_file: minion_card_art(_name)
+        art_file: _art_file
     };
 }
 
@@ -169,27 +131,30 @@ function card_enemy(_type, _id, _name, _effects, _effect, _art_file) {
 }
 
 function make_hero_definitions() {
+    var goblin_color = make_color_rgb(91, 42, 53);
+    var skeleton_color = make_color_rgb(54, 67, 112);
+    var orc_color = make_color_rgb(42, 91, 74);
     return [
         {
             id: "A",
             name: "Goblin",
-            normal: card_player("A", "Normal", 5, 3, [], "", ""),
-            ability: card_player("A", "Ability", 4, 2, [ability_entry(ABILITY_OVERPOWER)], "Overpower", "After you defeat a Minion, gain +2 Attack."),
-            special: card_player("A", "Special", 7, 2, [ability_entry(ABILITY_RELENTLESS)], "Relentless", "After you defeat a Minion, gain +3 Attack.")
+            normal: card_player("A", "Goblin", "Normal", 5, 3, [], "", "", "card_art/heroes/hero_a_normal_goblin.png", goblin_color),
+            ability: card_player("A", "Goblin", "Ability", 4, 2, [ability_entry(ABILITY_OVERPOWER)], "Overpower", "After you defeat a Minion, gain +2 Attack.", "card_art/heroes/hero_a_ability_goblin.png", goblin_color),
+            special: card_player("A", "Goblin", "Special", 7, 2, [ability_entry(ABILITY_RELENTLESS)], "Relentless", "After you defeat a Minion, gain +3 Attack.", "card_art/heroes/hero_a_special_goblin.png", goblin_color)
         },
         {
             id: "B",
             name: "Skeleton",
-            normal: card_player("B", "Normal", 4, 4, [], "", ""),
-            ability: card_player("B", "Ability", 3, 4, [ability_entry(ABILITY_RALLY)], "Rally", "Your other Build cards gain +1 Attack."),
-            special: card_player("B", "Special", 4, 4, [ability_entry(ABILITY_UNITY)], "Unity", "Gain +2 Attack for each other Hero type in your Build.")
+            normal: card_player("B", "Skeleton", "Normal", 4, 4, [], "", "", "card_art/heroes/hero_b_normal_skeleton.png", skeleton_color),
+            ability: card_player("B", "Skeleton", "Ability", 3, 4, [ability_entry(ABILITY_RALLY)], "Rally", "Your other Build cards gain +1 Attack.", "card_art/heroes/hero_b_ability_skeleton.png", skeleton_color),
+            special: card_player("B", "Skeleton", "Special", 4, 4, [ability_entry(ABILITY_UNITY)], "Unity", "Gain +2 Attack for each other Hero type in your Build.", "card_art/heroes/hero_b_special_skeleton.png", skeleton_color)
         },
         {
             id: "C",
             name: "Orc",
-            normal: card_player("C", "Normal", 3, 5, [], "", ""),
-            ability: card_player("C", "Ability", 2, 6, [ability_entry(ABILITY_GUARD)], "Guard", "Enemies must attack this card first."),
-            special: card_player("C", "Special", 2, 8, [ability_entry(ABILITY_FORTRESS)], "Fortress", "Enemies must attack this card first.")
+            normal: card_player("C", "Orc", "Normal", 3, 5, [], "", "", "card_art/heroes/hero_c_normal_orc.png", orc_color),
+            ability: card_player("C", "Orc", "Ability", 2, 6, [ability_entry(ABILITY_GUARD)], "Guard", "Enemies must attack this card first.", "card_art/heroes/hero_c_ability_orc.png", orc_color),
+            special: card_player("C", "Orc", "Special", 2, 8, [ability_entry(ABILITY_FORTRESS)], "Fortress", "Enemies must attack this card first.", "card_art/heroes/hero_c_special_orc.png", orc_color)
         }
     ];
 }
@@ -214,16 +179,16 @@ function make_scenario_the_assault() {
         id: "the_assault",
         name: "The Assault",
         setup_rules: [],
-        minions: {
-            na: card_minion("NA", "Normal", 4, 6, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:5})]),
-            nb: card_minion("NB", "Normal", 6, 8, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:7})]),
-            nc: card_minion("NC", "Normal", 8, 10, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:9})]),
-            aa: card_minion("AA", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT)], "Disrupt", "Discard a Build card, then attack.", [effect_entry(EFFECT_HEAL_LEADER, {amount:6})]),
-            ab: card_minion("AB", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH)], "Crush", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:8})]),
-            sa: card_minion("SA", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR)], "Protector", "The Enemy Leader cannot be attacked.", [effect_entry(EFFECT_HEAL_LEADER, {amount:10})]),
-            sb: card_minion("SB", "Special", 8, 9, [ability_entry(ABILITY_SHATTER)], "Shatter", "Destroy the lowest-HP Build card, then attack.", [effect_entry(EFFECT_DESTROY_HAND_CARD, {count:1})]),
-            sc: card_minion("SC", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE)], "Devastate", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:12})])
-        },
+        minion_slots: [
+            {card:card_minion("NA", "Bunny", "Normal", 4, 6, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:5})], "card_art/enemies/minion_na_bunny.png"), copies:CORE_MINION_NA_COPIES},
+            {card:card_minion("NB", "Corgi", "Normal", 6, 8, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:7})], "card_art/enemies/minion_nb_corgi.png"), copies:CORE_MINION_NB_COPIES},
+            {card:card_minion("NC", "Red Panda", "Normal", 8, 10, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:9})], "card_art/enemies/minion_nc_red_panda.png"), copies:CORE_MINION_NC_COPIES},
+            {card:card_minion("AA", "Otter", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT)], "Disrupt", "Discard a Build card, then attack.", [effect_entry(EFFECT_HEAL_LEADER, {amount:6})], "card_art/enemies/minion_aa_otter.png"), copies:CORE_MINION_AA_COPIES},
+            {card:card_minion("AB", "Highland Cow", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH)], "Crush", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:8})], "card_art/enemies/minion_ab_highland_cow.png"), copies:CORE_MINION_AB_COPIES},
+            {card:card_minion("SA", "Capybara", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR)], "Protector", "The Enemy Leader cannot be attacked.", [effect_entry(EFFECT_HEAL_LEADER, {amount:10})], "card_art/enemies/minion_sa_capybara.png"), copies:CORE_MINION_SA_COPIES},
+            {card:card_minion("SB", "Raccoon", "Special", 8, 9, [ability_entry(ABILITY_SHATTER)], "Shatter", "Destroy the lowest-HP Build card, then attack.", [effect_entry(EFFECT_DESTROY_HAND_CARD, {count:1})], "card_art/enemies/minion_sb_raccoon.png"), copies:CORE_MINION_SB_COPIES},
+            {card:card_minion("SC", "Harp Seal", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE)], "Devastate", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:12})], "card_art/enemies/minion_sc_harp_seal.png"), copies:CORE_MINION_SC_COPIES}
+        ],
         twists: [
             {
                 card: card_enemy(
@@ -303,14 +268,10 @@ function make_player_deck(_hero_definitions, _selected_hero_ids) {
 
 function make_enemy_deck(_leader, _scenario, _event_selection) {
     var deck = [];
-    array_add_copies(deck, _scenario.minions.na, CORE_MINION_NA_COPIES);
-    array_add_copies(deck, _scenario.minions.nb, CORE_MINION_NB_COPIES);
-    array_add_copies(deck, _scenario.minions.nc, CORE_MINION_NC_COPIES);
-    array_add_copies(deck, _scenario.minions.aa, CORE_MINION_AA_COPIES);
-    array_add_copies(deck, _scenario.minions.ab, CORE_MINION_AB_COPIES);
-    array_add_copies(deck, _scenario.minions.sa, CORE_MINION_SA_COPIES);
-    array_add_copies(deck, _scenario.minions.sb, CORE_MINION_SB_COPIES);
-    array_add_copies(deck, _scenario.minions.sc, CORE_MINION_SC_COPIES);
+    for (var minion_i = 0; minion_i < array_length(_scenario.minion_slots); minion_i++) {
+        var minion_slot = _scenario.minion_slots[minion_i];
+        array_add_copies(deck, minion_slot.card, minion_slot.copies);
+    }
     add_selected_enemy_events(deck, _event_selection.leader_strikes, _leader.leader_strikes);
     add_selected_enemy_events(deck, _event_selection.twists, _scenario.twists);
     return array_shuffle_copy(deck);

@@ -131,8 +131,9 @@ function command_attack_minion(_index) {
 
 function command_attack_leader() {
     if (phase != "attack") return false;
-    if (leader_is_protected()) {
-        log_add("SA Protector prevents attacks on the Leader.");
+    var protector = find_leader_protector();
+    if (!is_undefined(protector)) {
+        log_add(protector.name + "'s " + protector.ability + " prevents attacks on the Leader.");
         return false;
     }
     if (attack_left <= 0) {

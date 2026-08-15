@@ -85,16 +85,12 @@ function count_enemy_cards(_cards, _card_type, _code) {
     return count;
 }
 
-function validate_enemy_composition(_cards) {
+function validate_enemy_composition(_cards, _scenario) {
     if (array_length(_cards) != CORE_ENEMY_DECK_SIZE) return false;
-    if (count_enemy_cards(_cards, "minion", "NA") != CORE_MINION_NA_COPIES) return false;
-    if (count_enemy_cards(_cards, "minion", "NB") != CORE_MINION_NB_COPIES) return false;
-    if (count_enemy_cards(_cards, "minion", "NC") != CORE_MINION_NC_COPIES) return false;
-    if (count_enemy_cards(_cards, "minion", "AA") != CORE_MINION_AA_COPIES) return false;
-    if (count_enemy_cards(_cards, "minion", "AB") != CORE_MINION_AB_COPIES) return false;
-    if (count_enemy_cards(_cards, "minion", "SA") != CORE_MINION_SA_COPIES) return false;
-    if (count_enemy_cards(_cards, "minion", "SB") != CORE_MINION_SB_COPIES) return false;
-    if (count_enemy_cards(_cards, "minion", "SC") != CORE_MINION_SC_COPIES) return false;
+    for (var minion_i = 0; minion_i < array_length(_scenario.minion_slots); minion_i++) {
+        var minion_slot = _scenario.minion_slots[minion_i];
+        if (count_enemy_cards(_cards, "minion", minion_slot.card.code) != minion_slot.copies) return false;
+    }
     var minion_count = count_enemy_cards(_cards, "minion", "");
     var event_count = count_enemy_cards(_cards, "strike", "") + count_enemy_cards(_cards, "twist", "");
     return minion_count == CORE_MINION_TOTAL && event_count == CORE_ENEMY_EVENT_SLOTS;
@@ -228,7 +224,7 @@ function validate_state(_context) {
     var player_total = array_length(player_cards);
     var enemy_total = array_length(enemy_cards);
     var valid_player_composition = validate_player_composition(player_cards);
-    var valid_enemy_composition = validate_enemy_composition(enemy_cards);
+    var valid_enemy_composition = validate_enemy_composition(enemy_cards, enemy_scenario);
     var valid_spaces = array_length(hand) == 3 && array_length(build) == 3 && array_length(minions) == 2;
     var valid = valid_player_composition && valid_enemy_composition
         && leader_hp >= 0 && leader_hp <= enemy_leader.max_hp

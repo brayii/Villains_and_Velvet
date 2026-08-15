@@ -128,6 +128,7 @@ function resolve_escape_effect(_effect, _minion) {
         case EFFECT_DESTROY_HAND_CARD:
             if (count_occupied_hand() > 0) {
                 prompt_mode = "destroy_hand";
+                prompt_source = _minion.name + " — Escape";
                 log_add(_minion.name + " escapes. Choose a highlighted Hand card to destroy.");
             } else {
                 log_add(_minion.name + " escapes, but there is no card in Hand to destroy.");
@@ -166,25 +167,28 @@ function resolve_minion_entry(_minion) {
     if (card_has_ability(_minion, ABILITY_DISRUPT) && build_has_cards()) {
         prompt_mode = "disrupt";
         prompt_value = _minion.atk;
-        log_add("AA uses Disrupt. Choose a highlighted Build card to discard.");
+        prompt_source = _minion.name + " — " + _minion.ability;
+        log_add(_minion.name + " uses " + _minion.ability + ". Choose a highlighted Build card to discard.");
         return;
     }
     if (card_has_ability(_minion, ABILITY_CRUSH)) {
-        queue_enemy_attack(_minion.atk, "AB — Crush (1 of 2)");
-        queue_enemy_attack(_minion.atk, "AB — Crush (2 of 2)");
+        queue_enemy_attack(_minion.atk, _minion.name + " — " + _minion.ability + " (1 of 2)");
+        queue_enemy_attack(_minion.atk, _minion.name + " — " + _minion.ability + " (2 of 2)");
     } else if (card_has_ability(_minion, ABILITY_SHATTER)) {
         var tied = lowest_build_indices();
-        if (array_length(tied) == 1) destroy_build_card(tied[0], "SB Shatter");
+        var shatter_source = _minion.name + " — " + _minion.ability;
+        if (array_length(tied) == 1) destroy_build_card(tied[0], shatter_source);
         else if (array_length(tied) > 1) {
             prompt_mode = "shatter";
             prompt_value = _minion.atk;
-            log_add("SB uses Shatter. Choose a highlighted card tied for lowest Health.");
+            prompt_source = shatter_source;
+            log_add(_minion.name + " uses " + _minion.ability + ". Choose a highlighted card tied for lowest Health.");
             return;
         }
-        queue_enemy_attack(_minion.atk, "SB — Attack");
+        queue_enemy_attack(_minion.atk, _minion.name + " — Attack");
     } else if (card_has_ability(_minion, ABILITY_DEVASTATE)) {
-        queue_enemy_attack(_minion.atk, "SC — Devastate (1 of 2)");
-        queue_enemy_attack(_minion.atk, "SC — Devastate (2 of 2)");
+        queue_enemy_attack(_minion.atk, _minion.name + " — " + _minion.ability + " (1 of 2)");
+        queue_enemy_attack(_minion.atk, _minion.name + " — " + _minion.ability + " (2 of 2)");
     } else {
         queue_enemy_attack(_minion.atk, _minion.name + " — Attack");
     }
@@ -270,10 +274,12 @@ function draw_next_enemy_card() {
 function command_prompt_hand(_index) {
     if (prompt_mode != "destroy_hand" || _index < 0 || _index >= array_length(hand)
     || is_undefined(hand[_index])) return false;
-    destroy_hand_card(_index, "SB Escape");
+    var source = prompt_source;
+    destroy_hand_card(_index, source);
     prompt_mode = "";
+    prompt_source = "";
     resume_after_prompts();
-    validate_state("SB Escape");
+    validate_state("Escape destroys Hand card");
     return true;
 }
 
@@ -307,31 +313,39 @@ function command_prompt_build(_index) {
         return true;
     }
     if (prompt_mode == "disrupt") {
-        discard_build_card(_index, "AA Disrupt");
-        var aa_attack = prompt_value;
+        var disrupt_source = prompt_source;
+        discard_build_card(_index, disrupt_source);
+        var disrupt_attack = prompt_value;
         prompt_mode = "";
         prompt_value = 0;
-        queue_enemy_attack(aa_attack, "AA — Attack");
+        prompt_source = "";
+        queue_enemy_attack(disrupt_attack, disrupt_source + " — Attack");
         resume_after_prompts();
-        validate_state("AA Disrupt");
+        validate_state("Disrupt resolves");
         return true;
     }
     if (prompt_mode == "shatter") {
-        destroy_build_card(_index, "SB Shatter");
-        var sb_attack = prompt_value;
+        var shatter_source = prompt_source;
+        destroy_build_card(_index, shatter_source);
+        var shatter_attack = prompt_value;
         prompt_mode = "";
         prompt_value = 0;
-        queue_enemy_attack(sb_attack, "SB — Attack");
+        prompt_source = "";
+        queue_enemy_attack(shatter_attack, shatter_source + " — Attack");
         resume_after_prompts();
-        validate_state("SB Shatter");
+        validate_state("Shatter resolves");
         return true;
     }
     return false;
 }
 
-function leader_is_protected() {
+function find_leader_protector() {
     for (var minion_i = 0; minion_i < 2; minion_i++) {
-        if (!is_undefined(minions[minion_i]) && card_has_ability(minions[minion_i], ABILITY_PROTECTOR)) return true;
+        if (!is_undefined(minions[minion_i]) && card_has_ability(minions[minion_i], ABILITY_PROTECTOR)) return minions[minion_i];
     }
-    return false;
+    return undefined;
+}
+
+function leader_is_protected() {
+    return !is_undefined(find_leader_protector());
 }
