@@ -34,7 +34,7 @@ Leader Strikes and Twists use:
 card_enemy(card_type, stable_id, display_name, effects, effect_text, art_path)
 ```
 
-Normal cards use an empty `abilities` array. Ability entries include their stable behavior ID and player-facing presentation, for example `ability_entry(ABILITY_GUARD, "Guard", "Enemies must attack this card first.")`. Put multiple entries in the array in the order they should resolve and appear. Effect entries include a stable effect ID and parameters, for example `[effect_entry(EFFECT_HEAL_LEADER, {amount:5})]`.
+Normal cards use an empty `abilities` array. Ability entries include their stable behavior ID, player-facing presentation, and parameters, for example `ability_entry(ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack.", {amount:1})`. Put multiple entries in the array in the order they should resolve and appear. Overpower, Relentless, and Rally use `amount`; Unity uses `amount_per_hero`. Abilities without adjustable values use `{}`. Effect entries include a stable effect ID and parameters, for example `[effect_entry(EFFECT_HEAL_LEADER, {amount:5})]`.
 
 ## Add or Replace a Hero
 

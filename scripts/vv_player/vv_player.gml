@@ -39,21 +39,23 @@ function count_unique_other_heroes(_cards, _source_index) {
 
 function compute_attack_summary() {
     var total = 0;
-    var rally_cards = 0;
+    var rally_power = 0;
     var gained_after_kill = 0;
     for (var card_i = 0; card_i < 3; card_i++) if (!is_undefined(build[card_i])) {
         total += build[card_i].atk;
-        if (card_has_ability(build[card_i], ABILITY_RALLY)) rally_cards++;
-        if (card_has_ability(build[card_i], ABILITY_OVERPOWER)) gained_after_kill += 2;
-        if (card_has_ability(build[card_i], ABILITY_RELENTLESS)) gained_after_kill += 3;
+        var rally = find_card_ability(build[card_i], ABILITY_RALLY);
+        var overpower = find_card_ability(build[card_i], ABILITY_OVERPOWER);
+        var relentless = find_card_ability(build[card_i], ABILITY_RELENTLESS);
+        rally_power += ability_param_value(rally, "amount", 0);
+        gained_after_kill += ability_param_value(overpower, "amount", 0);
+        gained_after_kill += ability_param_value(relentless, "amount", 0);
     }
     for (var card_i = 0; card_i < 3; card_i++) if (!is_undefined(build[card_i])) {
-        var other_rallies = rally_cards;
-        if (card_has_ability(build[card_i], ABILITY_RALLY)) other_rallies--;
-        total += max(0, other_rallies);
-        if (card_has_ability(build[card_i], ABILITY_UNITY)) {
-            total += 2 * count_unique_other_heroes(build, card_i);
-        }
+        var own_rally = find_card_ability(build[card_i], ABILITY_RALLY);
+        total += max(0, rally_power - ability_param_value(own_rally, "amount", 0));
+        var unity = find_card_ability(build[card_i], ABILITY_UNITY);
+        total += ability_param_value(unity, "amount_per_hero", 0)
+            * count_unique_other_heroes(build, card_i);
     }
     return {total:total, kill_bonus:gained_after_kill};
 }
