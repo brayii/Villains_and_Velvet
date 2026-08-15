@@ -28,7 +28,7 @@ function get_art_sprite(_file) {
 
 function vv_assets_load_initial() {
     background_art_sprite = get_art_sprite(ART_BACKGROUND);
-    leader_art_sprite = get_art_sprite(enemy_leader.art_file);
+    leader_art_sprite = is_undefined(enemy_leader) ? -1 : get_art_sprite(enemy_leader.art_file);
 }
 
 function vv_assets_cleanup() {

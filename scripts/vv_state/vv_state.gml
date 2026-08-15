@@ -167,7 +167,130 @@ function validate_hero_selection(_definitions, _selected_ids) {
     return array_length(unique_ids) == CORE_HERO_COUNT;
 }
 
+function content_validation_result(_valid, _message) {
+    return {valid:_valid, message:_message};
+}
+
+function validate_registry_ids(_definitions, _label, _minimum) {
+    if (!is_array(_definitions) || array_length(_definitions) < _minimum) {
+        return content_validation_result(false, _label + " registry needs at least " + string(_minimum) + " definition(s).");
+    }
+    var ids = [];
+    for (var definition_i = 0; definition_i < array_length(_definitions); definition_i++) {
+        var definition = _definitions[definition_i];
+        if (!is_struct(definition) || !variable_struct_exists(definition, "id")
+        || !is_string(definition.id) || definition.id == "") {
+            return content_validation_result(false, _label + " definition " + string(definition_i + 1) + " needs a stable ID.");
+        }
+        if (string_lower(definition.id) != definition.id) {
+            return content_validation_result(false, _label + " ID '" + definition.id + "' must be lowercase.");
+        }
+        if (array_has_value(ids, definition.id)) {
+            return content_validation_result(false, _label + " ID '" + definition.id + "' is duplicated.");
+        }
+        array_push(ids, definition.id);
+    }
+    return content_validation_result(true, "");
+}
+
+function validate_enemy_event_definitions(_definitions, _card_type, _owner_label) {
+    if (!is_array(_definitions)) return content_validation_result(false, _owner_label + " events must be an array.");
+    var ids = [];
+    for (var event_i = 0; event_i < array_length(_definitions); event_i++) {
+        var definition = _definitions[event_i];
+        if (!is_struct(definition) || !variable_struct_exists(definition, "card")
+        || !is_struct(definition.card) || !variable_struct_exists(definition.card, "id")
+        || !is_string(definition.card.id) || definition.card.id == ""
+        || !variable_struct_exists(definition.card, "name")
+        || !variable_struct_exists(definition.card, "effects") || !is_array(definition.card.effects)
+        || !variable_struct_exists(definition.card, "card_type") || definition.card.card_type != _card_type
+        || !variable_struct_exists(definition, "default_copies")
+        || !variable_struct_exists(definition, "max_copies")) {
+            return content_validation_result(false, _owner_label + " event " + string(event_i + 1) + " is missing required fields.");
+        }
+        if (string_lower(definition.card.id) != definition.card.id || array_has_value(ids, definition.card.id)) {
+            return content_validation_result(false, _owner_label + " event ID '" + definition.card.id + "' must be unique and lowercase.");
+        }
+        if (definition.default_copies < 0 || definition.default_copies != floor(definition.default_copies)
+        || definition.max_copies < definition.default_copies || definition.max_copies != floor(definition.max_copies)) {
+            return content_validation_result(false, _owner_label + " event '" + definition.card.id + "' has invalid copy limits.");
+        }
+        array_push(ids, definition.card.id);
+    }
+    return content_validation_result(true, "");
+}
+
+function validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes) {
+    var result = validate_registry_ids(_leaders, "Leader", 1);
+    if (!result.valid) return result;
+    result = validate_registry_ids(_scenarios, "Scenario", 1);
+    if (!result.valid) return result;
+    result = validate_registry_ids(_minion_sets, "Minion Set", 1);
+    if (!result.valid) return result;
+    result = validate_registry_ids(_heroes, "Hero", CORE_HERO_COUNT);
+    if (!result.valid) return result;
+
+    for (var leader_i = 0; leader_i < array_length(_leaders); leader_i++) {
+        var leader = _leaders[leader_i];
+        if (!variable_struct_exists(leader, "name") || !variable_struct_exists(leader, "starting_hp")
+        || !variable_struct_exists(leader, "max_hp") || !variable_struct_exists(leader, "attack")
+        || !variable_struct_exists(leader, "art_file") || !variable_struct_exists(leader, "abilities")
+        || !is_array(leader.abilities) || !variable_struct_exists(leader, "special_moves")
+        || !is_array(leader.special_moves) || !variable_struct_exists(leader, "leader_strikes")) {
+            return content_validation_result(false, "Leader '" + leader.id + "' is missing required fields.");
+        }
+        result = validate_enemy_event_definitions(leader.leader_strikes, "strike", "Leader '" + leader.id + "'");
+        if (!result.valid) return result;
+    }
+    for (var scenario_i = 0; scenario_i < array_length(_scenarios); scenario_i++) {
+        var scenario = _scenarios[scenario_i];
+        if (!variable_struct_exists(scenario, "name") || !variable_struct_exists(scenario, "setup_rules")
+        || !is_array(scenario.setup_rules) || !variable_struct_exists(scenario, "twists")) {
+            return content_validation_result(false, "Scenario '" + scenario.id + "' is missing required fields.");
+        }
+        result = validate_enemy_event_definitions(scenario.twists, "twist", "Scenario '" + scenario.id + "'");
+        if (!result.valid) return result;
+    }
+    for (var minion_set_i = 0; minion_set_i < array_length(_minion_sets); minion_set_i++) {
+        var minion_set = _minion_sets[minion_set_i];
+        if (!variable_struct_exists(minion_set, "name") || !core_minion_slots_are_valid(minion_set)) {
+            return content_validation_result(false, "Minion Set '" + minion_set.id + "' must define every unique core slot and Minion ID.");
+        }
+        for (var minion_i = 0; minion_i < array_length(minion_set.minion_slots); minion_i++) {
+            var minion = minion_set.minion_slots[minion_i].card;
+            if (string_lower(minion.id) != minion.id || !variable_struct_exists(minion, "name")
+            || !variable_struct_exists(minion, "abilities") || !is_array(minion.abilities)
+            || !variable_struct_exists(minion, "escape_effects") || !is_array(minion.escape_effects)) {
+                return content_validation_result(false, "Minion definition '" + string(minion.id) + "' is incomplete or not lowercase.");
+            }
+        }
+    }
+    for (var hero_i = 0; hero_i < array_length(_heroes); hero_i++) {
+        var hero = _heroes[hero_i];
+        if (!variable_struct_exists(hero, "name") || !variable_struct_exists(hero, "normal")
+        || !variable_struct_exists(hero, "ability") || !variable_struct_exists(hero, "special")) {
+            return content_validation_result(false, "Hero '" + hero.id + "' is missing card templates.");
+        }
+        var templates = [hero.normal, hero.ability, hero.special];
+        var kinds = ["Normal", "Ability", "Special"];
+        for (var template_i = 0; template_i < 3; template_i++) {
+            var template = templates[template_i];
+            if (!is_struct(template) || !variable_struct_exists(template, "hero") || template.hero != hero.id
+            || !variable_struct_exists(template, "kind") || template.kind != kinds[template_i]
+            || !variable_struct_exists(template, "abilities") || !is_array(template.abilities)) {
+                return content_validation_result(false, "Hero '" + hero.id + "' has an invalid " + kinds[template_i] + " template.");
+            }
+        }
+    }
+    return content_validation_result(true, "Content registries ready.");
+}
+
 function refresh_setup_validation() {
+    if (!content_registry_validation.valid) {
+        enemy_event_validation = {valid:false, total:0, message:content_registry_validation.message};
+        setup_validation = {valid:false, message:content_registry_validation.message};
+        return setup_validation;
+    }
     enemy_event_validation = validate_enemy_event_selection(enemy_leader, enemy_scenario, enemy_event_selection);
     var heroes_valid = validate_hero_selection(available_heroes, selected_hero_ids);
     var content_valid = !is_undefined(enemy_leader) && !is_undefined(enemy_scenario)

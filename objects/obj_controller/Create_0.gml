@@ -5,15 +5,19 @@ vv_ui_init();
 available_leaders = make_enemy_leader_registry();
 available_scenarios = make_scenario_registry();
 available_minion_sets = make_minion_set_registry();
-selected_leader_index = 0;
-selected_scenario_index = 0;
-selected_minion_set_index = 0;
-enemy_leader = available_leaders[selected_leader_index];
-enemy_scenario = available_scenarios[selected_scenario_index];
-enemy_minion_set = available_minion_sets[selected_minion_set_index];
 available_heroes = make_hero_definitions();
-selected_hero_ids = make_default_hero_selection(available_heroes);
-enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
+content_registry_validation = validate_content_registries(
+    available_leaders, available_scenarios, available_minion_sets, available_heroes);
+selected_leader_index = content_registry_validation.valid ? 0 : -1;
+selected_scenario_index = content_registry_validation.valid ? 0 : -1;
+selected_minion_set_index = content_registry_validation.valid ? 0 : -1;
+enemy_leader = content_registry_validation.valid ? available_leaders[0] : undefined;
+enemy_scenario = content_registry_validation.valid ? available_scenarios[0] : undefined;
+enemy_minion_set = content_registry_validation.valid ? available_minion_sets[0] : undefined;
+selected_hero_ids = content_registry_validation.valid ? make_default_hero_selection(available_heroes) : [];
+enemy_event_selection = content_registry_validation.valid
+    ? make_default_enemy_event_selection(enemy_leader, enemy_scenario)
+    : {leader_strikes:[], twists:[]};
 log_lines = [];
 setup_active = true;
 phase = "setup";

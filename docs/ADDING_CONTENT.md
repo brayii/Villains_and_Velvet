@@ -10,7 +10,9 @@ This guide describes the content workflow supported by the current GameMaker pro
 - Reuse existing ability and effect IDs when the behavior already exists.
 - Add a new rule branch only when the behavior is genuinely new.
 
-The current setup screen has one active Leader and Scenario and displays the first three Heroes. A fourth definition does not automatically add a selection control. To make multiple Leaders, Scenarios, or Hero rosters player-selectable, extend the setup state and UI as a separate feature.
+Battle Settings reads Leaders, Scenarios, Minion Sets, and Heroes from their registries. Registered Leaders, Scenarios, and Minion Sets automatically become selectable. When more than three Heroes are registered, each of the three Hero slots can cycle through the available Heroes while preventing duplicate selections.
+
+The project validates all registries during startup. Duplicate or non-lowercase IDs, missing required fields, malformed card templates, and incomplete Minion Sets produce a setup error and keep Start Game unavailable. Correct the reported content definition and restart the game.
 
 ## Card Constructors
 

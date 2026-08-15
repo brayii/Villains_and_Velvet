@@ -138,6 +138,7 @@ function vv_ui_handle_input() {
             setup_advanced_events = !setup_advanced_events;
             return;
         }
+        if (!content_registry_validation.valid) return;
         if (!setup_advanced_events) {
             if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
             return;
@@ -411,6 +412,23 @@ function vv_ui_draw_setup() {
     draw_center(setup_advanced_events ? "BATTLE SETTINGS" : "CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
     var gear = setup_gear_rect();
     draw_setup_gear(gear, setup_advanced_events);
+
+    if (!content_registry_validation.valid) {
+        var content_error_panel = {x:290, y:190, w:700, h:230};
+        draw_set_alpha(0.94);
+        draw_panel(content_error_panel, COL_PANEL, COL_DANGER);
+        draw_set_alpha(1);
+        draw_center("CONTENT SETUP ERROR", 640, 230, COL_DANGER);
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_top);
+        draw_set_color(COL_TEXT);
+        draw_text_ext(330, 275, content_registry_validation.message, 20, 620);
+        draw_center("Correct the content definition, then restart the game.", 640, 375, COL_MUTED);
+        draw_panel(setup_start_rect, COL_PANEL, COL_EDGE);
+        draw_center("START GAME UNAVAILABLE", setup_start_rect.x + setup_start_rect.w / 2,
+            setup_start_rect.y + setup_start_rect.h / 2, COL_MUTED);
+        return;
+    }
 
     if (setup_advanced_events) {
         var setup_panels = [

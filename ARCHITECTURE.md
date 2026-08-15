@@ -79,6 +79,8 @@ The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality
 
 Leader, Scenario, and Minion Set definitions are exposed through independent registries. Selecting a Leader or Scenario restores their recommended Enemy Event mix. The settings gear contains all content selectors, the three unique Hero slots, event customization, and Restore Defaults. The normal setup view remains artwork-focused.
 
+`validate_content_registries()` runs before setup selections are created. It rejects empty registries, duplicate or non-lowercase IDs, missing required fields, malformed Hero templates and Enemy Events, and incomplete Minion Sets. Invalid content reaches a safe setup error screen and cannot start a match.
+
 The normal setup view shows a short event summary. The settings gear opens the paged Enemy Event controls when the defaults need adjustment or the player wants a different legal mix. Hero slots also draw from the Hero registry and become browsable when more than three Heroes are available.
 
 ## Runtime Flow and Ownership
