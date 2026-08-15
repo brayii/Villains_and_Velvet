@@ -111,6 +111,7 @@ function enemy_event_selection_total(_selection) {
 }
 
 function validate_enemy_event_group(_selected, _definitions) {
+    if (array_length(_selected) != array_length(_definitions)) return false;
     var selected_ids = [];
     for (var selected_i = 0; selected_i < array_length(_selected); selected_i++) {
         var selection = _selected[selected_i];
@@ -121,7 +122,18 @@ function validate_enemy_event_group(_selected, _definitions) {
         if (selection.copies > definition.max_copies) return false;
         array_push(selected_ids, selection.id);
     }
+    for (var definition_i = 0; definition_i < array_length(_definitions); definition_i++) {
+        var required_id = _definitions[definition_i].card.id;
+        if (!array_has_value(selected_ids, required_id)) return false;
+    }
     return true;
+}
+
+function find_enemy_event_selection_index(_selected, _id) {
+    for (var selection_i = 0; selection_i < array_length(_selected); selection_i++) {
+        if (_selected[selection_i].id == _id) return selection_i;
+    }
+    return -1;
 }
 
 function validate_enemy_event_selection(_leader, _scenario, _selection) {

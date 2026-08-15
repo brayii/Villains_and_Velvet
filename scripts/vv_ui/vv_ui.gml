@@ -21,11 +21,9 @@ function vv_ui_init() {
     }
     action_rect = {x:1025, y:628, w:235, h:68};
     restart_rect = {x:525, y:470, w:230, h:70};
-    setup_start_rect = {x:480, y:625, w:320, h:70};
-    setup_strike_minus_rect = {x:675, y:378, w:72, h:54};
-    setup_strike_plus_rect = {x:845, y:378, w:72, h:54};
-    setup_twist_minus_rect = {x:675, y:452, w:72, h:54};
-    setup_twist_plus_rect = {x:845, y:452, w:72, h:54};
+    setup_start_rect = {x:480, y:635, w:320, h:60};
+    setup_strike_page = 0;
+    setup_twist_page = 0;
     debug_event_log = false;
 }
 
@@ -34,17 +32,90 @@ function point_in_rect(_px, _py, _rect) {
         && _py >= _rect.y && _py <= _rect.y + _rect.h;
 }
 
+function setup_event_definitions(_category) {
+    return _category == "strike" ? enemy_leader.leader_strikes : enemy_scenario.twists;
+}
+
+function setup_event_selections(_category) {
+    return _category == "strike" ? enemy_event_selection.leader_strikes : enemy_event_selection.twists;
+}
+
+function setup_event_category_rect(_category) {
+    return _category == "strike" ? {x:50, y:310, w:560, h:280} : {x:670, y:310, w:560, h:280};
+}
+
+function setup_event_page_count(_category) {
+    return max(1, ceil(array_length(setup_event_definitions(_category)) / 4));
+}
+
+function setup_event_get_page(_category) {
+    var page_count = setup_event_page_count(_category);
+    var page = _category == "strike" ? setup_strike_page : setup_twist_page;
+    page = clamp(page, 0, page_count - 1);
+    if (_category == "strike") setup_strike_page = page;
+    else setup_twist_page = page;
+    return page;
+}
+
+function setup_event_set_page(_category, _page) {
+    var page = clamp(_page, 0, setup_event_page_count(_category) - 1);
+    if (_category == "strike") setup_strike_page = page;
+    else setup_twist_page = page;
+}
+
+function setup_event_page_button_rect(_category, _direction) {
+    var panel = setup_event_category_rect(_category);
+    return {x:panel.x + (_direction < 0 ? 448 : 504), y:319, w:44, h:34};
+}
+
+function setup_event_count_button_rect(_category, _visible_row, _direction) {
+    var panel = setup_event_category_rect(_category);
+    return {x:panel.x + (_direction < 0 ? 450 : 506), y:360 + _visible_row * 52, w:44, h:42};
+}
+
+function setup_event_handle_category_input(_category, _pointer_x, _pointer_y) {
+    var definitions = setup_event_definitions(_category);
+    var page = setup_event_get_page(_category);
+    var page_count = setup_event_page_count(_category);
+    if (page_count > 1) {
+        if (point_in_rect(_pointer_x, _pointer_y, setup_event_page_button_rect(_category, -1))) {
+            setup_event_set_page(_category, page - 1);
+            return true;
+        }
+        if (point_in_rect(_pointer_x, _pointer_y, setup_event_page_button_rect(_category, 1))) {
+            setup_event_set_page(_category, page + 1);
+            return true;
+        }
+    }
+    var first_definition = page * 4;
+    var final_definition = min(array_length(definitions), first_definition + 4);
+    var selections = setup_event_selections(_category);
+    for (var definition_i = first_definition; definition_i < final_definition; definition_i++) {
+        var visible_row = definition_i - first_definition;
+        var selection_i = find_enemy_event_selection_index(selections, definitions[definition_i].card.id);
+        if (selection_i >= 0) {
+            if (point_in_rect(_pointer_x, _pointer_y, setup_event_count_button_rect(_category, visible_row, -1))) {
+                command_adjust_enemy_event(_category, selection_i, -1);
+                return true;
+            }
+            if (point_in_rect(_pointer_x, _pointer_y, setup_event_count_button_rect(_category, visible_row, 1))) {
+                command_adjust_enemy_event(_category, selection_i, 1);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 function vv_ui_handle_input() {
     if (!device_mouse_check_button_pressed(0, mb_left)) return;
     var pointer_x = device_mouse_x_to_gui(0);
     var pointer_y = device_mouse_y_to_gui(0);
 
     if (setup_active) {
-        if (point_in_rect(pointer_x, pointer_y, setup_strike_minus_rect)) command_adjust_enemy_event("strike", 0, -1);
-        else if (point_in_rect(pointer_x, pointer_y, setup_strike_plus_rect)) command_adjust_enemy_event("strike", 0, 1);
-        else if (point_in_rect(pointer_x, pointer_y, setup_twist_minus_rect)) command_adjust_enemy_event("twist", 0, -1);
-        else if (point_in_rect(pointer_x, pointer_y, setup_twist_plus_rect)) command_adjust_enemy_event("twist", 0, 1);
-        else if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
+        if (setup_event_handle_category_input("strike", pointer_x, pointer_y)) return;
+        if (setup_event_handle_category_input("twist", pointer_x, pointer_y)) return;
+        if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
         return;
     }
 
@@ -199,6 +270,49 @@ function draw_setup_counter_button(_rect, _text, _enabled) {
         _enabled ? COL_BG : COL_MUTED);
 }
 
+function draw_setup_event_category(_category, _title) {
+    var panel = setup_event_category_rect(_category);
+    var definitions = setup_event_definitions(_category);
+    var selections = setup_event_selections(_category);
+    var page = setup_event_get_page(_category);
+    var page_count = setup_event_page_count(_category);
+    draw_panel(panel, make_color_rgb(24, 33, 46), COL_EDGE);
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+    draw_set_color(COL_GOLD);
+    draw_text(panel.x + 16, 324, _title);
+    if (page_count > 1) {
+        draw_center(string(page + 1) + " / " + string(page_count), panel.x + 418, 336, COL_MUTED);
+        draw_setup_counter_button(setup_event_page_button_rect(_category, -1), "<", page > 0);
+        draw_setup_counter_button(setup_event_page_button_rect(_category, 1), ">", page < page_count - 1);
+    }
+    if (array_length(definitions) == 0) {
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_top);
+        draw_set_color(COL_MUTED);
+        draw_text(panel.x + 16, 375, "None available");
+        return;
+    }
+    var first_definition = page * 4;
+    var final_definition = min(array_length(definitions), first_definition + 4);
+    for (var definition_i = first_definition; definition_i < final_definition; definition_i++) {
+        var visible_row = definition_i - first_definition;
+        var row_y = 360 + visible_row * 52;
+        var definition = definitions[definition_i];
+        var selection_i = find_enemy_event_selection_index(selections, definition.card.id);
+        var copies = selection_i >= 0 ? selections[selection_i].copies : 0;
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_middle);
+        draw_set_color(selection_i >= 0 ? COL_TEXT : COL_DANGER);
+        draw_text(panel.x + 16, row_y + 21, definition.card.name);
+        draw_center(string(copies), panel.x + 424, row_y + 21, COL_TEXT);
+        draw_setup_counter_button(setup_event_count_button_rect(_category, visible_row, -1), "-",
+            selection_i >= 0 && copies > 0);
+        draw_setup_counter_button(setup_event_count_button_rect(_category, visible_row, 1), "+",
+            selection_i >= 0 && copies < definition.max_copies);
+    }
+}
+
 function vv_ui_draw_setup() {
     draw_center("VILLAINS & VELVET", 640, 40, COL_GOLD);
     draw_center("CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
@@ -234,35 +348,10 @@ function vv_ui_draw_setup() {
         }
     }
 
-    var events_panel = {x:160, y:320, w:960, h:270};
-    draw_panel(events_panel, make_color_rgb(24, 33, 46), COL_EDGE);
-    draw_set_halign(fa_left);
-    draw_set_valign(fa_top);
-    draw_set_color(COL_GOLD);
-    draw_text(185, 340, "ENEMY EVENTS");
-    draw_set_color(COL_MUTED);
-    draw_text(185, 370, "Leader Strike");
-    draw_text(185, 444, "Twist");
+    draw_setup_event_category("strike", "LEADER STRIKES");
+    draw_setup_event_category("twist", "TWISTS");
 
-    var selected_strike = enemy_event_selection.leader_strikes[0];
-    var selected_twist = enemy_event_selection.twists[0];
-    var strike_definition = find_enemy_event_definition(enemy_leader.leader_strikes, selected_strike.id);
-    var twist_definition = find_enemy_event_definition(enemy_scenario.twists, selected_twist.id);
-    draw_set_color(COL_TEXT);
-    draw_text(340, 387, strike_definition.card.name);
-    draw_text(340, 461, twist_definition.card.name);
-    draw_center(string(selected_strike.copies), 797, 405, COL_TEXT);
-    draw_center(string(selected_twist.copies), 797, 479, COL_TEXT);
-    draw_setup_counter_button(setup_strike_minus_rect, "-", selected_strike.copies > 0);
-    draw_setup_counter_button(setup_strike_plus_rect, "+", selected_strike.copies < strike_definition.max_copies);
-    draw_setup_counter_button(setup_twist_minus_rect, "-", selected_twist.copies > 0);
-    draw_setup_counter_button(setup_twist_plus_rect, "+", selected_twist.copies < twist_definition.max_copies);
-
-    draw_set_halign(fa_left);
-    draw_set_valign(fa_top);
     draw_set_color(setup_validation.valid ? COL_LEGAL : COL_DANGER);
-    draw_text(940, 370, "EVENTS: " + string(enemy_event_validation.total)
-        + " / " + string(CORE_ENEMY_EVENT_SLOTS));
     var setup_status = "READY";
     if (enemy_event_validation.total > CORE_ENEMY_EVENT_SLOTS) {
         setup_status = "REMOVE " + string(enemy_event_validation.total - CORE_ENEMY_EVENT_SLOTS);
@@ -271,7 +360,9 @@ function vv_ui_draw_setup() {
     } else if (!setup_validation.valid) {
         setup_status = "CHECK SELECTION";
     }
-    draw_text(940, 410, setup_status);
+    draw_center("ENEMY EVENTS  " + string(enemy_event_validation.total)
+        + " / " + string(CORE_ENEMY_EVENT_SLOTS) + "    " + setup_status,
+        640, 612, setup_validation.valid ? COL_LEGAL : COL_DANGER);
 
     draw_panel(setup_start_rect, setup_validation.valid ? COL_ACCENT : COL_PANEL,
         setup_validation.valid ? COL_TEXT : COL_EDGE);

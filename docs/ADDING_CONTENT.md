@@ -91,7 +91,7 @@ Leader Strikes belong to a Leader's `leader_strikes` array. Twists belong to a S
 
 Direct Assault demonstrates `EFFECT_LEADER_BASIC_ATTACK`. Reinforcements demonstrates `EFFECT_AREA_2_ATTACK`. Reuse those effect IDs for different names or artwork with identical behavior.
 
-The selected Leader Strike and Twist counts must total exactly eight. The current setup layout exposes the first Leader Strike and first Twist definition; displaying more event choices requires a setup-UI extension.
+The selected Leader Strike and Twist counts must total exactly eight. The setup screen automatically generates paged rows for every available definition and safely handles a Leader or Scenario with no events in one category.
 
 ## Reuse or Add an Ability
 
