@@ -86,9 +86,9 @@ function count_enemy_cards(_cards, _card_type, _slot) {
     return count;
 }
 
-function validate_enemy_composition(_cards, _scenario) {
+function validate_enemy_composition(_cards, _minion_set) {
     if (array_length(_cards) != CORE_ENEMY_DECK_SIZE) return false;
-    if (!core_minion_slots_are_valid(_scenario)) return false;
+    if (!core_minion_slots_are_valid(_minion_set)) return false;
     var core_slots = core_minion_slot_ids();
     for (var minion_i = 0; minion_i < array_length(core_slots); minion_i++) {
         var slot = core_slots[minion_i];
@@ -170,12 +170,13 @@ function validate_hero_selection(_definitions, _selected_ids) {
 function refresh_setup_validation() {
     enemy_event_validation = validate_enemy_event_selection(enemy_leader, enemy_scenario, enemy_event_selection);
     var heroes_valid = validate_hero_selection(available_heroes, selected_hero_ids);
-    var content_valid = !is_undefined(enemy_leader) && !is_undefined(enemy_scenario);
-    var minion_slots_valid = content_valid && core_minion_slots_are_valid(enemy_scenario);
+    var content_valid = !is_undefined(enemy_leader) && !is_undefined(enemy_scenario)
+        && !is_undefined(enemy_minion_set);
+    var minion_slots_valid = content_valid && core_minion_slots_are_valid(enemy_minion_set);
     var valid = content_valid && minion_slots_valid && heroes_valid && enemy_event_validation.valid;
     var message = enemy_event_validation.message;
-    if (!content_valid) message = "Choose a Leader and Scenario before starting.";
-    else if (!minion_slots_valid) message = "The Scenario must define every core Minion slot exactly once.";
+    if (!content_valid) message = "Choose a Leader, Scenario, and Minion Set before starting.";
+    else if (!minion_slots_valid) message = "The Minion Set must define every core Minion slot exactly once.";
     else if (!heroes_valid) message = "Choose exactly " + string(CORE_HERO_COUNT) + " different Heroes.";
     setup_validation = {valid:valid, message:message};
     return setup_validation;
@@ -221,6 +222,23 @@ function command_select_scenario(_change) {
     selected_scenario_index = next_index;
     enemy_scenario = available_scenarios[selected_scenario_index];
     enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
+    setup_twist_page = 0;
+    refresh_setup_validation();
+    return true;
+}
+
+function command_select_minion_set(_change) {
+    var next_index = wrap_content_index(selected_minion_set_index + _change, array_length(available_minion_sets));
+    if (next_index < 0 || next_index == selected_minion_set_index) return false;
+    selected_minion_set_index = next_index;
+    enemy_minion_set = available_minion_sets[selected_minion_set_index];
+    refresh_setup_validation();
+    return true;
+}
+
+function command_restore_enemy_event_defaults() {
+    enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
+    setup_strike_page = 0;
     setup_twist_page = 0;
     refresh_setup_validation();
     return true;
@@ -289,7 +307,7 @@ function validate_state(_context) {
     var player_total = array_length(player_cards);
     var enemy_total = array_length(enemy_cards);
     var valid_player_composition = validate_player_composition(player_cards);
-    var valid_enemy_composition = validate_enemy_composition(enemy_cards, enemy_scenario);
+    var valid_enemy_composition = validate_enemy_composition(enemy_cards, enemy_minion_set);
     var valid_spaces = array_length(hand) == 3 && array_length(build) == 3 && array_length(minions) == 2;
     var valid = valid_player_composition && valid_enemy_composition
         && leader_hp >= 0 && leader_hp <= enemy_leader.max_hp
@@ -309,8 +327,8 @@ function validate_state(_context) {
 }
 
 function reset_game() {
-    if (!core_minion_slots_are_valid(enemy_scenario)) {
-        show_debug_message("The Scenario does not define the required core Minion slots.");
+    if (!core_minion_slots_are_valid(enemy_minion_set)) {
+        show_debug_message("The Minion Set does not define the required core Minion slots.");
         return false;
     }
     enemy_event_validation = validate_enemy_event_selection(enemy_leader, enemy_scenario, enemy_event_selection);
@@ -321,7 +339,7 @@ function reset_game() {
     leader_hp = enemy_leader.starting_hp;
     player_deck = make_player_deck(available_heroes, selected_hero_ids);
     player_discard = [];
-    enemy_deck = make_enemy_deck(enemy_leader, enemy_scenario, enemy_event_selection);
+    enemy_deck = make_enemy_deck(enemy_leader, enemy_scenario, enemy_minion_set, enemy_event_selection);
     enemy_used = [];
     hand = [undefined, undefined, undefined];
     build = [undefined, undefined, undefined];

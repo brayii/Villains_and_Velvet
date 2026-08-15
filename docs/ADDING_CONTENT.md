@@ -57,7 +57,13 @@ Add each Leader constructor to `make_enemy_leader_registry()`. Every registered 
 
 ## Add or Replace a Scenario
 
-Use `make_scenario_the_assault()` as the complete Scenario example. A Scenario needs a stable ID, display name, setup rules, `minion_slots`, and Twist definitions.
+Use `make_scenario_the_assault()` as the complete Scenario example. A Scenario needs a stable ID, display name, setup rules, and Twist definitions. It does not define the Minion cast.
+
+Add each Scenario constructor to `make_scenario_registry()`. Every registered Scenario automatically appears in Battle Settings. Its Twist `default_copies` values supply the recommended Twist contribution to the eight Enemy Event cards.
+
+## Add or Replace a Minion Set
+
+Use `make_minion_set_velvet_menagerie()` as the complete Minion Set example. Each Minion slot is stored as:
 
 Each Minion slot is stored as:
 
@@ -65,19 +71,19 @@ Each Minion slot is stored as:
 {slot: "NA", card: minion_card_definition}
 ```
 
-Every Scenario must define each of the eight slots exactly once. Core code—not the Scenario—owns the permanent distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1. The deck builder and state validator reject missing, duplicated, or unknown slots.
+Every Minion Set must define each of the eight slots exactly once. Core code—not the Minion Set—owns the permanent distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1. The deck builder and state validator reject missing, duplicated, or unknown slots.
 
-Add each Scenario constructor to `make_scenario_registry()`. Every registered Scenario automatically appears in setup. Its Twist `default_copies` values supply the normal Twist contribution to the eight Enemy Event cards.
+Add each complete Minion Set constructor to `make_minion_set_registry()`. It then appears independently in Battle Settings and may be combined with any Scenario.
 
 Selecting a Leader or Scenario restores the normal counts from both choices. If those defaults do not total eight, Start Game remains unavailable until the player opens the settings gear and adjusts the Enemy Events to a legal total.
 
 ## Add a Minion
 
-Add the Minion's `card_minion()` definition to the Scenario's `minion_slots`. Choose its Entry ability from the existing `ABILITY_*` IDs and its Escape behavior from the existing `EFFECT_*` IDs.
+Add the Minion's `card_minion()` definition to a Minion Set's `minion_slots`. Choose its Entry ability from the existing `ABILITY_*` IDs and its Escape behavior from the existing `EFFECT_*` IDs.
 
 The current reusable Minion abilities are Disrupt, Crush, Protector, Shatter, and Devastate. The current reusable Escape effects heal the Leader or destroy a Hand card. Names such as Otter or Raccoon and codes such as AA or SB are content only; the resolver reads the stable ability and effect IDs.
 
-To replace a Minion, change the card assigned to its structural slot. Do not add or adjust Minion copy counts in Scenario data.
+To replace a Minion, change the card assigned to its structural slot. Do not add or adjust Minion copy counts in content data.
 
 ## Add a Leader Strike or Twist
 

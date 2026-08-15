@@ -39,13 +39,13 @@ function core_minion_slot_copies(_slot) {
     return 0;
 }
 
-function core_minion_slots_are_valid(_scenario) {
-    if (is_undefined(_scenario) || !variable_struct_exists(_scenario, "minion_slots")) return false;
+function core_minion_slots_are_valid(_minion_set) {
+    if (is_undefined(_minion_set) || !variable_struct_exists(_minion_set, "minion_slots")) return false;
     var expected_slots = core_minion_slot_ids();
-    if (array_length(_scenario.minion_slots) != array_length(expected_slots)) return false;
+    if (array_length(_minion_set.minion_slots) != array_length(expected_slots)) return false;
     var seen_slots = [];
-    for (var slot_i = 0; slot_i < array_length(_scenario.minion_slots); slot_i++) {
-        var definition = _scenario.minion_slots[slot_i];
+    for (var slot_i = 0; slot_i < array_length(_minion_set.minion_slots); slot_i++) {
+        var definition = _minion_set.minion_slots[slot_i];
         if (!is_struct(definition)) return false;
         if (!variable_struct_exists(definition, "slot") || !variable_struct_exists(definition, "card")) return false;
         if (!is_struct(definition.card)) return false;
@@ -119,7 +119,7 @@ function make_enemy_leader() {
                     "card_art/enemies/leader_strike_direct_assault.png"
                 ),
                 default_copies: 3,
-                max_copies: 3
+                max_copies: CORE_ENEMY_EVENT_SLOTS
             }
         ]
     };
@@ -220,16 +220,6 @@ function make_scenario_the_assault() {
         id: "the_assault",
         name: "The Assault",
         setup_rules: [],
-        minion_slots: [
-            {slot:"NA", card:card_minion("NA", "Bunny", "Normal", 4, 6, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:5})], "card_art/enemies/minion_na_bunny.png")},
-            {slot:"NB", card:card_minion("NB", "Corgi", "Normal", 6, 8, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:7})], "card_art/enemies/minion_nb_corgi.png")},
-            {slot:"NC", card:card_minion("NC", "Red Panda", "Normal", 8, 10, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:9})], "card_art/enemies/minion_nc_red_panda.png")},
-            {slot:"AA", card:card_minion("AA", "Otter", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT)], "Disrupt", "Discard a Build card, then attack.", [effect_entry(EFFECT_HEAL_LEADER, {amount:6})], "card_art/enemies/minion_aa_otter.png")},
-            {slot:"AB", card:card_minion("AB", "Highland Cow", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH)], "Crush", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:8})], "card_art/enemies/minion_ab_highland_cow.png")},
-            {slot:"SA", card:card_minion("SA", "Capybara", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR)], "Protector", "The Enemy Leader cannot be attacked.", [effect_entry(EFFECT_HEAL_LEADER, {amount:10})], "card_art/enemies/minion_sa_capybara.png")},
-            {slot:"SB", card:card_minion("SB", "Raccoon", "Special", 8, 9, [ability_entry(ABILITY_SHATTER)], "Shatter", "Destroy the lowest-HP Build card, then attack.", [effect_entry(EFFECT_DESTROY_HAND_CARD, {count:1})], "card_art/enemies/minion_sb_raccoon.png")},
-            {slot:"SC", card:card_minion("SC", "Harp Seal", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE)], "Devastate", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:12})], "card_art/enemies/minion_sc_harp_seal.png")}
-        ],
         twists: [
             {
                 card: card_enemy(
@@ -241,14 +231,35 @@ function make_scenario_the_assault() {
                     "card_art/enemies/twist_reinforcements.png"
                 ),
                 default_copies: 5,
-                max_copies: 5
+                max_copies: CORE_ENEMY_EVENT_SLOTS
             }
+        ]
+    };
+}
+
+function make_minion_set_velvet_menagerie() {
+    return {
+        id: "velvet_menagerie",
+        name: "Velvet Menagerie",
+        minion_slots: [
+            {slot:"NA", card:card_minion("NA", "Bunny", "Normal", 4, 6, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:5})], "card_art/enemies/minion_na_bunny.png")},
+            {slot:"NB", card:card_minion("NB", "Corgi", "Normal", 6, 8, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:7})], "card_art/enemies/minion_nb_corgi.png")},
+            {slot:"NC", card:card_minion("NC", "Red Panda", "Normal", 8, 10, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:9})], "card_art/enemies/minion_nc_red_panda.png")},
+            {slot:"AA", card:card_minion("AA", "Otter", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT)], "Disrupt", "Discard a Build card, then attack.", [effect_entry(EFFECT_HEAL_LEADER, {amount:6})], "card_art/enemies/minion_aa_otter.png")},
+            {slot:"AB", card:card_minion("AB", "Highland Cow", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH)], "Crush", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:8})], "card_art/enemies/minion_ab_highland_cow.png")},
+            {slot:"SA", card:card_minion("SA", "Capybara", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR)], "Protector", "The Enemy Leader cannot be attacked.", [effect_entry(EFFECT_HEAL_LEADER, {amount:10})], "card_art/enemies/minion_sa_capybara.png")},
+            {slot:"SB", card:card_minion("SB", "Raccoon", "Special", 8, 9, [ability_entry(ABILITY_SHATTER)], "Shatter", "Destroy the lowest-HP Build card, then attack.", [effect_entry(EFFECT_DESTROY_HAND_CARD, {count:1})], "card_art/enemies/minion_sb_raccoon.png")},
+            {slot:"SC", card:card_minion("SC", "Harp Seal", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE)], "Devastate", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:12})], "card_art/enemies/minion_sc_harp_seal.png")}
         ]
     };
 }
 
 function make_scenario_registry() {
     return [make_scenario_the_assault()];
+}
+
+function make_minion_set_registry() {
+    return [make_minion_set_velvet_menagerie()];
 }
 
 function array_add_copies(_array, _value, _count) {
@@ -320,14 +331,14 @@ function make_player_deck(_hero_definitions, _selected_hero_ids) {
     return array_shuffle_copy(deck);
 }
 
-function make_enemy_deck(_leader, _scenario, _event_selection) {
+function make_enemy_deck(_leader, _scenario, _minion_set, _event_selection) {
     var deck = [];
-    if (!core_minion_slots_are_valid(_scenario)) {
-        show_debug_message("INVALID SCENARIO MINION SLOTS: " + string(_scenario.id));
+    if (!core_minion_slots_are_valid(_minion_set)) {
+        show_debug_message("INVALID MINION SET SLOTS: " + string(_minion_set.id));
         return deck;
     }
-    for (var minion_i = 0; minion_i < array_length(_scenario.minion_slots); minion_i++) {
-        var minion_slot = _scenario.minion_slots[minion_i];
+    for (var minion_i = 0; minion_i < array_length(_minion_set.minion_slots); minion_i++) {
+        var minion_slot = _minion_set.minion_slots[minion_i];
         array_add_minion_slot_copies(deck, minion_slot);
     }
     add_selected_enemy_events(deck, _event_selection.leader_strikes, _leader.leader_strikes);

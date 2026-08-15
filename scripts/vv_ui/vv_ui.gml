@@ -29,8 +29,10 @@ function vv_ui_init() {
 }
 
 function setup_selector_button_rect(_category, _direction) {
-    var panel_x = _category == "leader" ? 65 : 475;
-    return {x:panel_x + (_direction < 0 ? 14 : 282), y:248, w:40, h:32};
+    var panel_x = 55;
+    if (_category == "scenario") panel_x = 355;
+    else if (_category == "minion_set") panel_x = 655;
+    return {x:panel_x, y:158, w:250, h:38};
 }
 
 function setup_gear_rect() {
@@ -38,7 +40,11 @@ function setup_gear_rect() {
 }
 
 function setup_hero_button_rect(_slot, _direction) {
-    return {x:_direction < 0 ? 895 : 1160, y:160 + _slot * 35, w:36, h:28};
+    return {x:955, y:151 + _slot * 42, w:250, h:35};
+}
+
+function setup_restore_defaults_rect() {
+    return {x:930, y:76, w:230, h:32};
 }
 
 function point_in_rect(_px, _py, _rect) {
@@ -131,31 +137,31 @@ function vv_ui_handle_input() {
             setup_advanced_events = !setup_advanced_events;
             return;
         }
-        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("leader", -1))) {
-            command_select_leader(-1);
+        if (!setup_advanced_events) {
+            if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
             return;
         }
         if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("leader", 1))) {
             command_select_leader(1);
             return;
         }
-        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("scenario", -1))) {
-            command_select_scenario(-1);
-            return;
-        }
         if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("scenario", 1))) {
             command_select_scenario(1);
             return;
         }
+        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("minion_set", 1))) {
+            command_select_minion_set(1);
+            return;
+        }
         for (var setup_slot = 0; setup_slot < CORE_HERO_COUNT; setup_slot++) {
-            if (point_in_rect(pointer_x, pointer_y, setup_hero_button_rect(setup_slot, -1))) {
-                command_cycle_hero_slot(setup_slot, -1);
-                return;
-            }
             if (point_in_rect(pointer_x, pointer_y, setup_hero_button_rect(setup_slot, 1))) {
                 command_cycle_hero_slot(setup_slot, 1);
                 return;
             }
+        }
+        if (point_in_rect(pointer_x, pointer_y, setup_restore_defaults_rect())) {
+            command_restore_enemy_event_defaults();
+            return;
         }
         if (setup_advanced_events && setup_event_handle_category_input("strike", pointer_x, pointer_y)) return;
         if (setup_advanced_events && setup_event_handle_category_input("twist", pointer_x, pointer_y)) return;
@@ -372,79 +378,85 @@ function draw_setup_event_category(_category, _title) {
     }
 }
 
+function draw_setup_dropdown(_rect, _value) {
+    draw_panel(_rect, make_color_rgb(24, 33, 46), COL_EDGE);
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_middle);
+    draw_set_color(COL_TEXT);
+    draw_text(_rect.x + 12, _rect.y + _rect.h / 2, _value);
+    draw_center("v", _rect.x + _rect.w - 18, _rect.y + _rect.h / 2, COL_GOLD);
+}
+
+function setup_event_default_total(_definitions) {
+    var total = 0;
+    for (var definition_i = 0; definition_i < array_length(_definitions); definition_i++) {
+        total += _definitions[definition_i].default_copies;
+    }
+    return total;
+}
+
 function vv_ui_draw_setup() {
     draw_center("VILLAINS & VELVET", 640, 40, COL_GOLD);
-    draw_center("CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
+    draw_center(setup_advanced_events ? "BATTLE SETTINGS" : "CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
     var gear = setup_gear_rect();
     draw_setup_gear(gear, setup_advanced_events);
 
-    var strike_total = 0;
-    for (var strike_i = 0; strike_i < array_length(enemy_event_selection.leader_strikes); strike_i++) {
-        strike_total += enemy_event_selection.leader_strikes[strike_i].copies;
-    }
-    var twist_total = 0;
-    for (var twist_i = 0; twist_i < array_length(enemy_event_selection.twists); twist_i++) {
-        twist_total += enemy_event_selection.twists[twist_i].copies;
-    }
-
-    var leader_panel = {x:65, y:120, w:335, h:175};
-    var scenario_panel = {x:475, y:120, w:330, h:175};
-    var heroes_panel = {x:880, y:120, w:335, h:175};
-    draw_set_alpha(0.88);
-    draw_panel(leader_panel, COL_PANEL, COL_EDGE);
-    draw_panel(scenario_panel, COL_PANEL, COL_EDGE);
-    draw_panel(heroes_panel, COL_PANEL, COL_EDGE);
-    draw_set_alpha(1);
-
-    draw_set_halign(fa_left);
-    draw_set_valign(fa_top);
-    draw_set_color(COL_GOLD);
-    draw_text(85, 137, "LEADER");
-    draw_text(495, 137, "SCENARIO");
-    draw_text(900, 137, "HEROES  " + string(array_length(selected_hero_ids)) + " / " + string(CORE_HERO_COUNT));
-    draw_set_color(COL_TEXT);
-    draw_text(85, 174, enemy_leader.name);
-    draw_set_color(COL_MUTED);
-    draw_text(85, 205, "HEALTH  " + string(enemy_leader.starting_hp));
-    draw_text(210, 205, "ATTACK  " + string(enemy_leader.attack));
-    draw_text(85, 232, "LEADER STRIKES  " + string(strike_total));
-    if (array_length(available_leaders) > 1) {
-        draw_setup_counter_button(setup_selector_button_rect("leader", -1), "<", true);
-        draw_setup_counter_button(setup_selector_button_rect("leader", 1), ">", true);
-        draw_center(string(selected_leader_index + 1) + " / " + string(array_length(available_leaders)), 232, 264, COL_MUTED);
-    }
-    draw_set_color(COL_TEXT);
-    draw_text(495, 174, enemy_scenario.name);
-    draw_set_color(COL_MUTED);
-    draw_text(495, 205, "MINIONS  " + string(CORE_MINION_TOTAL));
-    draw_text(495, 232, "TWISTS  " + string(twist_total));
-    if (array_length(available_scenarios) > 1) {
-        draw_setup_counter_button(setup_selector_button_rect("scenario", -1), "<", true);
-        draw_setup_counter_button(setup_selector_button_rect("scenario", 1), ">", true);
-        draw_center(string(selected_scenario_index + 1) + " / " + string(array_length(available_scenarios)), 640, 264, COL_MUTED);
-    }
-    for (var setup_hero_i = 0; setup_hero_i < array_length(selected_hero_ids); setup_hero_i++) {
-        var setup_hero = find_hero_definition(available_heroes, selected_hero_ids[setup_hero_i]);
-        if (!is_undefined(setup_hero)) {
-            draw_set_color(COL_TEXT);
-            draw_text(940, 169 + setup_hero_i * 35, string(setup_hero_i + 1) + ".  " + setup_hero.name);
-            var heroes_can_change = array_length(available_heroes) > CORE_HERO_COUNT;
-            if (heroes_can_change) {
-                draw_setup_counter_button(setup_hero_button_rect(setup_hero_i, -1), "<", true);
-                draw_setup_counter_button(setup_hero_button_rect(setup_hero_i, 1), ">", true);
-            }
-        }
-    }
-
     if (setup_advanced_events) {
+        var setup_panels = [
+            {x:35, y:120, w:280, h:175},
+            {x:335, y:120, w:280, h:175},
+            {x:635, y:120, w:280, h:175},
+            {x:935, y:120, w:280, h:175}
+        ];
+        draw_set_alpha(0.92);
+        for (var panel_i = 0; panel_i < 4; panel_i++) draw_panel(setup_panels[panel_i], COL_PANEL, COL_EDGE);
+        draw_set_alpha(1);
+
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_top);
+        draw_set_color(COL_GOLD);
+        draw_text(55, 134, "LEADER");
+        draw_text(355, 134, "SCENARIO");
+        draw_text(655, 134, "MINION SET");
+        draw_text(955, 134, "HERO TEAM");
+        draw_setup_dropdown(setup_selector_button_rect("leader", 1), enemy_leader.name);
+        draw_setup_dropdown(setup_selector_button_rect("scenario", 1), enemy_scenario.name);
+        draw_setup_dropdown(setup_selector_button_rect("minion_set", 1), enemy_minion_set.name);
+
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_top);
+        draw_set_color(COL_MUTED);
+        draw_text(55, 208, "HEALTH  " + string(enemy_leader.starting_hp));
+        draw_text(165, 208, "ATTACK  " + string(enemy_leader.attack));
+        draw_text(55, 236, "DEFAULT STRIKES  " + string(setup_event_default_total(enemy_leader.leader_strikes)));
+        draw_text(355, 208, "DEFAULT TWISTS  " + string(setup_event_default_total(enemy_scenario.twists)));
+        draw_text(355, 236, "RULES  " + string(array_length(enemy_scenario.setup_rules)));
+        draw_text(655, 208, "MINION CARDS  " + string(CORE_MINION_TOTAL));
+        draw_text(655, 236, "NORMAL / ABILITY / SPECIAL");
+
+        for (var setup_hero_i = 0; setup_hero_i < array_length(selected_hero_ids); setup_hero_i++) {
+            var setup_hero = find_hero_definition(available_heroes, selected_hero_ids[setup_hero_i]);
+            if (!is_undefined(setup_hero)) draw_setup_dropdown(setup_hero_button_rect(setup_hero_i, 1), setup_hero.name);
+        }
+
         draw_setup_event_category("strike", "LEADER STRIKES");
         draw_setup_event_category("twist", "TWISTS");
-    } else if (!enemy_event_validation.valid) {
-        draw_set_alpha(0.9);
-        var adjustment_notice = {x:390, y:500, w:500, h:68};
-        draw_panel(adjustment_notice, COL_PANEL, COL_DANGER);
-        draw_set_alpha(1);
-        draw_center("Open the gear and adjust the Enemy Events.", 640, 534, COL_DANGER);
+        draw_panel(setup_restore_defaults_rect(), COL_PANEL, COL_EDGE);
+        draw_center("RESTORE EVENT DEFAULTS", 1045, 92, COL_TEXT);
+    } else {
+        draw_center(enemy_leader.name + "   |   " + enemy_scenario.name + "   |   " + enemy_minion_set.name,
+            640, 126, COL_TEXT);
+        var hero_summary = "";
+        for (var summary_i = 0; summary_i < array_length(selected_hero_ids); summary_i++) {
+            var summary_hero = find_hero_definition(available_heroes, selected_hero_ids[summary_i]);
+            if (!is_undefined(summary_hero)) {
+                if (hero_summary != "") hero_summary += "   |   ";
+                hero_summary += summary_hero.name;
+            }
+        }
+        draw_center(hero_summary, 640, 158, COL_MUTED);
+        draw_center("Use the gear to change the battle.", 640, 194, COL_MUTED);
+        if (!enemy_event_validation.valid) draw_center("Enemy Events must total 8.", 640, 535, COL_DANGER);
     }
 
     draw_set_color(setup_validation.valid ? COL_LEGAL : COL_DANGER);

@@ -49,11 +49,11 @@ The Velvet Queen currently owns Direct Assault with a default selection of three
 
 ## Scenario Definitions
 
-Scenario definitions live in `vv_data.gml`. A Scenario has a stable ID, display name, setup-rule array, exactly one card definition for every core Minion slot, and its available Twist definitions. Scenarios do not set Minion copy counts.
+Scenario definitions live in `vv_data.gml`. A Scenario has a stable ID, display name, setup-rule array, and its available Twist definitions. Scenarios do not choose the enemy cast.
 
-`make_scenario_the_assault()` owns the current eight Minion definitions and Reinforcements. `core_minion_slot_copies()` permanently owns the NA/NB/NC/AA/AB/SA/SB/SC distribution. The deck builder stamps each physical Minion with its structural slot, and state validation checks the resulting deck against the core count rather than Scenario data. Setup rejects missing, duplicated, or unknown slots before starting a match.
+Minion Sets are registered independently. Each complete set supplies one card for every structural Minion slot. `make_minion_set_velvet_menagerie()` owns the current eight Minion definitions, while `make_scenario_the_assault()` owns Reinforcements. `core_minion_slot_copies()` permanently owns the NA/NB/NC/AA/AB/SA/SB/SC distribution. Setup rejects a Minion Set with missing, duplicated, or unknown slots.
 
-Prototype Hero and Minion IDs remain only in content and setup definitions. Deck construction and validation iterate the selected Scenario's Minion slots, and gameplay behavior is selected by stable ability or effect IDs. Player-facing messages use card names and ability names from content instead of prototype codes.
+Prototype Hero and Minion IDs remain only in content and setup definitions. Deck construction and validation iterate the selected Minion Set's slots, and gameplay behavior is selected by stable ability or effect IDs. Player-facing messages use card names and ability names from content instead of prototype codes.
 
 ## Enemy Event Resolution
 
@@ -65,7 +65,7 @@ Direct Assault uses the reusable `leader_basic_attack` effect. Reinforcements us
 
 ## Enemy Event Selection
 
-Available Leader Strike definitions belong to the selected Leader, and available Twist definitions belong to the selected Scenario. Each definition supplies a default count and a maximum permitted count. The current selected IDs and copy counts live separately in `enemy_event_selection`.
+Available Leader Strike definitions belong to the selected Leader, and available Twist definitions belong to the selected Scenario. Their defaults form the recommended mix. The player may customize the counts from zero through eight per event definition, but the combined selection must equal eight. The current selected IDs and copy counts live separately in `enemy_event_selection`.
 
 `validate_enemy_event_selection()` in `vv_state.gml` rejects unavailable or duplicated IDs, invalid counts, copy-limit violations, and totals other than eight. It returns the current total and a clear add/remove/ready message. The Enemy Deck builder uses only the validated selection and never silently inserts, removes, or substitutes an Enemy Event.
 
@@ -73,7 +73,7 @@ The selected Hero IDs are also separate from the available Hero definitions. `va
 
 The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
 
-Leader and Scenario definitions are exposed through registries. The setup screen selects from those registries and restores the default Enemy Event selection whenever either choice changes. A Scenario supplies its Twists, while a Leader supplies its Leader Strikes. Their combined selection must still fill exactly eight Enemy Event slots.
+Leader, Scenario, and Minion Set definitions are exposed through independent registries. Selecting a Leader or Scenario restores their recommended Enemy Event mix. The settings gear contains all content selectors, the three unique Hero slots, event customization, and Restore Defaults. The normal setup view remains artwork-focused.
 
 The normal setup view shows a short event summary. The settings gear opens the paged Enemy Event controls when the defaults need adjustment or the player wants a different legal mix. Hero slots also draw from the Hero registry and become browsable when more than three Heroes are available.
 
