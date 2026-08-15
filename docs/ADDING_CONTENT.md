@@ -24,9 +24,11 @@ card_player(hero_id, display_name, kind, attack, health,
 Minions use:
 
 ```gml
-card_minion(slot_code, display_name, kind, attack, health,
+card_minion(stable_id, display_name, kind, attack, health,
     abilities, ability_name, effect_text, escape_effects, art_path)
 ```
+
+The Minion's stable ID identifies the character, such as `bunny` or `red_panda`. The surrounding Minion Set entry separately assigns that card to a structural slot such as `NA` or `SC`.
 
 Leader Strikes and Twists use:
 
@@ -71,7 +73,7 @@ Each Minion slot is stored as:
 {slot: "NA", card: minion_card_definition}
 ```
 
-Every Minion Set must define each of the eight slots exactly once. Core code—not the Minion Set—owns the permanent distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1. The deck builder and state validator reject missing, duplicated, or unknown slots.
+Every Minion Set must define each of the eight slots exactly once and must use a different stable Minion ID for every card. Core code—not the Minion Set—owns the permanent distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1. The deck builder and state validator reject missing, duplicated, or unknown slots and duplicated or missing Minion IDs.
 
 Add each complete Minion Set constructor to `make_minion_set_registry()`. It then appears independently in Battle Settings and may be combined with any Scenario.
 

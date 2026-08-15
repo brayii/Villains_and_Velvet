@@ -55,7 +55,7 @@ Scenario definitions live in `vv_data.gml`. A Scenario has a stable ID, display 
 
 Minion Sets are registered independently. Each complete set supplies one card for every structural Minion slot. `make_minion_set_velvet_menagerie()` owns the current eight Minion definitions, while `make_scenario_the_assault()` owns Reinforcements. `core_minion_slot_copies()` permanently owns the NA/NB/NC/AA/AB/SA/SB/SC distribution. Setup rejects a Minion Set with missing, duplicated, or unknown slots.
 
-Prototype Hero and Minion IDs remain only in content and setup definitions. Deck construction and validation iterate the selected Minion Set's slots, and gameplay behavior is selected by stable ability or effect IDs. Player-facing messages use card names and ability names from content instead of prototype codes.
+Hero identities use stable lowercase content IDs: `goblin`, `skeleton`, and `orc`. Minions likewise use character IDs such as `bunny` and `red_panda`, while `minion_slot` separately records the structural NA/NB/NC/AA/AB/SA/SB/SC deck position. Minion Set validation requires every structural slot exactly once and rejects missing or duplicate character IDs. Player-facing messages continue to use display names rather than IDs or slot codes.
 
 ## Enemy Event Resolution
 
