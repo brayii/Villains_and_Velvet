@@ -125,6 +125,10 @@ function make_enemy_leader() {
     };
 }
 
+function make_enemy_leader_registry() {
+    return [make_enemy_leader()];
+}
+
 function card_player(_hero, _name, _kind, _atk, _hp, _abilities, _ability, _effect, _art_file, _theme_color) {
     return {
         hero: _hero,
@@ -241,6 +245,10 @@ function make_scenario_the_assault() {
             }
         ]
     };
+}
+
+function make_scenario_registry() {
+    return [make_scenario_the_assault()];
 }
 
 function array_add_copies(_array, _value, _count) {

@@ -198,6 +198,54 @@ function command_adjust_enemy_event(_category, _index, _change) {
     return true;
 }
 
+function wrap_content_index(_index, _count) {
+    if (_count <= 0) return -1;
+    return ((_index mod _count) + _count) mod _count;
+}
+
+function command_select_leader(_change) {
+    var next_index = wrap_content_index(selected_leader_index + _change, array_length(available_leaders));
+    if (next_index < 0 || next_index == selected_leader_index) return false;
+    selected_leader_index = next_index;
+    enemy_leader = available_leaders[selected_leader_index];
+    enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
+    leader_art_sprite = get_art_sprite(enemy_leader.art_file);
+    setup_strike_page = 0;
+    refresh_setup_validation();
+    return true;
+}
+
+function command_select_scenario(_change) {
+    var next_index = wrap_content_index(selected_scenario_index + _change, array_length(available_scenarios));
+    if (next_index < 0 || next_index == selected_scenario_index) return false;
+    selected_scenario_index = next_index;
+    enemy_scenario = available_scenarios[selected_scenario_index];
+    enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
+    setup_twist_page = 0;
+    refresh_setup_validation();
+    return true;
+}
+
+function command_cycle_hero_slot(_slot, _change) {
+    if (_slot < 0 || _slot >= CORE_HERO_COUNT || array_length(available_heroes) <= CORE_HERO_COUNT) return false;
+    var current = find_hero_definition(available_heroes, selected_hero_ids[_slot]);
+    if (is_undefined(current)) return false;
+    var current_index = 0;
+    for (var hero_i = 0; hero_i < array_length(available_heroes); hero_i++) {
+        if (available_heroes[hero_i].id == current.id) current_index = hero_i;
+    }
+    for (var offset = 1; offset <= array_length(available_heroes); offset++) {
+        var candidate_index = wrap_content_index(current_index + offset * _change, array_length(available_heroes));
+        var candidate_id = available_heroes[candidate_index].id;
+        if (!array_has_value(selected_hero_ids, candidate_id)) {
+            selected_hero_ids[_slot] = candidate_id;
+            refresh_setup_validation();
+            return true;
+        }
+    }
+    return false;
+}
+
 function command_start_game_from_setup() {
     refresh_setup_validation();
     if (!setup_validation.valid) return false;

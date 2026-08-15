@@ -73,7 +73,9 @@ The selected Hero IDs are also separate from the available Hero definitions. `va
 
 The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
 
-The current setup screen displays one active Leader, one active Scenario, and the first three Hero definitions. Its paged Enemy Event columns generate a row for every Leader Strike and Twist definition and safely display an empty category. It does not yet provide Leader, Scenario, or Hero browsing controls. Adding more definitions is safe, but exposing player selection for those three content types requires a separate setup-UI change.
+Leader and Scenario definitions are exposed through registries. The setup screen selects from those registries and restores the default Enemy Event selection whenever either choice changes. A Scenario supplies its Twists, while a Leader supplies its Leader Strikes. Their combined selection must still fill exactly eight Enemy Event slots.
+
+The normal setup view shows a short event summary. The settings gear opens the paged Enemy Event controls when the defaults need adjustment or the player wants a different legal mix. Hero slots also draw from the Hero registry and become browsable when more than three Heroes are available.
 
 ## Runtime Flow and Ownership
 

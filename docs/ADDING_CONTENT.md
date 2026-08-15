@@ -42,7 +42,7 @@ Hero definitions live in `make_hero_definitions()`. Each selected Hero must prov
 
 Use the current Goblin, Skeleton, or Orc definition as the working example. Give all three templates the same stable Hero ID so Unity and deck validation recognize them as one Hero. Add the Hero's artwork to `datafiles/card_art/heroes/` and pass the matching `card_art/heroes/...` runtime paths to the constructors.
 
-`make_default_hero_selection()` selects the first three definitions. Reordering or replacing those definitions changes the current roster. Adding a fourth definition stores valid content but does not make it selectable until the setup screen gains Hero-selection controls.
+`make_default_hero_selection()` selects the first three definitions. When more than three Heroes are registered, the setup arrows let the player replace each Hero slot while preventing duplicates.
 
 ## Add or Replace a Leader
 
@@ -53,7 +53,7 @@ Use `make_enemy_leader()` as the current complete Leader definition. A Leader ne
 - `abilities` and `special_moves` arrays, which may remain empty; and
 - a `leader_strikes` array containing card definitions, default counts, and maximum counts.
 
-The controller currently calls `make_enemy_leader()` directly. To activate a different Leader today, return the replacement from that function or create another factory and change the controller's Create event. A menu for choosing among multiple Leaders requires a later setup-UI feature.
+Add each Leader constructor to `make_enemy_leader_registry()`. Every registered Leader automatically appears in setup. Its Leader Strike `default_copies` values supply the normal Leader Strike contribution to the eight Enemy Event cards.
 
 ## Add or Replace a Scenario
 
@@ -67,7 +67,9 @@ Each Minion slot is stored as:
 
 Every Scenario must define each of the eight slots exactly once. Core code—not the Scenario—owns the permanent distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1. The deck builder and state validator reject missing, duplicated, or unknown slots.
 
-The controller currently calls `make_scenario_the_assault()` directly. Activating another Scenario or exposing multiple Scenario choices follows the same limitation described for Leaders.
+Add each Scenario constructor to `make_scenario_registry()`. Every registered Scenario automatically appears in setup. Its Twist `default_copies` values supply the normal Twist contribution to the eight Enemy Event cards.
+
+Selecting a Leader or Scenario restores the normal counts from both choices. If those defaults do not total eight, Start Game remains unavailable until the player opens the settings gear and adjusts the Enemy Events to a legal total.
 
 ## Add a Minion
 
