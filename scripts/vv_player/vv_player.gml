@@ -111,6 +111,34 @@ function command_select_build(_index) {
     return false;
 }
 
+function command_drag_card(_source_area, _source_index, _target_area, _target_index) {
+    if (phase != "build" || prompt_mode != "") return false;
+    if (_source_area != "hand" && _source_area != "build") return false;
+    if (_target_area != "hand" && _target_area != "build") return false;
+    if (_source_index < 0 || _source_index >= 3 || _target_index < 0 || _target_index >= 3) return false;
+    if (_source_area == _target_area && _source_index == _target_index) return false;
+
+    var source_card = _source_area == "hand" ? hand[_source_index] : build[_source_index];
+    if (is_undefined(source_card)) return false;
+    var target_card = _target_area == "hand" ? hand[_target_index] : build[_target_index];
+
+    if (_source_area == "hand") hand[_source_index] = target_card;
+    else build[_source_index] = target_card;
+    if (_target_area == "hand") hand[_target_index] = source_card;
+    else build[_target_index] = source_card;
+    selected_hand = -1;
+    selected_build = -1;
+
+    if (is_undefined(target_card)) {
+        log_add("Moved " + source_card.name + " to "
+            + (_target_area == "hand" ? "Hand " : "Build ") + string(_target_index + 1) + ".");
+    } else {
+        log_add("Swapped " + source_card.name + " with " + target_card.name + ".");
+    }
+    validate_state("Card drag and drop");
+    return true;
+}
+
 function command_attack_minion(_index) {
     if (phase != "attack" || _index < 0 || _index > 1 || is_undefined(minions[_index])) return false;
     if (attack_left >= minions[_index].hp) {

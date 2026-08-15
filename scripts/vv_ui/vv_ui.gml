@@ -27,6 +27,21 @@ function vv_ui_init() {
     setup_advanced_events = false;
     setup_event_defaults_restored = false;
     debug_event_log = false;
+
+    pointer_card_down = false;
+    pointer_card_type = "";
+    pointer_card_index = -1;
+    pointer_card_value = undefined;
+    pointer_down_x = 0;
+    pointer_down_y = 0;
+    drag_active = false;
+    drag_threshold = 14;
+    pending_tap_type = "";
+    pending_tap_index = -1;
+    pending_tap_value = undefined;
+    pending_tap_frames = 0;
+    double_tap_window = 18;
+    card_popup = undefined;
 }
 
 function setup_selector_button_rect(_category, _direction) {
@@ -128,10 +143,139 @@ function setup_event_handle_category_input(_category, _pointer_x, _pointer_y) {
     return false;
 }
 
+function ui_card_at_point(_pointer_x, _pointer_y) {
+    for (var hand_i = 0; hand_i < 3; hand_i++) {
+        if (point_in_rect(_pointer_x, _pointer_y, hand_rects[hand_i])
+        && hand_i < array_length(hand) && !is_undefined(hand[hand_i])) {
+            return {type:"hand", index:hand_i, card:hand[hand_i]};
+        }
+    }
+    for (var build_i = 0; build_i < 3; build_i++) {
+        if (point_in_rect(_pointer_x, _pointer_y, build_rects[build_i]) && !is_undefined(build[build_i])) {
+            return {type:"build", index:build_i, card:build[build_i]};
+        }
+    }
+    if (!is_undefined(revealed_enemy_card) && point_in_rect(_pointer_x, _pointer_y, minion_rects[1])) {
+        return {type:"reveal", index:0, card:revealed_enemy_card};
+    }
+    for (var minion_i = 0; minion_i < 2; minion_i++) {
+        if (point_in_rect(_pointer_x, _pointer_y, minion_rects[minion_i]) && !is_undefined(minions[minion_i])) {
+            return {type:"minion", index:minion_i, card:minions[minion_i]};
+        }
+    }
+    return undefined;
+}
+
+function ui_run_card_tap(_type, _index) {
+    if (prompt_mode == "destroy_hand" && _type == "hand") return command_prompt_hand(_index);
+    if (prompt_mode != "" && _type == "build") return command_prompt_build(_index);
+    if (prompt_mode != "") return false;
+    if (phase == "build") {
+        if (_type == "hand") return command_select_hand(_index);
+        if (_type == "build") return command_select_build(_index);
+    }
+    if (phase == "attack" && _type == "minion") return command_attack_minion(_index);
+    return false;
+}
+
+function ui_finish_pending_tap() {
+    if (pending_tap_type == "") return;
+    var tap_type = pending_tap_type;
+    var tap_index = pending_tap_index;
+    pending_tap_type = "";
+    pending_tap_index = -1;
+    pending_tap_value = undefined;
+    pending_tap_frames = 0;
+    ui_run_card_tap(tap_type, tap_index);
+}
+
+function ui_drag_target_at_point(_pointer_x, _pointer_y) {
+    for (var hand_i = 0; hand_i < 3; hand_i++) {
+        if (point_in_rect(_pointer_x, _pointer_y, hand_rects[hand_i])) return {type:"hand", index:hand_i};
+    }
+    for (var build_i = 0; build_i < 3; build_i++) {
+        if (point_in_rect(_pointer_x, _pointer_y, build_rects[build_i])) return {type:"build", index:build_i};
+    }
+    return undefined;
+}
+
 function vv_ui_handle_input() {
-    if (!device_mouse_check_button_pressed(0, mb_left)) return;
     var pointer_x = device_mouse_x_to_gui(0);
     var pointer_y = device_mouse_y_to_gui(0);
+    var pointer_pressed = device_mouse_check_button_pressed(0, mb_left);
+    var pointer_held = device_mouse_check_button(0, mb_left);
+    var pointer_released = device_mouse_check_button_released(0, mb_left);
+
+    if (!is_undefined(card_popup)) {
+        if (pointer_pressed) card_popup = undefined;
+        return;
+    }
+
+    if (pending_tap_frames > 0) {
+        pending_tap_frames--;
+        if (pending_tap_frames <= 0 && !pointer_card_down) ui_finish_pending_tap();
+    }
+    if (pending_tap_type != "" && pending_tap_frames <= 0 && !pointer_card_down) ui_finish_pending_tap();
+
+    if (!setup_active && !game_over && pointer_pressed) {
+        var pressed_card = ui_card_at_point(pointer_x, pointer_y);
+        if (!is_undefined(pressed_card)) {
+            pointer_card_down = true;
+            pointer_card_type = pressed_card.type;
+            pointer_card_index = pressed_card.index;
+            pointer_card_value = pressed_card.card;
+            pointer_down_x = pointer_x;
+            pointer_down_y = pointer_y;
+            drag_active = false;
+            return;
+        }
+    }
+
+    if (pointer_card_down) {
+        if (pointer_held && phase == "build" && prompt_mode == ""
+        && (pointer_card_type == "hand" || pointer_card_type == "build")) {
+            var drag_distance = point_distance(pointer_down_x, pointer_down_y, pointer_x, pointer_y);
+            if (drag_distance >= drag_threshold) drag_active = true;
+        }
+        if (pointer_released) {
+            if (drag_active) {
+                var drag_target = ui_drag_target_at_point(pointer_x, pointer_y);
+                if (!is_undefined(drag_target)) {
+                    command_drag_card(pointer_card_type, pointer_card_index, drag_target.type, drag_target.index);
+                }
+                pending_tap_type = "";
+                pending_tap_frames = 0;
+            } else {
+                var released_card = ui_card_at_point(pointer_x, pointer_y);
+                var same_card = !is_undefined(released_card)
+                    && released_card.type == pointer_card_type && released_card.index == pointer_card_index;
+                if (same_card) {
+                    if (pending_tap_frames > 0 && pending_tap_type == pointer_card_type
+                    && pending_tap_index == pointer_card_index) {
+                        card_popup = pointer_card_value;
+                        pending_tap_type = "";
+                        pending_tap_index = -1;
+                        pending_tap_value = undefined;
+                        pending_tap_frames = 0;
+                    } else {
+                        if (pending_tap_type != "") ui_finish_pending_tap();
+                        pending_tap_type = pointer_card_type;
+                        pending_tap_index = pointer_card_index;
+                        pending_tap_value = pointer_card_value;
+                        pending_tap_frames = double_tap_window;
+                    }
+                }
+            }
+            pointer_card_down = false;
+            pointer_card_type = "";
+            pointer_card_index = -1;
+            pointer_card_value = undefined;
+            drag_active = false;
+        }
+        return;
+    }
+
+    if (!pointer_pressed) return;
 
     if (setup_active) {
         if (point_in_rect(pointer_x, pointer_y, setup_gear_rect())) {
@@ -178,21 +322,6 @@ function vv_ui_handle_input() {
 
     // Mandatory effects take input priority and pause automatic resolution.
     if (prompt_mode != "") {
-        if (prompt_mode == "destroy_hand") {
-            for (var hand_i = 0; hand_i < array_length(hand); hand_i++) {
-                if (point_in_rect(pointer_x, pointer_y, hand_rects[hand_i])) {
-                    command_prompt_hand(hand_i);
-                    return;
-                }
-            }
-        } else {
-            for (var build_i = 0; build_i < 3; build_i++) {
-                if (point_in_rect(pointer_x, pointer_y, build_rects[build_i])) {
-                    command_prompt_build(build_i);
-                    return;
-                }
-            }
-        }
         log_add("Choose one of the highlighted cards.");
         return;
     }
@@ -203,28 +332,7 @@ function vv_ui_handle_input() {
         return;
     }
 
-    if (phase == "build") {
-        for (var hand_i = 0; hand_i < array_length(hand); hand_i++) {
-            if (point_in_rect(pointer_x, pointer_y, hand_rects[hand_i])) {
-                command_select_hand(hand_i);
-                return;
-            }
-        }
-        for (var build_i = 0; build_i < 3; build_i++) {
-            if (point_in_rect(pointer_x, pointer_y, build_rects[build_i])) {
-                command_select_build(build_i);
-                return;
-            }
-        }
-    }
-
     if (phase == "attack") {
-        for (var minion_i = 0; minion_i < 2; minion_i++) {
-            if (point_in_rect(pointer_x, pointer_y, minion_rects[minion_i])) {
-                command_attack_minion(minion_i);
-                return;
-            }
-        }
         if (point_in_rect(pointer_x, pointer_y, leader_rect)) command_attack_leader();
     }
 }
@@ -324,6 +432,23 @@ function draw_enemy_reveal(_card, _rect) {
     if (reveal_sprite >= 0) draw_art_contained(reveal_sprite, _rect, 4);
     draw_set_color(reveal_edge);
     draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, true);
+}
+
+function ui_drag_hides_card(_type, _index) {
+    return pointer_card_down && drag_active && pointer_card_type == _type && pointer_card_index == _index;
+}
+
+function draw_card_popup() {
+    if (is_undefined(card_popup)) return;
+    draw_set_alpha(0.88);
+    draw_set_color(COL_BG);
+    draw_rectangle(0, 0, 1280, 720, false);
+    draw_set_alpha(1);
+
+    var popup_rect = {x:425, y:25, w:430, h:645};
+    draw_panel({x:410, y:10, w:460, h:700}, make_color_rgb(24, 33, 46), COL_GOLD);
+    draw_card(card_popup, popup_rect, false, false);
+    draw_center("TAP ANYWHERE TO CLOSE", 640, 690, COL_TEXT);
 }
 
 function draw_setup_counter_button(_rect, _text, _enabled) {
@@ -568,7 +693,8 @@ draw_center("BUILD AREA", 640, 297, COL_MUTED);
 for (var build_i = 0; build_i < 3; build_i++) {
     var legal_build = (prompt_mode != "" && prompt_build_is_legal(build_i))
         || (phase == "build" && prompt_mode == "" && selected_hand >= 0);
-    draw_card(build[build_i], build_rects[build_i], selected_build == build_i, legal_build);
+    var visible_build_card = ui_drag_hides_card("build", build_i) ? undefined : build[build_i];
+    draw_card(visible_build_card, build_rects[build_i], selected_build == build_i, legal_build);
 }
 
 draw_center("HAND", 640, 512, COL_MUTED);
@@ -576,6 +702,7 @@ for (var hand_i = 0; hand_i < 3; hand_i++) {
     var hand_card = hand_i < array_length(hand) ? hand[hand_i] : undefined;
     var legal_hand = prompt_mode == "destroy_hand" && hand_i < array_length(hand)
         && !is_undefined(hand_card);
+    if (ui_drag_hides_card("hand", hand_i)) hand_card = undefined;
     draw_card(hand_card, hand_rects[hand_i], selected_hand == hand_i, legal_hand);
 }
 
@@ -695,6 +822,17 @@ else if (phase == "attack") button_text = "END ATTACK";
 else button_text = "RESOLVING...";
 draw_center(button_text, action_rect.x + action_rect.w / 2, action_rect.y + action_rect.h / 2,
     button_enabled ? COL_BG : COL_MUTED);
+
+// The dragged card follows the pointer and is drawn above the board.
+if (pointer_card_down && drag_active && !is_undefined(pointer_card_value)) {
+    var drag_w = pointer_card_type == "hand" ? hand_rects[0].w : build_rects[0].w;
+    var drag_h = pointer_card_type == "hand" ? hand_rects[0].h : build_rects[0].h;
+    var drag_x = device_mouse_x_to_gui(0) - drag_w / 2;
+    var drag_y = device_mouse_y_to_gui(0) - drag_h / 2;
+    draw_card(pointer_card_value, {x:drag_x, y:drag_y, w:drag_w, h:drag_h}, true, false);
+}
+
+draw_card_popup();
 
 if (game_over) {
     draw_set_alpha(0.9);
