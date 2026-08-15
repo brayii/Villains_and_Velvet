@@ -100,6 +100,50 @@ function validate_enemy_composition(_cards) {
     return minion_count == CORE_MINION_TOTAL && event_count == CORE_ENEMY_EVENT_SLOTS;
 }
 
+function enemy_event_selection_total(_selection) {
+    var total = 0;
+    for (var strike_i = 0; strike_i < array_length(_selection.leader_strikes); strike_i++) {
+        total += _selection.leader_strikes[strike_i].copies;
+    }
+    for (var twist_i = 0; twist_i < array_length(_selection.twists); twist_i++) {
+        total += _selection.twists[twist_i].copies;
+    }
+    return total;
+}
+
+function validate_enemy_event_group(_selected, _definitions) {
+    var selected_ids = [];
+    for (var selected_i = 0; selected_i < array_length(_selected); selected_i++) {
+        var selection = _selected[selected_i];
+        var definition = find_enemy_event_definition(_definitions, selection.id);
+        if (is_undefined(definition)) return false;
+        if (array_has_value(selected_ids, selection.id)) return false;
+        if (selection.copies < 0 || selection.copies != floor(selection.copies)) return false;
+        if (selection.copies > definition.max_copies) return false;
+        array_push(selected_ids, selection.id);
+    }
+    return true;
+}
+
+function validate_enemy_event_selection(_leader, _scenario, _selection) {
+    var total = enemy_event_selection_total(_selection);
+    var heading = "Enemy Events: " + string(total) + " / " + string(CORE_ENEMY_EVENT_SLOTS);
+    var valid_groups = validate_enemy_event_group(_selection.leader_strikes, _leader.leader_strikes)
+        && validate_enemy_event_group(_selection.twists, _scenario.twists);
+    if (total > CORE_ENEMY_EVENT_SLOTS) {
+        return {valid:false, total:total, message:heading + "\n\nRemove "
+            + string(total - CORE_ENEMY_EVENT_SLOTS) + " cards before starting."};
+    }
+    if (total < CORE_ENEMY_EVENT_SLOTS) {
+        return {valid:false, total:total, message:heading + "\n\nAdd "
+            + string(CORE_ENEMY_EVENT_SLOTS - total) + " cards before starting."};
+    }
+    if (!valid_groups) {
+        return {valid:false, total:total, message:heading + "\n\nThe selection contains an unavailable card or exceeds its copy limit."};
+    }
+    return {valid:true, total:total, message:heading + "\n\nReady."};
+}
+
 function collect_player_cards() {
     var cards = [];
     for (var deck_i = 0; deck_i < array_length(player_deck); deck_i++) array_push(cards, player_deck[deck_i]);
@@ -152,7 +196,12 @@ function reset_game() {
     leader_hp = enemy_leader.starting_hp;
     player_deck = make_player_deck();
     player_discard = [];
-    enemy_deck = make_enemy_deck(enemy_leader, enemy_scenario);
+    enemy_event_validation = validate_enemy_event_selection(enemy_leader, enemy_scenario, enemy_event_selection);
+    if (!enemy_event_validation.valid) {
+        show_debug_message(enemy_event_validation.message);
+        show_error(enemy_event_validation.message, true);
+    }
+    enemy_deck = make_enemy_deck(enemy_leader, enemy_scenario, enemy_event_selection);
     enemy_used = [];
     hand = [undefined, undefined, undefined];
     build = [undefined, undefined, undefined];

@@ -4,6 +4,7 @@ gpu_set_texfilter(true);
 vv_ui_init();
 enemy_leader = make_enemy_leader();
 enemy_scenario = make_scenario_the_assault();
+enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
 reset_game();
 vv_assets_init();
 vv_assets_load_initial();

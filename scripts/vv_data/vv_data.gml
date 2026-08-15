@@ -60,7 +60,8 @@ function make_enemy_leader() {
                     "The Enemy Leader attacks for " + string(leader_attack) + ".",
                     "card_art/enemies/leader_strike_direct_assault.png"
                 ),
-                default_copies: 3
+                default_copies: 3,
+                max_copies: 3
             }
         ]
     };
@@ -172,7 +173,8 @@ function make_scenario_the_assault() {
                     "The Minion in Area 2 attacks.",
                     "card_art/enemies/twist_reinforcements.png"
                 ),
-                default_copies: 5
+                default_copies: 5,
+                max_copies: 5
             }
         ]
     };
@@ -196,6 +198,35 @@ function array_shuffle_copy(_source) {
     return result;
 }
 
+function find_enemy_event_definition(_definitions, _id) {
+    for (var definition_i = 0; definition_i < array_length(_definitions); definition_i++) {
+        if (_definitions[definition_i].card.id == _id) return _definitions[definition_i];
+    }
+    return undefined;
+}
+
+function make_default_enemy_event_selection(_leader, _scenario) {
+    var selected_strikes = [];
+    for (var strike_i = 0; strike_i < array_length(_leader.leader_strikes); strike_i++) {
+        var strike_definition = _leader.leader_strikes[strike_i];
+        array_push(selected_strikes, {id:strike_definition.card.id, copies:strike_definition.default_copies});
+    }
+    var selected_twists = [];
+    for (var twist_i = 0; twist_i < array_length(_scenario.twists); twist_i++) {
+        var twist_definition = _scenario.twists[twist_i];
+        array_push(selected_twists, {id:twist_definition.card.id, copies:twist_definition.default_copies});
+    }
+    return {leader_strikes:selected_strikes, twists:selected_twists};
+}
+
+function add_selected_enemy_events(_deck, _selected, _definitions) {
+    for (var selected_i = 0; selected_i < array_length(_selected); selected_i++) {
+        var selection = _selected[selected_i];
+        var definition = find_enemy_event_definition(_definitions, selection.id);
+        if (!is_undefined(definition)) array_add_copies(_deck, definition.card, selection.copies);
+    }
+}
+
 function make_player_deck() {
     var deck = [];
     array_add_copies(deck, card_player("A", "Normal", 5, 3, ABILITY_NONE, "", ""), CORE_HERO_NORMAL_COPIES);
@@ -210,7 +241,7 @@ function make_player_deck() {
     return array_shuffle_copy(deck);
 }
 
-function make_enemy_deck(_leader, _scenario) {
+function make_enemy_deck(_leader, _scenario, _event_selection) {
     var deck = [];
     array_add_copies(deck, _scenario.minions.na, CORE_MINION_NA_COPIES);
     array_add_copies(deck, _scenario.minions.nb, CORE_MINION_NB_COPIES);
@@ -220,13 +251,7 @@ function make_enemy_deck(_leader, _scenario) {
     array_add_copies(deck, _scenario.minions.sa, CORE_MINION_SA_COPIES);
     array_add_copies(deck, _scenario.minions.sb, CORE_MINION_SB_COPIES);
     array_add_copies(deck, _scenario.minions.sc, CORE_MINION_SC_COPIES);
-    for (var strike_i = 0; strike_i < array_length(_leader.leader_strikes); strike_i++) {
-        var strike_definition = _leader.leader_strikes[strike_i];
-        array_add_copies(deck, strike_definition.card, strike_definition.default_copies);
-    }
-    for (var twist_i = 0; twist_i < array_length(_scenario.twists); twist_i++) {
-        var twist_definition = _scenario.twists[twist_i];
-        array_add_copies(deck, twist_definition.card, twist_definition.default_copies);
-    }
+    add_selected_enemy_events(deck, _event_selection.leader_strikes, _leader.leader_strikes);
+    add_selected_enemy_events(deck, _event_selection.twists, _scenario.twists);
     return array_shuffle_copy(deck);
 }
