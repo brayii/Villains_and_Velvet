@@ -25,6 +25,7 @@ function vv_ui_init() {
     setup_strike_page = 0;
     setup_twist_page = 0;
     setup_advanced_events = false;
+    setup_event_defaults_restored = false;
     debug_event_log = false;
 }
 
@@ -44,7 +45,7 @@ function setup_hero_button_rect(_slot, _direction) {
 }
 
 function setup_restore_defaults_rect() {
-    return {x:930, y:76, w:230, h:32};
+    return {x:930, y:66, w:230, h:44};
 }
 
 function point_in_rect(_px, _py, _rect) {
@@ -441,8 +442,17 @@ function vv_ui_draw_setup() {
 
         draw_setup_event_category("strike", "LEADER STRIKES");
         draw_setup_event_category("twist", "TWISTS");
-        draw_panel(setup_restore_defaults_rect(), COL_PANEL, COL_EDGE);
-        draw_center("RESTORE EVENT DEFAULTS", 1045, 92, COL_TEXT);
+        var restore_rect = setup_restore_defaults_rect();
+        draw_panel(restore_rect, setup_event_defaults_restored ? COL_ACCENT : COL_PANEL,
+            setup_event_defaults_restored ? COL_TEXT : COL_EDGE);
+        var default_strikes = setup_event_default_total(enemy_leader.leader_strikes);
+        var default_twists = setup_event_default_total(enemy_scenario.twists);
+        draw_center(setup_event_defaults_restored ? "DEFAULT MIX RESTORED" : "RESTORE DEFAULT MIX",
+            restore_rect.x + restore_rect.w / 2, restore_rect.y + 14,
+            setup_event_defaults_restored ? COL_BG : COL_TEXT);
+        draw_center(string(default_strikes) + " STRIKES  /  " + string(default_twists) + " TWISTS",
+            restore_rect.x + restore_rect.w / 2, restore_rect.y + 31,
+            setup_event_defaults_restored ? COL_BG : COL_MUTED);
     } else {
         draw_center(enemy_leader.name + "   |   " + enemy_scenario.name + "   |   " + enemy_minion_set.name,
             640, 126, COL_TEXT);

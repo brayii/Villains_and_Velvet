@@ -195,6 +195,7 @@ function command_adjust_enemy_event(_category, _index, _change) {
     selected[_index] = selection;
     if (_category == "strike") enemy_event_selection.leader_strikes = selected;
     else enemy_event_selection.twists = selected;
+    setup_event_defaults_restored = false;
     refresh_setup_validation();
     return true;
 }
@@ -212,6 +213,7 @@ function command_select_leader(_change) {
     enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
     leader_art_sprite = get_art_sprite(enemy_leader.art_file);
     setup_strike_page = 0;
+    setup_event_defaults_restored = false;
     refresh_setup_validation();
     return true;
 }
@@ -223,6 +225,7 @@ function command_select_scenario(_change) {
     enemy_scenario = available_scenarios[selected_scenario_index];
     enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
     setup_twist_page = 0;
+    setup_event_defaults_restored = false;
     refresh_setup_validation();
     return true;
 }
@@ -240,6 +243,7 @@ function command_restore_enemy_event_defaults() {
     enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
     setup_strike_page = 0;
     setup_twist_page = 0;
+    setup_event_defaults_restored = true;
     refresh_setup_validation();
     return true;
 }
