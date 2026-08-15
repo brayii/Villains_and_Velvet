@@ -4,7 +4,7 @@
   "isCompatibility":false,
   "isDnD":false,
   "name":"vv_enemy",
-  "parent":{"name":"cards","path":"cards.yyp"},
+  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
   "resourceType":"GMScript",
   "resourceVersion":"2.0"
 }

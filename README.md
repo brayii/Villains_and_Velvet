@@ -1,37 +1,40 @@
 # Villains & Velvet
 
-Villains & Velvet is a single-player card game built with GameMaker. The complete design is recorded in the [core rules](../Core%20Game%20Rules%20%E2%80%93%20v1.0.md).
+Villains & Velvet is a single-player card game prototype built with GameMaker. Build a three-card team from a growing roster of Heroes, manage incoming Minions, and defeat the Enemy Leader before the Enemy Deck runs out.
 
-## How to Play
+## Project Status
 
-- Tap **Start Turn** to draw cards and begin the enemy sequence.
-- Minions advance, escape, and enter play automatically.
-- When several cards are highlighted, choose one to resolve the effect.
-- During Build, select a Hand card and then a Build slot to place or swap it.
-- Tap **Ready to Attack** when your Build is complete.
-- During Attack, tap a Minion or the Enemy Leader.
-- Tap **End Attack** when you are finished. The game discards the remaining Hand and ends the turn automatically.
+This project is an in-development prototype. Gameplay rules and content may change.
 
-## Turn Order
+## Requirements
 
-1. Draw Cards
-2. Advance and Escape
-3. Enemy Draw
-4. Build
-5. Player Attack
-6. Discard
-7. End Turn
+- GameMaker (the project metadata was last saved with IDE version `2026.0.0.16`)
+- A GameMaker target available for the platform on which you want to run or export the game
 
-## Important Rules
+## Open and Run
 
-- Guard and Fortress must be attacked before other Build cards.
-- If several priority cards are in play, the player chooses which one is attacked.
-- A failed attack against a Minion does not spend the player's remaining Attack.
-- If SB escapes while the Hand is empty, its Escape has no effect.
-- Unused Attack is lost when the turn ends.
+1. Clone or download this repository.
+2. Open `VillainsAndVelvet.yyp` in GameMaker.
+3. Select an available target and run the project from the GameMaker IDE.
 
-## Artwork Folders
+`CardGamePrototype.exe` is a prebuilt Windows prototype. The GameMaker project is the source of truth for development.
 
-- `card_art/` contains the source artwork used while preparing and reviewing cards.
-- `datafiles/card_art/` contains the game-ready copies included in GameMaker builds.
-- Add or replace playable artwork in both locations so the source files and exported game stay synchronized.
+## Documentation
+
+- [Core Game Rules](CORE_GAME_RULES.md) — the basic gameplay rules shared by current and future content.
+- [Architecture](ARCHITECTURE.md) — code organization and guidance about where changes belong.
+
+## Repository Layout
+
+- `objects/` — GameMaker objects and their events.
+- `scripts/` — gameplay, state, UI, data, turn, and asset modules.
+- `rooms/` — GameMaker room definitions.
+- `card_art/` — source artwork used while preparing and reviewing cards.
+- `datafiles/card_art/` — game-ready artwork included in exported builds.
+- `tools/` — development utilities.
+
+When changing playable artwork, update both `card_art/` and `datafiles/card_art/` so the source and exported copies remain synchronized.
+
+## License
+
+No license has been specified. Unless and until a license is added, the code and artwork remain under their respective owners' default copyright.

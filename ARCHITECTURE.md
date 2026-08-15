@@ -1,6 +1,6 @@
 # Villains & Velvet Architecture
 
-`obj_game` remains the main controller. Its events only initialize, update, draw, and clean up the game; the rules live in focused Script Assets.
+`obj_controller` remains the main controller. Its events only initialize, update, draw, and clean up the game; the rules live in focused Script Assets.
 
 ## Where Changes Belong
 
@@ -21,4 +21,4 @@
 - Change turn sequencing only in `vv_turn.gml`.
 - Keep UI code limited to presentation and input routing; gameplay legality belongs in the relevant gameplay module.
 
-Runtime artwork is loaded with `sprite_add()` and owned by the cache in `vv_assets.gml`. The `obj_game` Clean Up event calls `vv_assets_cleanup()` so each cached dynamic sprite is released once.
+Runtime artwork is loaded with `sprite_add()` and owned by the cache in `vv_assets.gml`. The `obj_controller` Clean Up event calls `vv_assets_cleanup()` so each cached dynamic sprite is released once.

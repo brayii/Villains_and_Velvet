@@ -1,6 +1,6 @@
 {
   "$GMProject":"v1",
-  "%Name":"cards",
+  "%Name":"VillainsAndVelvet",
   "AudioGroups":[
     {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
@@ -39,10 +39,10 @@
   "MetaData":{
     "IDEVersion":"2026.0.0.16",
   },
-  "name":"cards",
+  "name":"VillainsAndVelvet",
   "resources":[
-    {"id":{"name":"obj_game","path":"objects/obj_game/obj_game.yy",},},
-    {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
+    {"id":{"name":"obj_controller","path":"objects/obj_controller/obj_controller.yy",},},
+    {"id":{"name":"rm_game","path":"rooms/rm_game/rm_game.yy",},},
     {"id":{"name":"vv_data","path":"scripts/vv_data/vv_data.yy",},},
     {"id":{"name":"vv_state","path":"scripts/vv_state/vv_state.yy",},},
     {"id":{"name":"vv_enemy","path":"scripts/vv_enemy/vv_enemy.yy",},},
@@ -54,7 +54,7 @@
   "resourceType":"GMProject",
   "resourceVersion":"2.0",
   "RoomOrderNodes":[
-    {"roomId":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
+    {"roomId":{"name":"rm_game","path":"rooms/rm_game/rm_game.yy",},},
   ],
   "templateType":"game",
   "TextureGroups":[
