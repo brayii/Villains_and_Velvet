@@ -14,7 +14,7 @@ This project is an in-development prototype. Gameplay rules and content may chan
 ## Open and Run
 
 1. Clone or download this repository.
-2. Open `cards.yyp` in GameMaker.
+2. Open `VillainsAndVelvet.yyp` in GameMaker.
 3. Select an available target and run the project from the GameMaker IDE.
 
 `CardGamePrototype.exe` is a prebuilt Windows prototype. The GameMaker project is the source of truth for development.

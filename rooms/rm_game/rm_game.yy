@@ -17,8 +17,8 @@
   ],
   "name":"rm_game",
   "parent":{
-    "name":"cards",
-    "path":"cards.yyp",
+    "name":"VillainsAndVelvet",
+    "path":"VillainsAndVelvet.yyp",
   },
   "parentRoom":null,
   "physicsSettings":{

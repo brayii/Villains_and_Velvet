@@ -11,8 +11,8 @@
   "name":"obj_controller",
   "overriddenProperties":[],
   "parent":{
-    "name":"cards",
-    "path":"cards.yyp",
+    "name":"VillainsAndVelvet",
+    "path":"VillainsAndVelvet.yyp",
   },
   "parentObjectId":null,
   "persistent":false,
