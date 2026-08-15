@@ -6,10 +6,16 @@ function resume_after_prompts() {
     var action = resume_action;
     resume_action = "";
     if (action == "finish_advance") {
-        if (!is_undefined(minions[0])) retire_minion(0, "finishes escaping");
-        minions[0] = minions[1];
-        minions[1] = undefined;
-        if (!is_undefined(minions[0])) log_add(minions[0].name + " advances to Area 2.");
+        if (!is_undefined(minions[0]) && !is_undefined(minions[1])) {
+            retire_minion(0, "finishes escaping");
+            minions[0] = minions[1];
+            minions[1] = undefined;
+            log_add(minions[0].name + " advances to Area 2.");
+        } else if (is_undefined(minions[0]) && !is_undefined(minions[1])) {
+            minions[0] = minions[1];
+            minions[1] = undefined;
+            log_add(minions[0].name + " advances to Area 2.");
+        }
         log_add("Step 2 — Advance/Escape complete.");
         step_number = 3;
         phase = "step3_ready";

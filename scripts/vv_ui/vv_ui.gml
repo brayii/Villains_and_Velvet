@@ -210,7 +210,7 @@ draw_set_color(leader_is_protected() ? COL_GOLD : COL_DANGER);
 draw_roundrect(leader_rect.x, leader_rect.y, leader_rect.x + leader_rect.w, leader_rect.y + leader_rect.h, true);
 
 draw_center("AREA 2", 645, 17, COL_GOLD);
-draw_center("ESCAPES NEXT TURN", 645, 36, COL_MUTED);
+draw_center("ESCAPES WHEN PUSHED", 645, 36, COL_MUTED);
 if (!is_undefined(revealed_enemy_card)) {
     draw_center(revealed_enemy_card.card_type == "strike" ? "LEADER STRIKE" : "TWIST", 865, 17, COL_GOLD);
     draw_center(revealed_enemy_card.name, 865, 36, COL_TEXT);

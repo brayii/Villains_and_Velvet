@@ -124,8 +124,10 @@ function begin_advance_phase() {
     step_number = 2;
     resume_action = "finish_advance";
     log_add("Step 2 — Advance/Escape.");
-    if (!is_undefined(minions[0])) {
+    // A Minion escapes only when the Minion in Area 1 pushes it out.
+    if (!is_undefined(minions[0]) && !is_undefined(minions[1])) {
         var escaping = minions[0];
+        log_add(minions[1].name + " pushes " + escaping.name + " out of Area 2.");
         log_add(escaping.name + " begins its Escape effect.");
         if (escaping.escape == "heal") {
             heal_leader(escaping.escape_value);
@@ -135,6 +137,8 @@ function begin_advance_phase() {
                 log_add("SB escapes. Choose a highlighted Hand card to destroy.");
             } else log_add("SB Escape finds no card in Hand to destroy.");
         }
+    } else if (!is_undefined(minions[0])) {
+        log_add(minions[0].name + " remains in Area 2 because Area 1 is empty.");
     }
     resume_after_prompts();
 }
