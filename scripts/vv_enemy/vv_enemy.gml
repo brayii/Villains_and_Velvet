@@ -174,6 +174,34 @@ function resolve_minion_entry(_minion) {
     resume_after_prompts();
 }
 
+function resolve_leader_strike(_card) {
+    log_add("Enemy Draw: " + _card.name + ".");
+    switch (_card.effect_id) {
+        case EFFECT_LEADER_BASIC_ATTACK:
+            queue_enemy_attack(enemy_leader.attack, _card.name);
+            return true;
+    }
+    log_add(_card.name + " has an unknown Leader Strike effect and does nothing.");
+    show_debug_message("UNKNOWN LEADER STRIKE EFFECT: " + string(_card.effect_id));
+    return false;
+}
+
+function resolve_twist(_card) {
+    log_add("Enemy Draw: " + _card.name + ".");
+    switch (_card.effect_id) {
+        case EFFECT_AREA_2_ATTACK:
+            if (!is_undefined(minions[0])) {
+                queue_enemy_attack(minions[0].atk, _card.name + ": " + minions[0].name);
+            } else {
+                log_add("Area 2 is empty; " + _card.name + " has no effect.");
+            }
+            return true;
+    }
+    log_add(_card.name + " has an unknown Twist effect and does nothing.");
+    show_debug_message("UNKNOWN TWIST EFFECT: " + string(_card.effect_id));
+    return false;
+}
+
 function draw_next_enemy_card() {
     step_number = 3;
     phase = "start_resolving";
@@ -193,16 +221,13 @@ function draw_next_enemy_card() {
     if (enemy_card.card_type == "strike") {
         revealed_enemy_card = enemy_card;
         array_push(enemy_used, enemy_card);
-        log_add("Enemy Draw: Direct Assault.");
-        queue_enemy_attack(enemy_leader.attack, "Direct Assault");
+        resolve_leader_strike(enemy_card);
         resume_action = "continue_enemy_draw";
         resume_after_prompts();
     } else if (enemy_card.card_type == "twist") {
         revealed_enemy_card = enemy_card;
         array_push(enemy_used, enemy_card);
-        log_add("Enemy Draw: Reinforcements.");
-        if (!is_undefined(minions[0])) queue_enemy_attack(minions[0].atk, "Reinforcements: " + minions[0].name);
-        else log_add("Area 2 is empty; Reinforcements has no effect.");
+        resolve_twist(enemy_card);
         resume_action = "continue_enemy_draw";
         resume_after_prompts();
     } else {

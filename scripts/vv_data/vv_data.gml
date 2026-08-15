@@ -35,6 +35,10 @@
 #macro ABILITY_SHATTER "shatter"
 #macro ABILITY_DEVASTATE "devastate"
 
+// Stable Enemy Event effect IDs. Display names do not determine behavior.
+#macro EFFECT_LEADER_BASIC_ATTACK "leader_basic_attack"
+#macro EFFECT_AREA_2_ATTACK "area_2_attack"
+
 function make_enemy_leader() {
     var leader_attack = 8;
     return {
@@ -48,7 +52,14 @@ function make_enemy_leader() {
         special_moves: [],
         leader_strikes: [
             {
-                card: card_enemy("strike", "Direct Assault", "The Enemy Leader attacks for " + string(leader_attack) + "."),
+                card: card_enemy(
+                    "strike",
+                    "direct_assault",
+                    "Direct Assault",
+                    EFFECT_LEADER_BASIC_ATTACK,
+                    "The Enemy Leader attacks for " + string(leader_attack) + ".",
+                    "card_art/enemies/leader_strike_direct_assault.png"
+                ),
                 default_copies: 3
             }
         ]
@@ -94,12 +105,6 @@ function minion_card_art(_name) {
     return "";
 }
 
-function enemy_event_art(_type) {
-    return _type == "strike"
-        ? "card_art/enemies/leader_strike_direct_assault.png"
-        : "card_art/enemies/twist_reinforcements.png";
-}
-
 function card_player(_hero, _kind, _atk, _hp, _ability_id, _ability, _effect) {
     return {
         hero: _hero,
@@ -131,12 +136,14 @@ function card_minion(_name, _kind, _atk, _hp, _ability_id, _ability, _effect, _e
     };
 }
 
-function card_enemy(_type, _name, _effect) {
+function card_enemy(_type, _id, _name, _effect_id, _effect, _art_file) {
     return {
         card_type: _type,
+        id: _id,
         name: _name,
+        effect_id: _effect_id,
         effect: _effect,
-        art_file: enemy_event_art(_type)
+        art_file: _art_file
     };
 }
 
@@ -157,7 +164,14 @@ function make_scenario_the_assault() {
         },
         twists: [
             {
-                card: card_enemy("twist", "Reinforcements", "The Minion in Area 2 attacks."),
+                card: card_enemy(
+                    "twist",
+                    "reinforcements",
+                    "Reinforcements",
+                    EFFECT_AREA_2_ATTACK,
+                    "The Minion in Area 2 attacks.",
+                    "card_art/enemies/twist_reinforcements.png"
+                ),
                 default_copies: 5
             }
         ]
