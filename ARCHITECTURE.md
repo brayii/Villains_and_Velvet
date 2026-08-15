@@ -37,9 +37,9 @@ Hero identity is a stable content ID. Player rules such as Unity compare IDs dyn
 
 ## Card Abilities
 
-Every Hero and Minion card has an `abilities` array. Normal cards use an empty array; current Ability and Special cards contain one entry with a stable ability ID and a parameter struct reserved for future card-specific values. Gameplay checks abilities through `find_card_ability()` and `card_has_ability()` instead of relying on display text or a single ability field.
+Every Hero and Minion card has an `abilities` array. Normal cards use an empty array; each ability entry contains a stable ID, display name, rules text, and a parameter struct reserved for card-specific values. Gameplay checks abilities through `find_card_ability()` and `card_has_ability()` instead of relying on display text or a single ability field.
 
-The current cards still have at most one ability. This representation allows later cards to hold multiple abilities without changing the card structure.
+The current cards still have at most one ability, but presentation renders every entry. Minion Entry resolution walks the array in order. An ability that requires a choice stores its next position, pauses, and resumes with the following ability after the prompt. If no ability supplies a different attack pattern, the Minion makes its normal single attack after the sequence.
 
 ## Leader Definitions
 

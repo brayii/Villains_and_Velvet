@@ -362,6 +362,9 @@ function reset_game() {
     enemy_attack_notice = "";
     resume_action = "";
     queued_attacks = [];
+    entry_minion = undefined;
+    entry_ability_index = 0;
+    entry_has_attack_pattern = false;
     action_cooldown = 0;
     auto_timer = 0;
     game_over = false;

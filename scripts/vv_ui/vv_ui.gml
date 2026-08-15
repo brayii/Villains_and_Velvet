@@ -264,6 +264,17 @@ function draw_art_cover(_sprite, _rect) {
     draw_sprite_ext(_sprite, 0, draw_x, draw_y, scale, scale, 0, c_white, 1);
 }
 
+function card_abilities_text(_card) {
+    if (!variable_struct_exists(_card, "abilities") || array_length(_card.abilities) == 0) return "No ability.";
+    var result = "";
+    for (var ability_i = 0; ability_i < array_length(_card.abilities); ability_i++) {
+        var ability = _card.abilities[ability_i];
+        if (result != "") result += "\n";
+        result += ability.name + ": " + ability.text;
+    }
+    return result;
+}
+
 function draw_card(_card, _rect, _selected, _legal) {
     var fill = COL_PANEL;
     if (!is_undefined(_card)) {
@@ -290,9 +301,8 @@ function draw_card(_card, _rect, _selected, _legal) {
             draw_set_color(COL_ACCENT);
             draw_text(_rect.x + _rect.w - 64, _rect.y + 34, "HP " + string(_card.hp));
             draw_set_color(COL_TEXT);
-            if (_card.ability != "") draw_text(_rect.x + 10, _rect.y + 59, _card.ability);
             draw_set_color(COL_MUTED);
-            draw_text_ext(_rect.x + 10, _rect.y + 82, _card.effect, 16, _rect.w - 20);
+            draw_text_ext(_rect.x + 10, _rect.y + 59, card_abilities_text(_card), 16, _rect.w - 20);
         }
     }
     draw_set_color(outline);
@@ -636,13 +646,10 @@ if (!is_undefined(detail_card)) {
         draw_text(1090, 385, "HP " + string(detail_card.hp));
     }
     var detail_y = variable_struct_exists(detail_card, "atk") ? 410 : 385;
-    if (variable_struct_exists(detail_card, "ability") && detail_card.ability != "") {
-        draw_set_color(COL_GOLD);
-        draw_text(1000, detail_y, detail_card.ability);
-        detail_y += 21;
-    }
     draw_set_color(COL_TEXT);
-    var detail_text = detail_card.effect != "" ? detail_card.effect : "No ability.";
+    var detail_text = variable_struct_exists(detail_card, "abilities")
+        ? card_abilities_text(detail_card)
+        : (detail_card.effect != "" ? detail_card.effect : "No ability.");
     draw_text_ext(1000, detail_y, detail_text, 15, 250);
 }
 

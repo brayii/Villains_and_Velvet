@@ -133,7 +133,8 @@ function command_attack_leader() {
     if (phase != "attack") return false;
     var protector = find_leader_protector();
     if (!is_undefined(protector)) {
-        log_add(protector.name + "'s " + protector.ability + " prevents attacks on the Leader.");
+        var protector_ability = find_card_ability(protector, ABILITY_PROTECTOR);
+        log_add(protector.name + "'s " + protector_ability.name + " prevents attacks on the Leader.");
         return false;
     }
     if (attack_left <= 0) {

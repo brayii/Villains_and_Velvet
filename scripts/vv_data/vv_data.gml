@@ -77,8 +77,8 @@ function core_minion_slots_are_valid(_minion_set) {
 #macro EFFECT_HEAL_LEADER "heal_leader"
 #macro EFFECT_DESTROY_HAND_CARD "destroy_hand_card"
 
-function ability_entry(_id) {
-    return {id:_id, params:{}};
+function ability_entry(_id, _name, _text) {
+    return {id:_id, name:_name, text:_text, params:{}};
 }
 
 function find_card_ability(_card, _ability_id) {
@@ -180,22 +180,22 @@ function make_hero_definitions() {
             id: "A",
             name: "Goblin",
             normal: card_player("A", "Goblin", "Normal", 5, 3, [], "", "", "card_art/heroes/hero_a_normal_goblin.png", goblin_color),
-            ability: card_player("A", "Goblin", "Ability", 4, 2, [ability_entry(ABILITY_OVERPOWER)], "Overpower", "After you defeat a Minion, gain +2 Attack.", "card_art/heroes/hero_a_ability_goblin.png", goblin_color),
-            special: card_player("A", "Goblin", "Special", 7, 2, [ability_entry(ABILITY_RELENTLESS)], "Relentless", "After you defeat a Minion, gain +3 Attack.", "card_art/heroes/hero_a_special_goblin.png", goblin_color)
+            ability: card_player("A", "Goblin", "Ability", 4, 2, [ability_entry(ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack.")], "Overpower", "After you defeat a Minion, gain +2 Attack.", "card_art/heroes/hero_a_ability_goblin.png", goblin_color),
+            special: card_player("A", "Goblin", "Special", 7, 2, [ability_entry(ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack.")], "Relentless", "After you defeat a Minion, gain +3 Attack.", "card_art/heroes/hero_a_special_goblin.png", goblin_color)
         },
         {
             id: "B",
             name: "Skeleton",
             normal: card_player("B", "Skeleton", "Normal", 4, 4, [], "", "", "card_art/heroes/hero_b_normal_skeleton.png", skeleton_color),
-            ability: card_player("B", "Skeleton", "Ability", 3, 4, [ability_entry(ABILITY_RALLY)], "Rally", "Your other Build cards gain +1 Attack.", "card_art/heroes/hero_b_ability_skeleton.png", skeleton_color),
-            special: card_player("B", "Skeleton", "Special", 4, 4, [ability_entry(ABILITY_UNITY)], "Unity", "Gain +2 Attack for each other Hero type in your Build.", "card_art/heroes/hero_b_special_skeleton.png", skeleton_color)
+            ability: card_player("B", "Skeleton", "Ability", 3, 4, [ability_entry(ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack.")], "Rally", "Your other Build cards gain +1 Attack.", "card_art/heroes/hero_b_ability_skeleton.png", skeleton_color),
+            special: card_player("B", "Skeleton", "Special", 4, 4, [ability_entry(ABILITY_UNITY, "Unity", "Gain +2 Attack for each other Hero type in your Build.")], "Unity", "Gain +2 Attack for each other Hero type in your Build.", "card_art/heroes/hero_b_special_skeleton.png", skeleton_color)
         },
         {
             id: "C",
             name: "Orc",
             normal: card_player("C", "Orc", "Normal", 3, 5, [], "", "", "card_art/heroes/hero_c_normal_orc.png", orc_color),
-            ability: card_player("C", "Orc", "Ability", 2, 6, [ability_entry(ABILITY_GUARD)], "Guard", "Enemies must attack this card first.", "card_art/heroes/hero_c_ability_orc.png", orc_color),
-            special: card_player("C", "Orc", "Special", 2, 8, [ability_entry(ABILITY_FORTRESS)], "Fortress", "Enemies must attack this card first.", "card_art/heroes/hero_c_special_orc.png", orc_color)
+            ability: card_player("C", "Orc", "Ability", 2, 6, [ability_entry(ABILITY_GUARD, "Guard", "Enemies must attack this card first.")], "Guard", "Enemies must attack this card first.", "card_art/heroes/hero_c_ability_orc.png", orc_color),
+            special: card_player("C", "Orc", "Special", 2, 8, [ability_entry(ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first.")], "Fortress", "Enemies must attack this card first.", "card_art/heroes/hero_c_special_orc.png", orc_color)
         }
     ];
 }
@@ -245,11 +245,11 @@ function make_minion_set_velvet_menagerie() {
             {slot:"NA", card:card_minion("NA", "Bunny", "Normal", 4, 6, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:5})], "card_art/enemies/minion_na_bunny.png")},
             {slot:"NB", card:card_minion("NB", "Corgi", "Normal", 6, 8, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:7})], "card_art/enemies/minion_nb_corgi.png")},
             {slot:"NC", card:card_minion("NC", "Red Panda", "Normal", 8, 10, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:9})], "card_art/enemies/minion_nc_red_panda.png")},
-            {slot:"AA", card:card_minion("AA", "Otter", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT)], "Disrupt", "Discard a Build card, then attack.", [effect_entry(EFFECT_HEAL_LEADER, {amount:6})], "card_art/enemies/minion_aa_otter.png")},
-            {slot:"AB", card:card_minion("AB", "Highland Cow", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH)], "Crush", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:8})], "card_art/enemies/minion_ab_highland_cow.png")},
-            {slot:"SA", card:card_minion("SA", "Capybara", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR)], "Protector", "The Enemy Leader cannot be attacked.", [effect_entry(EFFECT_HEAL_LEADER, {amount:10})], "card_art/enemies/minion_sa_capybara.png")},
-            {slot:"SB", card:card_minion("SB", "Raccoon", "Special", 8, 9, [ability_entry(ABILITY_SHATTER)], "Shatter", "Destroy the lowest-HP Build card, then attack.", [effect_entry(EFFECT_DESTROY_HAND_CARD, {count:1})], "card_art/enemies/minion_sb_raccoon.png")},
-            {slot:"SC", card:card_minion("SC", "Harp Seal", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE)], "Devastate", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:12})], "card_art/enemies/minion_sc_harp_seal.png")}
+            {slot:"AA", card:card_minion("AA", "Otter", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT, "Disrupt", "Discard a Build card, then attack.")], "Disrupt", "Discard a Build card, then attack.", [effect_entry(EFFECT_HEAL_LEADER, {amount:6})], "card_art/enemies/minion_aa_otter.png")},
+            {slot:"AB", card:card_minion("AB", "Highland Cow", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH, "Crush", "Attacks twice when played.")], "Crush", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:8})], "card_art/enemies/minion_ab_highland_cow.png")},
+            {slot:"SA", card:card_minion("SA", "Capybara", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR, "Protector", "The Enemy Leader cannot be attacked.")], "Protector", "The Enemy Leader cannot be attacked.", [effect_entry(EFFECT_HEAL_LEADER, {amount:10})], "card_art/enemies/minion_sa_capybara.png")},
+            {slot:"SB", card:card_minion("SB", "Raccoon", "Special", 8, 9, [ability_entry(ABILITY_SHATTER, "Shatter", "Destroy the lowest-HP Build card, then attack.")], "Shatter", "Destroy the lowest-HP Build card, then attack.", [effect_entry(EFFECT_DESTROY_HAND_CARD, {count:1})], "card_art/enemies/minion_sb_raccoon.png")},
+            {slot:"SC", card:card_minion("SC", "Harp Seal", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE, "Devastate", "Attacks twice when played.")], "Devastate", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:12})], "card_art/enemies/minion_sc_harp_seal.png")}
         ]
     };
 }
