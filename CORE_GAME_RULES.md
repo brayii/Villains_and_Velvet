@@ -28,7 +28,7 @@ New Minions enter Area 1. A Minion advances to Area 2 when that space is empty. 
 1. Choose an Enemy Leader and set it to that Leader's starting Health.
 2. Choose a Scenario.
 3. Choose exactly three different Heroes. Add seven Normal, five Ability, and three Special cards for each Hero, then shuffle the 45-card Player Deck.
-4. Assemble the 33-card Enemy Deck from the Scenario's 25 Minions and exactly eight Enemy Events selected from the Leader's Leader Strikes and the Scenario's Twists. Shuffle the deck.
+4. Assemble the Scenario's 25 Minions using the permanent slot distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1. Add exactly eight Enemy Events selected from the Leader's Leader Strikes and the Scenario's Twists, creating a 33-card Enemy Deck. Shuffle the deck.
 5. Leave the Hand, Build, Minion Areas, and discard or used-card piles empty.
 6. Begin the first turn.
 

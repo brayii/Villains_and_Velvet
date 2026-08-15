@@ -49,9 +49,9 @@ The Velvet Queen currently owns Direct Assault with a default selection of three
 
 ## Scenario Definitions
 
-Scenario definitions live in `vv_data.gml`. A Scenario has a stable ID, display name, setup-rule array, Minion-slot definitions with their copy counts, and its available Twist definitions.
+Scenario definitions live in `vv_data.gml`. A Scenario has a stable ID, display name, setup-rule array, exactly one card definition for every core Minion slot, and its available Twist definitions. Scenarios do not set Minion copy counts.
 
-`make_scenario_the_assault()` owns the current eight Minion definitions and Reinforcements. The deck builder accepts the selected Leader and Scenario, iterates the Scenario's Minion slots, and clones every physical card. The setup screen validates the selected Leader, Scenario, Heroes, Leader Strikes, and Twists before starting a match.
+`make_scenario_the_assault()` owns the current eight Minion definitions and Reinforcements. `core_minion_slot_copies()` permanently owns the NA/NB/NC/AA/AB/SA/SB/SC distribution. The deck builder stamps each physical Minion with its structural slot, and state validation checks the resulting deck against the core count rather than Scenario data. Setup rejects missing, duplicated, or unknown slots before starting a match.
 
 Prototype Hero and Minion IDs remain only in content and setup definitions. Deck construction and validation iterate the selected Scenario's Minion slots, and gameplay behavior is selected by stable ability or effect IDs. Player-facing messages use card names and ability names from content instead of prototype codes.
 

@@ -62,10 +62,10 @@ Use `make_scenario_the_assault()` as the complete Scenario example. A Scenario n
 Each Minion slot is stored as:
 
 ```gml
-{card: minion_card_definition, copies: copy_count}
+{slot: "NA", card: minion_card_definition}
 ```
 
-The copy counts across the Scenario must fill the fixed 25 Minion positions. The deck builder and state validator iterate this array; Minion codes remain content identifiers and do not control abilities.
+Every Scenario must define each of the eight slots exactly once. Core code—not the Scenario—owns the permanent distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1. The deck builder and state validator reject missing, duplicated, or unknown slots.
 
 The controller currently calls `make_scenario_the_assault()` directly. Activating another Scenario or exposing multiple Scenario choices follows the same limitation described for Leaders.
 
@@ -75,7 +75,7 @@ Add the Minion's `card_minion()` definition to the Scenario's `minion_slots`. Ch
 
 The current reusable Minion abilities are Disrupt, Crush, Protector, Shatter, and Devastate. The current reusable Escape effects heal the Leader or destroy a Hand card. Names such as Otter or Raccoon and codes such as AA or SB are content only; the resolver reads the stable ability and effect IDs.
 
-If the Scenario still uses the fixed 25-card Minion structure, adjust another slot's copy count when adding a new one so the total remains 25.
+To replace a Minion, change the card assigned to its structural slot. Do not add or adjust Minion copy counts in Scenario data.
 
 ## Add a Leader Strike or Twist
 
