@@ -4,9 +4,10 @@ from shutil import copy2
 from PIL import Image, ImageDraw
 
 
-ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "card_assets"
-OUTPUT = ROOT / "cards" / "datafiles" / "card_art"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+WORKSPACE_ROOT = PROJECT_ROOT.parent
+SOURCE = WORKSPACE_ROOT / "card_assets"
+OUTPUT = PROJECT_ROOT / "datafiles" / "card_art"
 
 
 HERO_CROPS = {
@@ -75,7 +76,7 @@ def main() -> None:
     copy2(SOURCE / "backgrounds" / "background_1.png", background_file)
     created.append(background_file)
 
-    make_preview(created[:-1], ROOT / "cards" / ".build_temp" / "card_asset_preview.png")
+    make_preview(created[:-1], PROJECT_ROOT / ".build_temp" / "card_asset_preview.png")
     print(f"Created {len(created)} project assets in {OUTPUT}")
 
 

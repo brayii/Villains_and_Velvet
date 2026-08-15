@@ -23,6 +23,8 @@
 
 Runtime artwork is loaded with `sprite_add()` and owned by the cache in `vv_assets.gml`. The `obj_controller` Clean Up event calls `vv_assets_cleanup()` so each cached dynamic sprite is released once.
 
+`datafiles/card_art/` is the single authoritative location for game-ready artwork. GameMaker packages those files as Included Files, so runtime card paths begin with `card_art/`. The extraction utility writes directly to this folder, and `tools/verify_card_assets.py` checks the files, project entries, and code references without maintaining a duplicate artwork tree.
+
 ## Fixed Deck Structure
 
 The authoritative `CORE_*` constants are defined once at the top of `vv_data.gml`. They describe three Heroes with a 7/5/3 card distribution, the fixed eight Minion-slot copy counts, 25 total Minions, eight Enemy Events, a 45-card Player Deck, and a 33-card Enemy Deck.
