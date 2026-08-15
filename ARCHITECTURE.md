@@ -61,6 +61,8 @@ Prototype Hero and Minion IDs remain only in content and setup definitions. Deck
 
 Minion Escape effects, Leader Strikes, and Twists use reusable effect entries with a stable ID and parameter struct. Minions keep their effects in `escape_effects`; Enemy Event cards keep theirs in `effects`. Current definitions contain one effect, while the array structure permits future content to combine effects without adding one-off card fields.
 
+Escape effects resolve in array order through `continue_minion_escape()`. A choice-producing effect stores the next effect index, pauses, and resumes after the choice. `destroy_hand_card` honors `params.count` with one player choice per card, stopping safely if the Hand becomes empty. Overflow Attacks queued by healing wait until the complete Escape sequence and its prompts finish.
+
 Enemy Draw identifies only whether a card is a Leader Strike or Twist, then delegates to `resolve_leader_strike()` or `resolve_twist()` in `vv_enemy.gml`. Minion movement delegates Escape behavior to `resolve_minion_escape()`.
 
 Direct Assault uses the reusable `leader_basic_attack` effect. Reinforcements uses the reusable `area_2_attack` effect. Adding another card that uses either existing effect requires only a content definition; a genuinely new effect requires one localized resolver case.

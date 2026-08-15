@@ -83,6 +83,8 @@ Add the Minion's `card_minion()` definition to a Minion Set's `minion_slots`. Ch
 
 The current reusable Minion abilities are Disrupt, Crush, Protector, Shatter, and Devastate. The current reusable Escape effects heal the Leader or destroy a Hand card. Names such as Otter or Raccoon and codes such as AA or SB are content only; the resolver reads the stable ability and effect IDs.
 
+Escape effects run in their listed order. `EFFECT_HEAL_LEADER` uses `{amount:N}`. `EFFECT_DESTROY_HAND_CARD` uses `{count:N}` and requests up to that many separate Hand-card choices; if the Hand empties first, the sequence continues to the next effect.
+
 To replace a Minion, change the card assigned to its structural slot. Do not add or adjust Minion copy counts in content data.
 
 ## Add a Leader Strike or Twist

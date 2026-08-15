@@ -580,7 +580,8 @@ if (prompt_mode == "" && enemy_attack_notice != "") instruction = enemy_attack_n
 else if (prompt_mode == "enemy_attack") instruction = "Choose a highlighted Build card.";
 else if (prompt_mode == "disrupt") instruction = "Choose a highlighted Build card.";
 else if (prompt_mode == "shatter") instruction = "Choose a highlighted card with the lowest HP.";
-else if (prompt_mode == "destroy_hand") instruction = "Choose a highlighted Hand card.";
+else if (prompt_mode == "destroy_hand") instruction = prompt_source + "\nChoose a highlighted Hand card.\n"
+    + string(escape_cards_remaining) + " remaining.";
 else if (phase == "step1_ready") instruction = "Tap START TURN to draw 3 cards.";
 else if (phase == "step2_ready") instruction = "Minions advance and escape.";
 else if (phase == "step3_ready" || phase == "enemy_continue_wait") instruction = "Enemy cards are being drawn.";

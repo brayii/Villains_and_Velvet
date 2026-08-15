@@ -365,6 +365,10 @@ function reset_game() {
     entry_minion = undefined;
     entry_ability_index = 0;
     entry_has_attack_pattern = false;
+    escape_minion = undefined;
+    escape_effect_index = 0;
+    escape_cards_remaining = 0;
+    escape_prompt_source = "";
     action_cooldown = 0;
     auto_timer = 0;
     game_over = false;

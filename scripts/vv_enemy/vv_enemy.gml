@@ -124,25 +124,53 @@ function resolve_escape_effect(_effect, _minion) {
     switch (_effect.id) {
         case EFFECT_HEAL_LEADER:
             heal_leader(_effect.params.amount);
-            return true;
+            return false;
         case EFFECT_DESTROY_HAND_CARD:
-            if (count_occupied_hand() > 0) {
-                prompt_mode = "destroy_hand";
-                prompt_source = _minion.name + " — Escape";
-                log_add(_minion.name + " escapes. Choose a highlighted Hand card to destroy.");
-            } else {
-                log_add(_minion.name + " escapes, but there is no card in Hand to destroy.");
-            }
-            return true;
+            escape_cards_remaining = max(0, floor(variable_struct_exists(_effect.params, "count")
+                ? _effect.params.count : 1));
+            escape_prompt_source = _minion.name + " — Escape";
+            return continue_escape_hand_destruction();
     }
     show_debug_message("UNKNOWN ESCAPE EFFECT: " + string(_effect.id));
     return false;
 }
 
-function resolve_minion_escape(_minion) {
-    for (var escape_i = 0; escape_i < array_length(_minion.escape_effects); escape_i++) {
-        resolve_escape_effect(_minion.escape_effects[escape_i], _minion);
+function continue_escape_hand_destruction() {
+    if (escape_cards_remaining <= 0) return false;
+    if (count_occupied_hand() <= 0) {
+        log_add(escape_prompt_source + " cannot destroy the remaining "
+            + string(escape_cards_remaining) + " Hand card(s) because the Hand is empty.");
+        escape_cards_remaining = 0;
+        return false;
     }
+    prompt_mode = "destroy_hand";
+    prompt_source = escape_prompt_source;
+    log_add(prompt_source + ": choose a highlighted Hand card to destroy ("
+        + string(escape_cards_remaining) + " remaining).");
+    return true;
+}
+
+function continue_minion_escape() {
+    if (is_undefined(escape_minion)) return false;
+    while (escape_effect_index < array_length(escape_minion.escape_effects)) {
+        var effect = escape_minion.escape_effects[escape_effect_index];
+        escape_effect_index++;
+        if (resolve_escape_effect(effect, escape_minion)) return true;
+    }
+    escape_minion = undefined;
+    escape_effect_index = 0;
+    escape_cards_remaining = 0;
+    escape_prompt_source = "";
+    resume_after_prompts();
+    return true;
+}
+
+function resolve_minion_escape(_minion) {
+    escape_minion = _minion;
+    escape_effect_index = 0;
+    escape_cards_remaining = 0;
+    escape_prompt_source = "";
+    continue_minion_escape();
 }
 
 function begin_advance_phase() {
@@ -301,9 +329,10 @@ function command_prompt_hand(_index) {
     || is_undefined(hand[_index])) return false;
     var source = prompt_source;
     destroy_hand_card(_index, source);
+    escape_cards_remaining = max(0, escape_cards_remaining - 1);
     prompt_mode = "";
     prompt_source = "";
-    resume_after_prompts();
+    if (!continue_escape_hand_destruction()) continue_minion_escape();
     validate_state("Escape destroys Hand card");
     return true;
 }
