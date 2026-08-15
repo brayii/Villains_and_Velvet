@@ -77,7 +77,7 @@ The current setup screen displays one active Leader, one active Scenario, and th
 
 ## Runtime Flow and Ownership
 
-`obj_controller` owns the live match variables. Its Create event builds the current content definitions, resets the match, initializes the UI, and loads initial artwork. Its Step event advances timers and routes taps. Its Draw GUI event delegates the full screen to `vv_ui_draw_game()`. Its Clean Up event releases dynamic sprites through `vv_assets_cleanup()`.
+`obj_controller` owns the live match variables. Its Create event builds the current content definitions, initializes setup state and the UI, and loads initial artwork without constructing a match. `command_start_game_from_setup()` validates the selections and is the only setup path that calls `reset_game()`. The Step event advances timers and routes taps. The Draw GUI event delegates the full screen to `vv_ui_draw_game()`. The Clean Up event releases dynamic sprites through `vv_assets_cleanup()`.
 
 Rules that need a player choice set `prompt_mode`, `prompt_value`, and `prompt_source`, then return. The UI highlights only legal targets. After a valid command clears the prompt, `resume_after_prompts()` continues queued Enemy attacks or the suspended turn action. New prompt-producing rules must preserve this pause-and-resume pattern.
 

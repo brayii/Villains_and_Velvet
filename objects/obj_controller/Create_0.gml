@@ -7,7 +7,7 @@ enemy_scenario = make_scenario_the_assault();
 available_heroes = make_hero_definitions();
 selected_hero_ids = make_default_hero_selection(available_heroes);
 enemy_event_selection = make_default_enemy_event_selection(enemy_leader, enemy_scenario);
-reset_game();
+log_lines = [];
 setup_active = true;
 phase = "setup";
 refresh_setup_validation();

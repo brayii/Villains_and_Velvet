@@ -184,7 +184,7 @@ function command_adjust_enemy_event(_category, _index, _change) {
 function command_start_game_from_setup() {
     refresh_setup_validation();
     if (!setup_validation.valid) return false;
-    reset_game();
+    if (!reset_game()) return false;
     setup_active = false;
     return true;
 }
@@ -244,14 +244,14 @@ function validate_state(_context) {
 }
 
 function reset_game() {
-    leader_hp = enemy_leader.starting_hp;
-    player_deck = make_player_deck(available_heroes, selected_hero_ids);
-    player_discard = [];
     enemy_event_validation = validate_enemy_event_selection(enemy_leader, enemy_scenario, enemy_event_selection);
     if (!enemy_event_validation.valid) {
         show_debug_message(enemy_event_validation.message);
-        show_error(enemy_event_validation.message, true);
+        return false;
     }
+    leader_hp = enemy_leader.starting_hp;
+    player_deck = make_player_deck(available_heroes, selected_hero_ids);
+    player_discard = [];
     enemy_deck = make_enemy_deck(enemy_leader, enemy_scenario, enemy_event_selection);
     enemy_used = [];
     hand = [undefined, undefined, undefined];
@@ -280,4 +280,5 @@ function reset_game() {
     log_add("The battle begins with both Minion Areas empty.");
     log_add("Tap START TURN when you are ready.");
     validate_state("Reset");
+    return true;
 }
