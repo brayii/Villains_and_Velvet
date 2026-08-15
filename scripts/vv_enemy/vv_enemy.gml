@@ -120,6 +120,30 @@ function heal_leader(_amount) {
     }
 }
 
+function resolve_escape_effect(_effect, _minion) {
+    switch (_effect.id) {
+        case EFFECT_HEAL_LEADER:
+            heal_leader(_effect.params.amount);
+            return true;
+        case EFFECT_DESTROY_HAND_CARD:
+            if (count_occupied_hand() > 0) {
+                prompt_mode = "destroy_hand";
+                log_add(_minion.name + " escapes. Choose a highlighted Hand card to destroy.");
+            } else {
+                log_add(_minion.name + " escapes, but there is no card in Hand to destroy.");
+            }
+            return true;
+    }
+    show_debug_message("UNKNOWN ESCAPE EFFECT: " + string(_effect.id));
+    return false;
+}
+
+function resolve_minion_escape(_minion) {
+    for (var escape_i = 0; escape_i < array_length(_minion.escape_effects); escape_i++) {
+        resolve_escape_effect(_minion.escape_effects[escape_i], _minion);
+    }
+}
+
 function begin_advance_phase() {
     step_number = 2;
     resume_action = "finish_advance";
@@ -129,14 +153,7 @@ function begin_advance_phase() {
         var escaping = minions[0];
         log_add(minions[1].name + " pushes " + escaping.name + " out of Area 2.");
         log_add(escaping.name + " begins its Escape effect.");
-        if (escaping.escape == "heal") {
-            heal_leader(escaping.escape_value);
-        } else if (escaping.escape == "destroy_hand") {
-            if (count_occupied_hand() > 0) {
-                prompt_mode = "destroy_hand";
-                log_add("SB escapes. Choose a highlighted Hand card to destroy.");
-            } else log_add("SB Escape finds no card in Hand to destroy.");
-        }
+        resolve_minion_escape(escaping);
     } else if (!is_undefined(minions[0])) {
         log_add(minions[0].name + " remains in Area 2 because Area 1 is empty.");
     }
@@ -176,30 +193,44 @@ function resolve_minion_entry(_minion) {
 
 function resolve_leader_strike(_card) {
     log_add("Enemy Draw: " + _card.name + ".");
-    switch (_card.effect_id) {
-        case EFFECT_LEADER_BASIC_ATTACK:
-            queue_enemy_attack(enemy_leader.attack, _card.name);
-            return true;
+    var resolved = true;
+    for (var effect_i = 0; effect_i < array_length(_card.effects); effect_i++) {
+        var effect = _card.effects[effect_i];
+        switch (effect.id) {
+            case EFFECT_LEADER_BASIC_ATTACK:
+                queue_enemy_attack(enemy_leader.attack, _card.name);
+                break;
+            default:
+                resolved = false;
+                show_debug_message("UNKNOWN LEADER STRIKE EFFECT: " + string(effect.id));
+                break;
+        }
     }
-    log_add(_card.name + " has an unknown Leader Strike effect and does nothing.");
-    show_debug_message("UNKNOWN LEADER STRIKE EFFECT: " + string(_card.effect_id));
-    return false;
+    if (!resolved) log_add(_card.name + " has an unknown Leader Strike effect that does nothing.");
+    return resolved;
 }
 
 function resolve_twist(_card) {
     log_add("Enemy Draw: " + _card.name + ".");
-    switch (_card.effect_id) {
-        case EFFECT_AREA_2_ATTACK:
-            if (!is_undefined(minions[0])) {
-                queue_enemy_attack(minions[0].atk, _card.name + ": " + minions[0].name);
-            } else {
-                log_add("Area 2 is empty; " + _card.name + " has no effect.");
-            }
-            return true;
+    var resolved = true;
+    for (var effect_i = 0; effect_i < array_length(_card.effects); effect_i++) {
+        var effect = _card.effects[effect_i];
+        switch (effect.id) {
+            case EFFECT_AREA_2_ATTACK:
+                if (!is_undefined(minions[0])) {
+                    queue_enemy_attack(minions[0].atk, _card.name + ": " + minions[0].name);
+                } else {
+                    log_add("Area 2 is empty; " + _card.name + " has no effect.");
+                }
+                break;
+            default:
+                resolved = false;
+                show_debug_message("UNKNOWN TWIST EFFECT: " + string(effect.id));
+                break;
+        }
     }
-    log_add(_card.name + " has an unknown Twist effect and does nothing.");
-    show_debug_message("UNKNOWN TWIST EFFECT: " + string(_card.effect_id));
-    return false;
+    if (!resolved) log_add(_card.name + " has an unknown Twist effect that does nothing.");
+    return resolved;
 }
 
 function draw_next_enemy_card() {

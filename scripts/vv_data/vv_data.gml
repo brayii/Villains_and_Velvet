@@ -37,6 +37,8 @@
 // Stable Enemy Event effect IDs. Display names do not determine behavior.
 #macro EFFECT_LEADER_BASIC_ATTACK "leader_basic_attack"
 #macro EFFECT_AREA_2_ATTACK "area_2_attack"
+#macro EFFECT_HEAL_LEADER "heal_leader"
+#macro EFFECT_DESTROY_HAND_CARD "destroy_hand_card"
 
 function ability_entry(_id) {
     return {id:_id, params:{}};
@@ -52,6 +54,10 @@ function find_card_ability(_card, _ability_id) {
 
 function card_has_ability(_card, _ability_id) {
     return !is_undefined(find_card_ability(_card, _ability_id));
+}
+
+function effect_entry(_id, _params) {
+    return {id:_id, params:_params};
 }
 
 function make_enemy_leader() {
@@ -71,7 +77,7 @@ function make_enemy_leader() {
                     "strike",
                     "direct_assault",
                     "Direct Assault",
-                    EFFECT_LEADER_BASIC_ATTACK,
+                    [effect_entry(EFFECT_LEADER_BASIC_ATTACK, {})],
                     "The Enemy Leader attacks for " + string(leader_attack) + ".",
                     "card_art/enemies/leader_strike_direct_assault.png"
                 ),
@@ -135,7 +141,7 @@ function card_player(_hero, _kind, _atk, _hp, _abilities, _ability, _effect) {
     };
 }
 
-function card_minion(_name, _kind, _atk, _hp, _abilities, _ability, _effect, _escape, _escape_value) {
+function card_minion(_name, _kind, _atk, _hp, _abilities, _ability, _effect, _escape_effects) {
     return {
         card_type: "minion",
         code: _name,
@@ -146,18 +152,17 @@ function card_minion(_name, _kind, _atk, _hp, _abilities, _ability, _effect, _es
         abilities: _abilities,
         ability: _ability,
         effect: _effect,
-        escape: _escape,
-        escape_value: _escape_value,
+        escape_effects: _escape_effects,
         art_file: minion_card_art(_name)
     };
 }
 
-function card_enemy(_type, _id, _name, _effect_id, _effect, _art_file) {
+function card_enemy(_type, _id, _name, _effects, _effect, _art_file) {
     return {
         card_type: _type,
         id: _id,
         name: _name,
-        effect_id: _effect_id,
+        effects: _effects,
         effect: _effect,
         art_file: _art_file
     };
@@ -210,14 +215,14 @@ function make_scenario_the_assault() {
         name: "The Assault",
         setup_rules: [],
         minions: {
-            na: card_minion("NA", "Normal", 4, 6, [], "", "Attacks when played.", "heal", 5),
-            nb: card_minion("NB", "Normal", 6, 8, [], "", "Attacks when played.", "heal", 7),
-            nc: card_minion("NC", "Normal", 8, 10, [], "", "Attacks when played.", "heal", 9),
-            aa: card_minion("AA", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT)], "Disrupt", "Discard a Build card, then attack.", "heal", 6),
-            ab: card_minion("AB", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH)], "Crush", "Attacks twice when played.", "heal", 8),
-            sa: card_minion("SA", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR)], "Protector", "The Enemy Leader cannot be attacked.", "heal", 10),
-            sb: card_minion("SB", "Special", 8, 9, [ability_entry(ABILITY_SHATTER)], "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1),
-            sc: card_minion("SC", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE)], "Devastate", "Attacks twice when played.", "heal", 12)
+            na: card_minion("NA", "Normal", 4, 6, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:5})]),
+            nb: card_minion("NB", "Normal", 6, 8, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:7})]),
+            nc: card_minion("NC", "Normal", 8, 10, [], "", "Attacks when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:9})]),
+            aa: card_minion("AA", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT)], "Disrupt", "Discard a Build card, then attack.", [effect_entry(EFFECT_HEAL_LEADER, {amount:6})]),
+            ab: card_minion("AB", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH)], "Crush", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:8})]),
+            sa: card_minion("SA", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR)], "Protector", "The Enemy Leader cannot be attacked.", [effect_entry(EFFECT_HEAL_LEADER, {amount:10})]),
+            sb: card_minion("SB", "Special", 8, 9, [ability_entry(ABILITY_SHATTER)], "Shatter", "Destroy the lowest-HP Build card, then attack.", [effect_entry(EFFECT_DESTROY_HAND_CARD, {count:1})]),
+            sc: card_minion("SC", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE)], "Devastate", "Attacks twice when played.", [effect_entry(EFFECT_HEAL_LEADER, {amount:12})])
         },
         twists: [
             {
@@ -225,7 +230,7 @@ function make_scenario_the_assault() {
                     "twist",
                     "reinforcements",
                     "Reinforcements",
-                    EFFECT_AREA_2_ATTACK,
+                    [effect_entry(EFFECT_AREA_2_ATTACK, {})],
                     "The Minion in Area 2 attacks.",
                     "card_art/enemies/twist_reinforcements.png"
                 ),
