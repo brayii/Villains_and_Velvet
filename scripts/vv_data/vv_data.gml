@@ -148,6 +148,47 @@ function card_enemy(_type, _id, _name, _effect_id, _effect, _art_file) {
     };
 }
 
+function make_hero_definitions() {
+    return [
+        {
+            id: "A",
+            name: "Goblin",
+            normal: card_player("A", "Normal", 5, 3, ABILITY_NONE, "", ""),
+            ability: card_player("A", "Ability", 4, 2, ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack."),
+            special: card_player("A", "Special", 7, 2, ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack.")
+        },
+        {
+            id: "B",
+            name: "Skeleton",
+            normal: card_player("B", "Normal", 4, 4, ABILITY_NONE, "", ""),
+            ability: card_player("B", "Ability", 3, 4, ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack."),
+            special: card_player("B", "Special", 4, 4, ABILITY_UNITY, "Unity", "Gain +2 Attack for each other Hero type in your Build.")
+        },
+        {
+            id: "C",
+            name: "Orc",
+            normal: card_player("C", "Normal", 3, 5, ABILITY_NONE, "", ""),
+            ability: card_player("C", "Ability", 2, 6, ABILITY_GUARD, "Guard", "Enemies must attack this card first."),
+            special: card_player("C", "Special", 2, 8, ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first.")
+        }
+    ];
+}
+
+function find_hero_definition(_definitions, _id) {
+    for (var hero_i = 0; hero_i < array_length(_definitions); hero_i++) {
+        if (_definitions[hero_i].id == _id) return _definitions[hero_i];
+    }
+    return undefined;
+}
+
+function make_default_hero_selection(_definitions) {
+    var selected = [];
+    for (var hero_i = 0; hero_i < min(CORE_HERO_COUNT, array_length(_definitions)); hero_i++) {
+        array_push(selected, _definitions[hero_i].id);
+    }
+    return selected;
+}
+
 function make_scenario_the_assault() {
     return {
         id: "the_assault",
@@ -227,17 +268,16 @@ function add_selected_enemy_events(_deck, _selected, _definitions) {
     }
 }
 
-function make_player_deck() {
+function make_player_deck(_hero_definitions, _selected_hero_ids) {
     var deck = [];
-    array_add_copies(deck, card_player("A", "Normal", 5, 3, ABILITY_NONE, "", ""), CORE_HERO_NORMAL_COPIES);
-    array_add_copies(deck, card_player("A", "Ability", 4, 2, ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack."), CORE_HERO_ABILITY_COPIES);
-    array_add_copies(deck, card_player("A", "Special", 7, 2, ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack."), CORE_HERO_SPECIAL_COPIES);
-    array_add_copies(deck, card_player("B", "Normal", 4, 4, ABILITY_NONE, "", ""), CORE_HERO_NORMAL_COPIES);
-    array_add_copies(deck, card_player("B", "Ability", 3, 4, ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack."), CORE_HERO_ABILITY_COPIES);
-    array_add_copies(deck, card_player("B", "Special", 4, 4, ABILITY_UNITY, "Unity", "Gain +2 Attack for each other Hero type in your Build."), CORE_HERO_SPECIAL_COPIES);
-    array_add_copies(deck, card_player("C", "Normal", 3, 5, ABILITY_NONE, "", ""), CORE_HERO_NORMAL_COPIES);
-    array_add_copies(deck, card_player("C", "Ability", 2, 6, ABILITY_GUARD, "Guard", "Enemies must attack this card first."), CORE_HERO_ABILITY_COPIES);
-    array_add_copies(deck, card_player("C", "Special", 2, 8, ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first."), CORE_HERO_SPECIAL_COPIES);
+    for (var selected_i = 0; selected_i < array_length(_selected_hero_ids); selected_i++) {
+        var hero = find_hero_definition(_hero_definitions, _selected_hero_ids[selected_i]);
+        if (!is_undefined(hero)) {
+            array_add_copies(deck, hero.normal, CORE_HERO_NORMAL_COPIES);
+            array_add_copies(deck, hero.ability, CORE_HERO_ABILITY_COPIES);
+            array_add_copies(deck, hero.special, CORE_HERO_SPECIAL_COPIES);
+        }
+    }
     return array_shuffle_copy(deck);
 }
 

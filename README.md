@@ -17,6 +17,8 @@ This project is an in-development prototype. Gameplay rules and content may chan
 2. Open `VillainsAndVelvet.yyp` in GameMaker.
 3. Select an available target and run the project from the GameMaker IDE.
 
+The game opens on a battle setup screen. Review the selected Leader, Scenario, and three Heroes, then adjust the Leader Strike and Twist counts if desired. Exactly eight Enemy Events are required before **Start Game** is enabled.
+
 `CardGamePrototype.exe` is a prebuilt Windows prototype. The GameMaker project is the source of truth for development.
 
 ## Documentation

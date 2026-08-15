@@ -144,6 +144,61 @@ function validate_enemy_event_selection(_leader, _scenario, _selection) {
     return {valid:true, total:total, message:heading + "\n\nReady."};
 }
 
+function validate_hero_selection(_definitions, _selected_ids) {
+    if (array_length(_selected_ids) != CORE_HERO_COUNT) return false;
+    var unique_ids = [];
+    for (var selected_i = 0; selected_i < array_length(_selected_ids); selected_i++) {
+        var hero_id = _selected_ids[selected_i];
+        if (is_undefined(find_hero_definition(_definitions, hero_id))) return false;
+        if (array_has_value(unique_ids, hero_id)) return false;
+        array_push(unique_ids, hero_id);
+    }
+    return array_length(unique_ids) == CORE_HERO_COUNT;
+}
+
+function refresh_setup_validation() {
+    enemy_event_validation = validate_enemy_event_selection(enemy_leader, enemy_scenario, enemy_event_selection);
+    var heroes_valid = validate_hero_selection(available_heroes, selected_hero_ids);
+    var content_valid = !is_undefined(enemy_leader) && !is_undefined(enemy_scenario);
+    var valid = content_valid && heroes_valid && enemy_event_validation.valid;
+    var message = enemy_event_validation.message;
+    if (!content_valid) message = "Choose a Leader and Scenario before starting.";
+    else if (!heroes_valid) message = "Choose exactly " + string(CORE_HERO_COUNT) + " different Heroes.";
+    setup_validation = {valid:valid, message:message};
+    return setup_validation;
+}
+
+function command_adjust_enemy_event(_category, _index, _change) {
+    var selected = _category == "strike" ? enemy_event_selection.leader_strikes : enemy_event_selection.twists;
+    var definitions = _category == "strike" ? enemy_leader.leader_strikes : enemy_scenario.twists;
+    if (_index < 0 || _index >= array_length(selected)) return false;
+    var selection = selected[_index];
+    var definition = find_enemy_event_definition(definitions, selection.id);
+    if (is_undefined(definition)) return false;
+    var next_count = selection.copies + _change;
+    if (next_count < 0 || next_count > definition.max_copies) return false;
+    selection.copies = next_count;
+    selected[_index] = selection;
+    if (_category == "strike") enemy_event_selection.leader_strikes = selected;
+    else enemy_event_selection.twists = selected;
+    refresh_setup_validation();
+    return true;
+}
+
+function command_start_game_from_setup() {
+    refresh_setup_validation();
+    if (!setup_validation.valid) return false;
+    reset_game();
+    setup_active = false;
+    return true;
+}
+
+function command_open_setup() {
+    setup_active = true;
+    phase = "setup";
+    refresh_setup_validation();
+}
+
 function collect_player_cards() {
     var cards = [];
     for (var deck_i = 0; deck_i < array_length(player_deck); deck_i++) array_push(cards, player_deck[deck_i]);
@@ -194,7 +249,7 @@ function validate_state(_context) {
 
 function reset_game() {
     leader_hp = enemy_leader.starting_hp;
-    player_deck = make_player_deck();
+    player_deck = make_player_deck(available_heroes, selected_hero_ids);
     player_discard = [];
     enemy_event_validation = validate_enemy_event_selection(enemy_leader, enemy_scenario, enemy_event_selection);
     if (!enemy_event_validation.valid) {

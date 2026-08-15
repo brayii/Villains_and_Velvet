@@ -21,6 +21,11 @@ function vv_ui_init() {
     }
     action_rect = {x:1025, y:628, w:235, h:68};
     restart_rect = {x:525, y:470, w:230, h:70};
+    setup_start_rect = {x:480, y:625, w:320, h:70};
+    setup_strike_minus_rect = {x:675, y:378, w:72, h:54};
+    setup_strike_plus_rect = {x:845, y:378, w:72, h:54};
+    setup_twist_minus_rect = {x:675, y:452, w:72, h:54};
+    setup_twist_plus_rect = {x:845, y:452, w:72, h:54};
     debug_event_log = false;
 }
 
@@ -34,8 +39,17 @@ function vv_ui_handle_input() {
     var pointer_x = device_mouse_x_to_gui(0);
     var pointer_y = device_mouse_y_to_gui(0);
 
+    if (setup_active) {
+        if (point_in_rect(pointer_x, pointer_y, setup_strike_minus_rect)) command_adjust_enemy_event("strike", 0, -1);
+        else if (point_in_rect(pointer_x, pointer_y, setup_strike_plus_rect)) command_adjust_enemy_event("strike", 0, 1);
+        else if (point_in_rect(pointer_x, pointer_y, setup_twist_minus_rect)) command_adjust_enemy_event("twist", 0, -1);
+        else if (point_in_rect(pointer_x, pointer_y, setup_twist_plus_rect)) command_adjust_enemy_event("twist", 0, 1);
+        else if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
+        return;
+    }
+
     if (game_over) {
-        if (point_in_rect(pointer_x, pointer_y, restart_rect)) reset_game();
+        if (point_in_rect(pointer_x, pointer_y, restart_rect)) command_open_setup();
         return;
     }
 
@@ -182,6 +196,93 @@ function draw_enemy_reveal(_card, _rect) {
     draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, true);
 }
 
+function draw_setup_counter_button(_rect, _text, _enabled) {
+    draw_panel(_rect, _enabled ? COL_ACCENT : COL_PANEL, _enabled ? COL_TEXT : COL_EDGE);
+    draw_center(_text, _rect.x + _rect.w / 2, _rect.y + _rect.h / 2,
+        _enabled ? COL_BG : COL_MUTED);
+}
+
+function vv_ui_draw_setup() {
+    draw_center("VILLAINS & VELVET", 640, 40, COL_GOLD);
+    draw_center("CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
+
+    var leader_panel = {x:50, y:105, w:350, h:180};
+    var scenario_panel = {x:465, y:105, w:350, h:180};
+    var heroes_panel = {x:880, y:105, w:350, h:180};
+    draw_panel(leader_panel, COL_PANEL, COL_EDGE);
+    draw_panel(scenario_panel, COL_PANEL, COL_EDGE);
+    draw_panel(heroes_panel, COL_PANEL, COL_EDGE);
+
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+    draw_set_color(COL_GOLD);
+    draw_text(70, 122, "LEADER");
+    draw_text(485, 122, "SCENARIO");
+    draw_text(900, 122, "HEROES  " + string(array_length(selected_hero_ids)) + " / " + string(CORE_HERO_COUNT));
+    draw_set_color(COL_TEXT);
+    draw_text(70, 165, enemy_leader.name);
+    draw_set_color(COL_MUTED);
+    draw_text(70, 198, "HEALTH  " + string(enemy_leader.starting_hp) + " / " + string(enemy_leader.max_hp));
+    draw_text(70, 228, "ATTACK  " + string(enemy_leader.attack));
+    draw_set_color(COL_TEXT);
+    draw_text(485, 165, enemy_scenario.name);
+    draw_set_color(COL_MUTED);
+    draw_text(485, 198, "25 MINIONS");
+    draw_text(485, 228, "8 ENEMY EVENT SLOTS");
+    for (var setup_hero_i = 0; setup_hero_i < array_length(selected_hero_ids); setup_hero_i++) {
+        var setup_hero = find_hero_definition(available_heroes, selected_hero_ids[setup_hero_i]);
+        if (!is_undefined(setup_hero)) {
+            draw_set_color(COL_TEXT);
+            draw_text(900, 160 + setup_hero_i * 35, string(setup_hero_i + 1) + ".  " + setup_hero.name);
+        }
+    }
+
+    var events_panel = {x:160, y:320, w:960, h:270};
+    draw_panel(events_panel, make_color_rgb(24, 33, 46), COL_EDGE);
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+    draw_set_color(COL_GOLD);
+    draw_text(185, 340, "ENEMY EVENTS");
+    draw_set_color(COL_MUTED);
+    draw_text(185, 370, "Leader Strike");
+    draw_text(185, 444, "Twist");
+
+    var selected_strike = enemy_event_selection.leader_strikes[0];
+    var selected_twist = enemy_event_selection.twists[0];
+    var strike_definition = find_enemy_event_definition(enemy_leader.leader_strikes, selected_strike.id);
+    var twist_definition = find_enemy_event_definition(enemy_scenario.twists, selected_twist.id);
+    draw_set_color(COL_TEXT);
+    draw_text(340, 387, strike_definition.card.name);
+    draw_text(340, 461, twist_definition.card.name);
+    draw_center(string(selected_strike.copies), 797, 405, COL_TEXT);
+    draw_center(string(selected_twist.copies), 797, 479, COL_TEXT);
+    draw_setup_counter_button(setup_strike_minus_rect, "-", selected_strike.copies > 0);
+    draw_setup_counter_button(setup_strike_plus_rect, "+", selected_strike.copies < strike_definition.max_copies);
+    draw_setup_counter_button(setup_twist_minus_rect, "-", selected_twist.copies > 0);
+    draw_setup_counter_button(setup_twist_plus_rect, "+", selected_twist.copies < twist_definition.max_copies);
+
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+    draw_set_color(setup_validation.valid ? COL_LEGAL : COL_DANGER);
+    draw_text(940, 370, "EVENTS: " + string(enemy_event_validation.total)
+        + " / " + string(CORE_ENEMY_EVENT_SLOTS));
+    var setup_status = "READY";
+    if (enemy_event_validation.total > CORE_ENEMY_EVENT_SLOTS) {
+        setup_status = "REMOVE " + string(enemy_event_validation.total - CORE_ENEMY_EVENT_SLOTS);
+    } else if (enemy_event_validation.total < CORE_ENEMY_EVENT_SLOTS) {
+        setup_status = "ADD " + string(CORE_ENEMY_EVENT_SLOTS - enemy_event_validation.total);
+    } else if (!setup_validation.valid) {
+        setup_status = "CHECK SELECTION";
+    }
+    draw_text(940, 410, setup_status);
+
+    draw_panel(setup_start_rect, setup_validation.valid ? COL_ACCENT : COL_PANEL,
+        setup_validation.valid ? COL_TEXT : COL_EDGE);
+    draw_center("START GAME", setup_start_rect.x + setup_start_rect.w / 2,
+        setup_start_rect.y + setup_start_rect.h / 2,
+        setup_validation.valid ? COL_BG : COL_MUTED);
+}
+
 function vv_ui_draw_game() {
 draw_clear(COL_BG);
 // Battlefield artwork with a dark veil keeps the cards and instructions readable.
@@ -191,6 +292,11 @@ draw_set_alpha(0.62);
 draw_set_color(COL_BG);
 draw_rectangle(0, 0, 1280, 720, false);
 draw_set_alpha(1);
+
+if (setup_active) {
+    vv_ui_draw_setup();
+    return;
+}
 
 // Leader and Minions.
 draw_panel(leader_rect, make_color_rgb(72, 37, 48), leader_is_protected() ? COL_GOLD : COL_DANGER);

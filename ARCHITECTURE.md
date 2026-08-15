@@ -54,3 +54,7 @@ Direct Assault uses the reusable `leader_basic_attack` effect. Reinforcements us
 Available Leader Strike definitions belong to the selected Leader, and available Twist definitions belong to the selected Scenario. Each definition supplies a default count and a maximum permitted count. The current selected IDs and copy counts live separately in `enemy_event_selection`.
 
 `validate_enemy_event_selection()` in `vv_state.gml` rejects unavailable or duplicated IDs, invalid counts, copy-limit violations, and totals other than eight. It returns the current total and a clear add/remove/ready message. The Enemy Deck builder uses only the validated selection and never silently inserts, removes, or substitutes an Enemy Event.
+
+The selected Hero IDs are also separate from the available Hero definitions. `validate_hero_selection()` requires exactly three different IDs that exist in the available content. `refresh_setup_validation()` combines the Hero and Enemy Event checks, and `command_start_game_from_setup()` is the only setup command that starts a match.
+
+The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
