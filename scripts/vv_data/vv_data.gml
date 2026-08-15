@@ -22,7 +22,6 @@
 #macro CORE_ENEMY_DECK_SIZE 33
 
 // Stable gameplay IDs. Display names can change without changing behavior.
-#macro ABILITY_NONE "none"
 #macro ABILITY_OVERPOWER "overpower"
 #macro ABILITY_RELENTLESS "relentless"
 #macro ABILITY_RALLY "rally"
@@ -38,6 +37,22 @@
 // Stable Enemy Event effect IDs. Display names do not determine behavior.
 #macro EFFECT_LEADER_BASIC_ATTACK "leader_basic_attack"
 #macro EFFECT_AREA_2_ATTACK "area_2_attack"
+
+function ability_entry(_id) {
+    return {id:_id, params:{}};
+}
+
+function find_card_ability(_card, _ability_id) {
+    if (is_undefined(_card) || !variable_struct_exists(_card, "abilities")) return undefined;
+    for (var ability_i = 0; ability_i < array_length(_card.abilities); ability_i++) {
+        if (_card.abilities[ability_i].id == _ability_id) return _card.abilities[ability_i];
+    }
+    return undefined;
+}
+
+function card_has_ability(_card, _ability_id) {
+    return !is_undefined(find_card_ability(_card, _ability_id));
+}
 
 function make_enemy_leader() {
     var leader_attack = 8;
@@ -106,21 +121,21 @@ function minion_card_art(_name) {
     return "";
 }
 
-function card_player(_hero, _kind, _atk, _hp, _ability_id, _ability, _effect) {
+function card_player(_hero, _kind, _atk, _hp, _abilities, _ability, _effect) {
     return {
         hero: _hero,
         kind: _kind,
         name: player_character_name(_hero),
         atk: _atk,
         hp: _hp,
-        ability_id: _ability_id,
+        abilities: _abilities,
         ability: _ability,
         effect: _effect,
         art_file: player_card_art(_hero, _kind)
     };
 }
 
-function card_minion(_name, _kind, _atk, _hp, _ability_id, _ability, _effect, _escape, _escape_value) {
+function card_minion(_name, _kind, _atk, _hp, _abilities, _ability, _effect, _escape, _escape_value) {
     return {
         card_type: "minion",
         code: _name,
@@ -128,7 +143,7 @@ function card_minion(_name, _kind, _atk, _hp, _ability_id, _ability, _effect, _e
         kind: _kind,
         atk: _atk,
         hp: _hp,
-        ability_id: _ability_id,
+        abilities: _abilities,
         ability: _ability,
         effect: _effect,
         escape: _escape,
@@ -153,23 +168,23 @@ function make_hero_definitions() {
         {
             id: "A",
             name: "Goblin",
-            normal: card_player("A", "Normal", 5, 3, ABILITY_NONE, "", ""),
-            ability: card_player("A", "Ability", 4, 2, ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack."),
-            special: card_player("A", "Special", 7, 2, ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack.")
+            normal: card_player("A", "Normal", 5, 3, [], "", ""),
+            ability: card_player("A", "Ability", 4, 2, [ability_entry(ABILITY_OVERPOWER)], "Overpower", "After you defeat a Minion, gain +2 Attack."),
+            special: card_player("A", "Special", 7, 2, [ability_entry(ABILITY_RELENTLESS)], "Relentless", "After you defeat a Minion, gain +3 Attack.")
         },
         {
             id: "B",
             name: "Skeleton",
-            normal: card_player("B", "Normal", 4, 4, ABILITY_NONE, "", ""),
-            ability: card_player("B", "Ability", 3, 4, ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack."),
-            special: card_player("B", "Special", 4, 4, ABILITY_UNITY, "Unity", "Gain +2 Attack for each other Hero type in your Build.")
+            normal: card_player("B", "Normal", 4, 4, [], "", ""),
+            ability: card_player("B", "Ability", 3, 4, [ability_entry(ABILITY_RALLY)], "Rally", "Your other Build cards gain +1 Attack."),
+            special: card_player("B", "Special", 4, 4, [ability_entry(ABILITY_UNITY)], "Unity", "Gain +2 Attack for each other Hero type in your Build.")
         },
         {
             id: "C",
             name: "Orc",
-            normal: card_player("C", "Normal", 3, 5, ABILITY_NONE, "", ""),
-            ability: card_player("C", "Ability", 2, 6, ABILITY_GUARD, "Guard", "Enemies must attack this card first."),
-            special: card_player("C", "Special", 2, 8, ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first.")
+            normal: card_player("C", "Normal", 3, 5, [], "", ""),
+            ability: card_player("C", "Ability", 2, 6, [ability_entry(ABILITY_GUARD)], "Guard", "Enemies must attack this card first."),
+            special: card_player("C", "Special", 2, 8, [ability_entry(ABILITY_FORTRESS)], "Fortress", "Enemies must attack this card first.")
         }
     ];
 }
@@ -195,14 +210,14 @@ function make_scenario_the_assault() {
         name: "The Assault",
         setup_rules: [],
         minions: {
-            na: card_minion("NA", "Normal", 4, 6, ABILITY_NONE, "", "Attacks when played.", "heal", 5),
-            nb: card_minion("NB", "Normal", 6, 8, ABILITY_NONE, "", "Attacks when played.", "heal", 7),
-            nc: card_minion("NC", "Normal", 8, 10, ABILITY_NONE, "", "Attacks when played.", "heal", 9),
-            aa: card_minion("AA", "Ability", 5, 7, ABILITY_DISRUPT, "Disrupt", "Discard a Build card, then attack.", "heal", 6),
-            ab: card_minion("AB", "Ability", 7, 9, ABILITY_CRUSH, "Crush", "Attacks twice when played.", "heal", 8),
-            sa: card_minion("SA", "Special", 6, 12, ABILITY_PROTECTOR, "Protector", "The Enemy Leader cannot be attacked.", "heal", 10),
-            sb: card_minion("SB", "Special", 8, 9, ABILITY_SHATTER, "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1),
-            sc: card_minion("SC", "Special", 10, 14, ABILITY_DEVASTATE, "Devastate", "Attacks twice when played.", "heal", 12)
+            na: card_minion("NA", "Normal", 4, 6, [], "", "Attacks when played.", "heal", 5),
+            nb: card_minion("NB", "Normal", 6, 8, [], "", "Attacks when played.", "heal", 7),
+            nc: card_minion("NC", "Normal", 8, 10, [], "", "Attacks when played.", "heal", 9),
+            aa: card_minion("AA", "Ability", 5, 7, [ability_entry(ABILITY_DISRUPT)], "Disrupt", "Discard a Build card, then attack.", "heal", 6),
+            ab: card_minion("AB", "Ability", 7, 9, [ability_entry(ABILITY_CRUSH)], "Crush", "Attacks twice when played.", "heal", 8),
+            sa: card_minion("SA", "Special", 6, 12, [ability_entry(ABILITY_PROTECTOR)], "Protector", "The Enemy Leader cannot be attacked.", "heal", 10),
+            sb: card_minion("SB", "Special", 8, 9, [ability_entry(ABILITY_SHATTER)], "Shatter", "Destroy the lowest-HP Build card, then attack.", "destroy_hand", 1),
+            sc: card_minion("SC", "Special", 10, 14, [ability_entry(ABILITY_DEVASTATE)], "Devastate", "Attacks twice when played.", "heal", 12)
         },
         twists: [
             {

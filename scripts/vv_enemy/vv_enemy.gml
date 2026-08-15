@@ -3,7 +3,7 @@
 function build_has_priority() {
     for (var priority_i = 0; priority_i < 3; priority_i++) {
         if (!is_undefined(build[priority_i])
-        && (build[priority_i].ability_id == ABILITY_GUARD || build[priority_i].ability_id == ABILITY_FORTRESS)) return true;
+        && (card_has_ability(build[priority_i], ABILITY_GUARD) || card_has_ability(build[priority_i], ABILITY_FORTRESS))) return true;
     }
     return false;
 }
@@ -11,7 +11,7 @@ function build_has_priority() {
 function enemy_target_is_legal(_index, _amount) {
     if (_index < 0 || _index > 2 || is_undefined(build[_index])) return false;
     if (build_has_priority()
-    && build[_index].ability_id != ABILITY_GUARD && build[_index].ability_id != ABILITY_FORTRESS) return false;
+    && !card_has_ability(build[_index], ABILITY_GUARD) && !card_has_ability(build[_index], ABILITY_FORTRESS)) return false;
     return _amount >= build[_index].hp;
 }
 
@@ -146,16 +146,16 @@ function begin_advance_phase() {
 function resolve_minion_entry(_minion) {
     log_add(_minion.name + " enters Minion Area 1.");
     resume_action = "finish_enemy";
-    if (_minion.ability_id == ABILITY_DISRUPT && build_has_cards()) {
+    if (card_has_ability(_minion, ABILITY_DISRUPT) && build_has_cards()) {
         prompt_mode = "disrupt";
         prompt_value = _minion.atk;
         log_add("AA uses Disrupt. Choose a highlighted Build card to discard.");
         return;
     }
-    if (_minion.ability_id == ABILITY_CRUSH) {
+    if (card_has_ability(_minion, ABILITY_CRUSH)) {
         queue_enemy_attack(_minion.atk, "AB — Crush (1 of 2)");
         queue_enemy_attack(_minion.atk, "AB — Crush (2 of 2)");
-    } else if (_minion.ability_id == ABILITY_SHATTER) {
+    } else if (card_has_ability(_minion, ABILITY_SHATTER)) {
         var tied = lowest_build_indices();
         if (array_length(tied) == 1) destroy_build_card(tied[0], "SB Shatter");
         else if (array_length(tied) > 1) {
@@ -165,7 +165,7 @@ function resolve_minion_entry(_minion) {
             return;
         }
         queue_enemy_attack(_minion.atk, "SB — Attack");
-    } else if (_minion.ability_id == ABILITY_DEVASTATE) {
+    } else if (card_has_ability(_minion, ABILITY_DEVASTATE)) {
         queue_enemy_attack(_minion.atk, "SC — Devastate (1 of 2)");
         queue_enemy_attack(_minion.atk, "SC — Devastate (2 of 2)");
     } else {
@@ -300,7 +300,7 @@ function command_prompt_build(_index) {
 
 function leader_is_protected() {
     for (var minion_i = 0; minion_i < 2; minion_i++) {
-        if (!is_undefined(minions[minion_i]) && minions[minion_i].ability_id == ABILITY_PROTECTOR) return true;
+        if (!is_undefined(minions[minion_i]) && card_has_ability(minions[minion_i], ABILITY_PROTECTOR)) return true;
     }
     return false;
 }

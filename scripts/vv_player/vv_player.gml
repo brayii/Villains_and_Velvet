@@ -43,15 +43,15 @@ function compute_attack_summary() {
     var gained_after_kill = 0;
     for (var card_i = 0; card_i < 3; card_i++) if (!is_undefined(build[card_i])) {
         total += build[card_i].atk;
-        if (build[card_i].ability_id == ABILITY_RALLY) rally_cards++;
-        if (build[card_i].ability_id == ABILITY_OVERPOWER) gained_after_kill += 2;
-        if (build[card_i].ability_id == ABILITY_RELENTLESS) gained_after_kill += 3;
+        if (card_has_ability(build[card_i], ABILITY_RALLY)) rally_cards++;
+        if (card_has_ability(build[card_i], ABILITY_OVERPOWER)) gained_after_kill += 2;
+        if (card_has_ability(build[card_i], ABILITY_RELENTLESS)) gained_after_kill += 3;
     }
     for (var card_i = 0; card_i < 3; card_i++) if (!is_undefined(build[card_i])) {
         var other_rallies = rally_cards;
-        if (build[card_i].ability_id == ABILITY_RALLY) other_rallies--;
+        if (card_has_ability(build[card_i], ABILITY_RALLY)) other_rallies--;
         total += max(0, other_rallies);
-        if (build[card_i].ability_id == ABILITY_UNITY) {
+        if (card_has_ability(build[card_i], ABILITY_UNITY)) {
             total += 2 * count_unique_other_heroes(build, card_i);
         }
     }

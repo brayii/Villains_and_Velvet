@@ -31,6 +31,12 @@ The authoritative `CORE_*` constants are defined once at the top of `vv_data.gml
 
 Hero identity is a stable content ID. Player rules such as Unity compare IDs dynamically and count unique other Heroes; gameplay code does not maintain a fixed list of Hero IDs.
 
+## Card Abilities
+
+Every Hero and Minion card has an `abilities` array. Normal cards use an empty array; current Ability and Special cards contain one entry with a stable ability ID and a parameter struct reserved for future card-specific values. Gameplay checks abilities through `find_card_ability()` and `card_has_ability()` instead of relying on display text or a single ability field.
+
+The current cards still have at most one ability. This representation allows later cards to hold multiple abilities without changing the card structure.
+
 ## Leader Definitions
 
 Leader definitions live in `vv_data.gml`. Each Leader has a stable ID, display name, separate starting and maximum Health, basic Attack, artwork, ability and Special-move arrays, and its available Leader Strike definitions. `reset_game()` initializes the Leader from `starting_hp`; healing and state validation use `max_hp`.
