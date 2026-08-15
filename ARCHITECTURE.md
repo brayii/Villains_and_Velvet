@@ -28,3 +28,5 @@ Runtime artwork is loaded with `sprite_add()` and owned by the cache in `vv_asse
 The authoritative `CORE_*` constants are defined once at the top of `vv_data.gml`. They describe three Heroes with a 7/5/3 card distribution, the fixed eight Minion-slot copy counts, 25 total Minions, eight Enemy Events, a 45-card Player Deck, and a 33-card Enemy Deck.
 
 `vv_state.gml` validates both totals and composition. Player validation discovers the three Hero IDs from the cards instead of assuming A/B/C. Enemy validation checks every structural Minion slot and requires Leader Strikes plus Twists to occupy exactly eight event slots.
+
+Hero identity is a stable content ID. Player rules such as Unity compare IDs dynamically and count unique other Heroes; gameplay code does not maintain a fixed list of Hero IDs.

@@ -23,6 +23,20 @@ function draw_player_hand() {
     log_add("Step 1 — Draw: " + string(count_occupied_hand()) + " cards in Hand.");
 }
 
+function count_unique_other_heroes(_cards, _source_index) {
+    var hero_ids = [];
+    var source_hero = _cards[_source_index].hero;
+    for (var other_i = 0; other_i < array_length(_cards); other_i++) {
+        if (other_i != _source_index && !is_undefined(_cards[other_i])) {
+            var other_hero = _cards[other_i].hero;
+            if (other_hero != source_hero && !array_has_value(hero_ids, other_hero)) {
+                array_push(hero_ids, other_hero);
+            }
+        }
+    }
+    return array_length(hero_ids);
+}
+
 function compute_attack_summary() {
     var total = 0;
     var rally_cards = 0;
@@ -38,17 +52,7 @@ function compute_attack_summary() {
         if (build[card_i].ability_id == ABILITY_RALLY) other_rallies--;
         total += max(0, other_rallies);
         if (build[card_i].ability_id == ABILITY_UNITY) {
-            var hero_a = false;
-            var hero_b = false;
-            var hero_c = false;
-            for (var other_i = 0; other_i < 3; other_i++) if (other_i != card_i && !is_undefined(build[other_i])) {
-                if (build[other_i].hero != build[card_i].hero) {
-                    if (build[other_i].hero == "A") hero_a = true;
-                    if (build[other_i].hero == "B") hero_b = true;
-                    if (build[other_i].hero == "C") hero_c = true;
-                }
-            }
-            total += 2 * (hero_a + hero_b + hero_c);
+            total += 2 * count_unique_other_heroes(build, card_i);
         }
     }
     return {total:total, kill_bonus:gained_after_kill};
