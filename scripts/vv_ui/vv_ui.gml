@@ -34,8 +34,10 @@ function vv_ui_init() {
     pointer_card_value = undefined;
     pointer_down_x = 0;
     pointer_down_y = 0;
+    pointer_max_distance = 0;
     drag_active = false;
-    drag_threshold = 14;
+    drag_threshold = 8;
+    tap_move_limit = 6;
     pending_tap_type = "";
     pending_tap_index = -1;
     pending_tap_value = undefined;
@@ -204,6 +206,16 @@ function ui_drag_target_at_point(_pointer_x, _pointer_y) {
     return undefined;
 }
 
+function ui_drag_target_is_legal(_target_type, _target_index) {
+    if (!pointer_card_down || !drag_active || pointer_card_type == _target_type) return false;
+    if (pointer_card_type == "hand" && _target_type == "build") return true;
+    if (pointer_card_type == "build" && _target_type == "hand") {
+        return _target_index >= 0 && _target_index < array_length(hand)
+            && !is_undefined(hand[_target_index]);
+    }
+    return false;
+}
+
 function vv_ui_handle_input() {
     var pointer_x = device_mouse_x_to_gui(0);
     var pointer_y = device_mouse_y_to_gui(0);
@@ -234,16 +246,26 @@ function vv_ui_handle_input() {
             pointer_card_value = pressed_card.card;
             pointer_down_x = pointer_x;
             pointer_down_y = pointer_y;
+            pointer_max_distance = 0;
             drag_active = false;
             return;
         }
     }
 
     if (pointer_card_down) {
+        if (pointer_held) {
+            pointer_max_distance = max(pointer_max_distance,
+                point_distance(pointer_down_x, pointer_down_y, pointer_x, pointer_y));
+        }
         if (pointer_held && phase == "build" && prompt_mode == ""
         && (pointer_card_type == "hand" || pointer_card_type == "build")) {
-            var drag_distance = point_distance(pointer_down_x, pointer_down_y, pointer_x, pointer_y);
-            if (drag_distance >= drag_threshold) drag_active = true;
+            if (pointer_max_distance >= drag_threshold && !drag_active) {
+                drag_active = true;
+                // Once movement becomes a drag, it cannot complete an earlier double-tap.
+                pending_tap_type = "";
+                pending_tap_index = -1;
+                pending_tap_frames = 0;
+            }
         }
         if (pointer_released) {
             if (drag_active) {
@@ -257,7 +279,7 @@ function vv_ui_handle_input() {
                 var released_card = ui_card_at_point(pointer_x, pointer_y);
                 var same_card = !is_undefined(released_card)
                     && released_card.type == pointer_card_type && released_card.index == pointer_card_index;
-                if (same_card) {
+                if (same_card && pointer_max_distance <= tap_move_limit) {
                     if (pending_tap_frames > 0 && pending_tap_type == pointer_card_type
                     && pending_tap_index == pointer_card_index) {
                         card_popup = pointer_card_value;
@@ -279,6 +301,7 @@ function vv_ui_handle_input() {
             pointer_card_type = "";
             pointer_card_index = -1;
             pointer_card_value = undefined;
+            pointer_max_distance = 0;
             drag_active = false;
         }
         return;
@@ -727,7 +750,8 @@ draw_center("←", 755, 186, COL_ACCENT);
 draw_center("BUILD AREA", 640, 297, COL_MUTED);
 for (var build_i = 0; build_i < 3; build_i++) {
     var legal_build = (prompt_mode != "" && prompt_build_is_legal(build_i))
-        || (phase == "build" && prompt_mode == "" && selected_hand >= 0);
+        || (phase == "build" && prompt_mode == "" && selected_hand >= 0)
+        || ui_drag_target_is_legal("build", build_i);
     var visible_build_card = ui_drag_hides_card("build", build_i) ? undefined : build[build_i];
     draw_card(visible_build_card, build_rects[build_i], selected_build == build_i, legal_build);
 }
@@ -737,6 +761,7 @@ for (var hand_i = 0; hand_i < 3; hand_i++) {
     var hand_card = hand_i < array_length(hand) ? hand[hand_i] : undefined;
     var legal_hand = prompt_mode == "destroy_hand" && hand_i < array_length(hand)
         && !is_undefined(hand_card);
+    legal_hand = legal_hand || ui_drag_target_is_legal("hand", hand_i);
     if (ui_drag_hides_card("hand", hand_i)) hand_card = undefined;
     draw_card(hand_card, hand_rects[hand_i], selected_hand == hand_i, legal_hand);
 }
