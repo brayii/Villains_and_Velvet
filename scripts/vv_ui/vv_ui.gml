@@ -35,9 +35,11 @@ function vv_ui_init() {
     pointer_down_x = 0;
     pointer_down_y = 0;
     pointer_max_distance = 0;
+    pointer_hold_frames = 0;
     drag_active = false;
     drag_threshold = 8;
     tap_move_limit = 6;
+    inspect_hold_frames = 30;
     pending_tap_type = "";
     pending_tap_index = -1;
     pending_tap_value = undefined;
@@ -252,6 +254,7 @@ function vv_ui_handle_input() {
             pointer_down_x = pointer_x;
             pointer_down_y = pointer_y;
             pointer_max_distance = 0;
+            pointer_hold_frames = 0;
             drag_active = false;
             return;
         }
@@ -261,6 +264,23 @@ function vv_ui_handle_input() {
         if (pointer_held) {
             pointer_max_distance = max(pointer_max_distance,
                 point_distance(pointer_down_x, pointer_down_y, pointer_x, pointer_y));
+        }
+        if (pointer_held && phase == "attack" && pointer_max_distance <= tap_move_limit
+        && (pointer_card_type == "minion" || pointer_card_type == "leader")) {
+            pointer_hold_frames++;
+            if (pointer_hold_frames >= inspect_hold_frames) {
+                card_popup = pointer_card_value;
+                card_popup_type = pointer_card_type;
+                pending_tap_type = "";
+                pending_tap_index = -1;
+                pending_tap_frames = 0;
+                pointer_card_down = false;
+                pointer_card_type = "";
+                pointer_card_index = -1;
+                pointer_card_value = undefined;
+                pointer_hold_frames = 0;
+                return;
+            }
         }
         if (pointer_held && phase == "build" && prompt_mode == ""
         && (pointer_card_type == "hand" || pointer_card_type == "build")) {
@@ -314,6 +334,7 @@ function vv_ui_handle_input() {
             pointer_card_index = -1;
             pointer_card_value = undefined;
             pointer_max_distance = 0;
+            pointer_hold_frames = 0;
             drag_active = false;
         }
         return;
@@ -838,8 +859,8 @@ else if (phase == "build") {
     } else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.";
     else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.";
     else instruction = "Place or swap cards in the Build Area.\nTap DONE BUILDING when finished.";
-} else if (phase == "attack") instruction = "Attack " + string(attack_left)
-    + ": tap a Minion or the Leader.\nToo little Attack is not spent.\nTap DONE ATTACKING when finished.";
+} else if (phase == "attack") instruction = "ATTACK " + string(attack_left)
+    + "\nTap to attack. Hold to inspect.\nToo little Attack is not spent.\nTap DONE ATTACKING when finished.";
 else if (phase == "attack_complete_wait") instruction = attack_notice_text;
 else if (phase == "step5_ready") instruction = "Calculating your Attack...";
 else if (phase == "step6_ready") instruction = "Discarding the cards left in your Hand...";
