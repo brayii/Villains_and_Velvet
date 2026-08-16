@@ -474,6 +474,10 @@ function draw_card_popup() {
         draw_set_color(COL_GOLD);
         draw_roundrect(leader_popup.x, leader_popup.y,
             leader_popup.x + leader_popup.w, leader_popup.y + leader_popup.h, true);
+    } else if (card_popup_type == "reveal") {
+        var reveal_popup_rect = {x:425, y:25, w:430, h:645};
+        draw_panel({x:410, y:10, w:460, h:700}, make_color_rgb(24, 33, 46), COL_GOLD);
+        draw_enemy_reveal(card_popup, reveal_popup_rect);
     } else {
         var popup_rect = {x:425, y:25, w:430, h:645};
         draw_panel({x:410, y:10, w:460, h:700}, make_color_rgb(24, 33, 46), COL_GOLD);
