@@ -794,17 +794,22 @@ else if (prompt_mode == "disrupt") instruction = "Choose a highlighted Build car
 else if (prompt_mode == "shatter") instruction = "Choose a highlighted card with the lowest HP.";
 else if (prompt_mode == "destroy_hand") instruction = prompt_source + "\nChoose a highlighted Hand card.\n"
     + string(escape_cards_remaining) + " remaining.";
-else if (phase == "step1_ready") instruction = "Tap START TURN to draw 3 cards.";
+else if (phase == "step1_ready") instruction = turn_number == 1
+    ? "Tap START TURN to draw three cards."
+    : "Tap START NEXT TURN to draw three cards.";
 else if (phase == "step2_ready") instruction = "Minions advance and escape.";
 else if (phase == "step3_ready" || phase == "enemy_continue_wait") instruction = "Enemy cards are being drawn.";
 else if (phase == "step4_ready") instruction = "Build phase is opening.";
-else if (phase == "start_resolving") instruction = "Choose a highlighted card to continue.";
+else if (phase == "start_resolving") instruction = step_number == 2
+    ? "Resolving Minion movement and escapes..."
+    : "Resolving the Enemy Draw...";
 else if (phase == "build") {
     if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.";
     else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.";
-    else instruction = "Place or swap cards, then tap READY TO ATTACK.";
-} else if (phase == "attack") instruction = "Attack " + string(attack_left) + ": tap a Minion or the Leader. If you cannot defeat a Minion, you keep your Attack.";
-else if (phase == "step5_ready") instruction = "Get ready to attack.";
+    else instruction = "Place or swap cards in the Build Area.\nTap DONE BUILDING when finished.";
+} else if (phase == "attack") instruction = "Attack " + string(attack_left)
+    + ": tap a Minion or the Leader.\nToo little Attack is not spent.\nTap DONE ATTACKING when finished.";
+else if (phase == "step5_ready") instruction = "Calculating your Attack...";
 else if (phase == "step6_ready") instruction = "Discarding the cards left in your Hand...";
 else if (phase == "end_ready") instruction = "Ending your turn...";
 if (prompt_mode == "enemy_attack") {
@@ -882,10 +887,10 @@ var button_enabled = prompt_mode == "" && action_cooldown <= 0
     && (phase == "step1_ready" || phase == "build" || phase == "attack");
 draw_panel(action_rect, button_enabled ? COL_ACCENT : COL_PANEL, button_enabled ? COL_TEXT : COL_EDGE);
 var button_text = "";
-if (prompt_mode != "") button_text = "CHOOSE A CARD";
+if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
-else if (phase == "build") button_text = "READY TO ATTACK";
-else if (phase == "attack") button_text = "END ATTACK";
+else if (phase == "build") button_text = "DONE BUILDING";
+else if (phase == "attack") button_text = "DONE ATTACKING";
 else button_text = "RESOLVING...";
 draw_center(button_text, action_rect.x + action_rect.w / 2, action_rect.y + action_rect.h / 2,
     button_enabled ? COL_BG : COL_MUTED);

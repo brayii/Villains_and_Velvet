@@ -63,7 +63,7 @@ function begin_build() {
     if (phase != "step4_ready" || game_over) return;
     enemy_attack_notice = "";
     phase = "build";
-    log_add("Build your team, then tap READY TO ATTACK.");
+    log_add("Build your team, then tap DONE BUILDING.");
 }
 
 function finish_build() {
