@@ -83,6 +83,8 @@ Leader, Scenario, and Minion Set definitions are exposed through independent reg
 
 `validate_content_registries()` runs before setup selections are created. It rejects empty registries, duplicate or non-lowercase IDs, missing required fields, malformed Hero templates and Enemy Events, and incomplete Minion Sets. Invalid content reaches a safe setup error screen and cannot start a match.
 
+Validation also checks numeric ranges, integer copy counts, ability/effect entry shape, required parameters, and resolver-supported IDs before gameplay can use the content. Startup runs isolated malformed-content self-checks against cloned registries; a regression in these guards becomes a readable setup error instead of a later runtime failure. Reserved Leader ability/Special-move and Scenario setup-rule arrays must remain empty until their first real resolver is implemented.
+
 The normal setup view shows a short event summary. The settings gear opens the paged Enemy Event controls when the defaults need adjustment or the player wants a different legal mix. Hero slots also draw from the Hero registry and become browsable when more than three Heroes are available.
 
 ## Runtime Flow and Ownership

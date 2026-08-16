@@ -27,10 +27,12 @@ New Minions enter Area 1. A Minion advances to Area 2 when that space is empty. 
 
 1. Choose an Enemy Leader and set it to that Leader's starting Health.
 2. Choose a Scenario.
-3. Choose exactly three different Heroes. Add seven Normal, five Ability, and three Special cards for each Hero, then shuffle the 45-card Player Deck.
-4. Assemble the Scenario's 25 Minions using the permanent slot distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1. Add exactly eight Enemy Events selected from the Leader's Leader Strikes and the Scenario's Twists, creating a 33-card Enemy Deck. Shuffle the deck.
-5. Leave the Hand, Build, Minion Areas, and discard or used-card piles empty.
-6. Begin the first turn.
+3. Choose a Minion Set.
+4. Choose exactly three different Heroes. Add seven Normal, five Ability, and three Special cards for each Hero, then shuffle the 45-card Player Deck.
+5. Assemble the selected Minion Set's 25 Minions using the permanent slot distribution: NA ×7, NB ×3, NC ×2, AA ×5, AB ×3, SA ×2, SB ×2, and SC ×1.
+6. Select exactly eight Enemy Events from the Leader's Leader Strikes and the Scenario's Twists. Add them to the Minions to create a 33-card Enemy Deck, then shuffle it.
+7. Leave the Hand, Build, Minion Areas, and discard or used-card piles empty.
+8. Begin the first turn.
 
 Content may provide additional setup instructions.
 
@@ -134,6 +136,6 @@ When the Player Deck is empty, shuffle the Player Discard Pile to form a new Pla
 
 Card text may add to or override these rules. When card text directly conflicts with a core rule, the card text takes precedence for that effect.
 
-Leaders may define different starting Health, maximum Health, Attack, abilities, and Leader Strikes. Scenarios may provide different Enemy Decks, Twists, and setup rules. Future Hero and Minion sets may introduce new statistics, abilities, and interactions without changing this core document.
+Leaders may define different starting Health, maximum Health, Attack, abilities, and Leader Strikes. Scenarios may provide different Twists and setup rules. Minion Sets provide the Minion portion of the Enemy Deck independently of the Scenario. Future Heroes and Minion Sets may introduce new statistics, abilities, and interactions without changing this core document.
 
 Content-specific values and ability explanations belong with the data or documentation for that content set, not in the core rules.

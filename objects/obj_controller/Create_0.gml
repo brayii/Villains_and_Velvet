@@ -8,6 +8,11 @@ available_minion_sets = make_minion_set_registry();
 available_heroes = make_hero_definitions();
 content_registry_validation = validate_content_registries(
     available_leaders, available_scenarios, available_minion_sets, available_heroes);
+if (content_registry_validation.valid) {
+    var validation_self_checks = run_content_validation_self_checks(
+        available_leaders, available_scenarios, available_minion_sets, available_heroes);
+    if (!validation_self_checks.valid) content_registry_validation = validation_self_checks;
+}
 selected_leader_index = content_registry_validation.valid ? 0 : -1;
 selected_scenario_index = content_registry_validation.valid ? 0 : -1;
 selected_minion_set_index = content_registry_validation.valid ? 0 : -1;

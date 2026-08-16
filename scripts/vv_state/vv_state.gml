@@ -163,6 +163,70 @@ function content_validation_result(_valid, _message) {
     return {valid:_valid, message:_message};
 }
 
+function content_number_is_valid(_value, _minimum, _integer_only) {
+    return is_real(_value) && _value >= _minimum
+        && (!_integer_only || _value == floor(_value));
+}
+
+function validate_ability_entries(_abilities, _allowed_ids, _owner_label) {
+    if (!is_array(_abilities)) return content_validation_result(false, _owner_label + " abilities must be an array.");
+    var seen_ids = [];
+    for (var ability_i = 0; ability_i < array_length(_abilities); ability_i++) {
+        var ability = _abilities[ability_i];
+        if (!is_struct(ability) || !variable_struct_exists(ability, "id") || !is_string(ability.id)
+        || !variable_struct_exists(ability, "name") || !is_string(ability.name)
+        || !variable_struct_exists(ability, "text") || !is_string(ability.text)
+        || !variable_struct_exists(ability, "params") || !is_struct(ability.params)) {
+            return content_validation_result(false, _owner_label + " ability " + string(ability_i + 1) + " is malformed.");
+        }
+        if (!array_has_value(_allowed_ids, ability.id)) {
+            return content_validation_result(false, _owner_label + " uses unsupported ability ID '" + ability.id + "'.");
+        }
+        if (array_has_value(seen_ids, ability.id)) {
+            return content_validation_result(false, _owner_label + " repeats ability ID '" + ability.id + "'.");
+        }
+        array_push(seen_ids, ability.id);
+        if (ability.id == ABILITY_OVERPOWER || ability.id == ABILITY_RELENTLESS || ability.id == ABILITY_RALLY) {
+            if (!variable_struct_exists(ability.params, "amount")
+            || !content_number_is_valid(ability.params.amount, 0, false)) {
+                return content_validation_result(false, _owner_label + " ability '" + ability.id + "' needs a nonnegative numeric amount.");
+            }
+        } else if (ability.id == ABILITY_UNITY) {
+            if (!variable_struct_exists(ability.params, "amount_per_hero")
+            || !content_number_is_valid(ability.params.amount_per_hero, 0, false)) {
+                return content_validation_result(false, _owner_label + " ability '" + ability.id + "' needs a nonnegative numeric amount_per_hero.");
+            }
+        }
+    }
+    return content_validation_result(true, "");
+}
+
+function validate_effect_entries(_effects, _allowed_ids, _owner_label) {
+    if (!is_array(_effects)) return content_validation_result(false, _owner_label + " effects must be an array.");
+    for (var effect_i = 0; effect_i < array_length(_effects); effect_i++) {
+        var effect = _effects[effect_i];
+        if (!is_struct(effect) || !variable_struct_exists(effect, "id") || !is_string(effect.id)
+        || !variable_struct_exists(effect, "params") || !is_struct(effect.params)) {
+            return content_validation_result(false, _owner_label + " effect " + string(effect_i + 1) + " is malformed.");
+        }
+        if (!array_has_value(_allowed_ids, effect.id)) {
+            return content_validation_result(false, _owner_label + " uses unsupported effect ID '" + effect.id + "'.");
+        }
+        if (effect.id == EFFECT_HEAL_LEADER) {
+            if (!variable_struct_exists(effect.params, "amount")
+            || !content_number_is_valid(effect.params.amount, 0, false)) {
+                return content_validation_result(false, _owner_label + " effect '" + effect.id + "' needs a nonnegative numeric amount.");
+            }
+        } else if (effect.id == EFFECT_DESTROY_HAND_CARD) {
+            if (!variable_struct_exists(effect.params, "count")
+            || !content_number_is_valid(effect.params.count, 0, true)) {
+                return content_validation_result(false, _owner_label + " effect '" + effect.id + "' needs a nonnegative integer count.");
+            }
+        }
+    }
+    return content_validation_result(true, "");
+}
+
 function validate_registry_ids(_definitions, _label, _minimum) {
     if (!is_array(_definitions) || array_length(_definitions) < _minimum) {
         return content_validation_result(false, _label + " registry needs at least " + string(_minimum) + " definition(s).");
@@ -193,7 +257,9 @@ function validate_enemy_event_definitions(_definitions, _card_type, _owner_label
         if (!is_struct(definition) || !variable_struct_exists(definition, "card")
         || !is_struct(definition.card) || !variable_struct_exists(definition.card, "id")
         || !is_string(definition.card.id) || definition.card.id == ""
-        || !variable_struct_exists(definition.card, "name")
+        || !variable_struct_exists(definition.card, "name") || !is_string(definition.card.name)
+        || !variable_struct_exists(definition.card, "effect") || !is_string(definition.card.effect)
+        || !variable_struct_exists(definition.card, "art_file") || !is_string(definition.card.art_file)
         || !variable_struct_exists(definition.card, "effects") || !is_array(definition.card.effects)
         || !variable_struct_exists(definition.card, "card_type") || definition.card.card_type != _card_type
         || !variable_struct_exists(definition, "default_copies")
@@ -203,10 +269,17 @@ function validate_enemy_event_definitions(_definitions, _card_type, _owner_label
         if (string_lower(definition.card.id) != definition.card.id || array_has_value(ids, definition.card.id)) {
             return content_validation_result(false, _owner_label + " event ID '" + definition.card.id + "' must be unique and lowercase.");
         }
-        if (definition.default_copies < 0 || definition.default_copies != floor(definition.default_copies)
-        || definition.max_copies < definition.default_copies || definition.max_copies != floor(definition.max_copies)) {
+        if (!content_number_is_valid(definition.default_copies, 0, true)
+        || !content_number_is_valid(definition.max_copies, 0, true)
+        || definition.max_copies < definition.default_copies) {
             return content_validation_result(false, _owner_label + " event '" + definition.card.id + "' has invalid copy limits.");
         }
+        var allowed_effects = _card_type == "strike"
+            ? [EFFECT_LEADER_BASIC_ATTACK]
+            : [EFFECT_AREA_2_ATTACK];
+        var effect_result = validate_effect_entries(definition.card.effects, allowed_effects,
+            _owner_label + " event '" + definition.card.id + "'");
+        if (!effect_result.valid) return effect_result;
         array_push(ids, definition.card.id);
     }
     return content_validation_result(true, "");
@@ -231,6 +304,16 @@ function validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes
         || !is_array(leader.special_moves) || !variable_struct_exists(leader, "leader_strikes")) {
             return content_validation_result(false, "Leader '" + leader.id + "' is missing required fields.");
         }
+        if (!is_string(leader.name) || !is_string(leader.art_file)
+        || !content_number_is_valid(leader.starting_hp, 0, false)
+        || !content_number_is_valid(leader.max_hp, 1, false)
+        || leader.starting_hp > leader.max_hp
+        || !content_number_is_valid(leader.attack, 0, false)) {
+            return content_validation_result(false, "Leader '" + leader.id + "' has invalid Health, Attack, name, or artwork values.");
+        }
+        if (array_length(leader.abilities) > 0 || array_length(leader.special_moves) > 0) {
+            return content_validation_result(false, "Leader '" + leader.id + "' defines an ability or Special move, but those extension points do not have a resolver yet.");
+        }
         result = validate_enemy_event_definitions(leader.leader_strikes, "strike", "Leader '" + leader.id + "'");
         if (!result.valid) return result;
     }
@@ -240,27 +323,49 @@ function validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes
         || !is_array(scenario.setup_rules) || !variable_struct_exists(scenario, "twists")) {
             return content_validation_result(false, "Scenario '" + scenario.id + "' is missing required fields.");
         }
+        if (!is_string(scenario.name)) {
+            return content_validation_result(false, "Scenario '" + scenario.id + "' needs a text display name.");
+        }
+        if (array_length(scenario.setup_rules) > 0) {
+            return content_validation_result(false, "Scenario '" + scenario.id + "' defines setup rules, but that extension point does not have a resolver yet.");
+        }
         result = validate_enemy_event_definitions(scenario.twists, "twist", "Scenario '" + scenario.id + "'");
         if (!result.valid) return result;
     }
     for (var minion_set_i = 0; minion_set_i < array_length(_minion_sets); minion_set_i++) {
         var minion_set = _minion_sets[minion_set_i];
-        if (!variable_struct_exists(minion_set, "name") || !core_minion_slots_are_valid(minion_set)) {
+        if (!variable_struct_exists(minion_set, "name") || !is_string(minion_set.name)
+        || !core_minion_slots_are_valid(minion_set)) {
             return content_validation_result(false, "Minion Set '" + minion_set.id + "' must define every unique core slot and Minion ID.");
         }
         for (var minion_i = 0; minion_i < array_length(minion_set.minion_slots); minion_i++) {
             var minion = minion_set.minion_slots[minion_i].card;
             if (!is_string(minion.id) || string_lower(minion.id) != minion.id
+            || !variable_struct_exists(minion, "card_type") || minion.card_type != "minion"
             || !variable_struct_exists(minion, "name")
             || !variable_struct_exists(minion, "abilities") || !is_array(minion.abilities)
             || !variable_struct_exists(minion, "escape_effects") || !is_array(minion.escape_effects)) {
                 return content_validation_result(false, "Minion definition '" + string(minion.id) + "' is incomplete or not lowercase.");
             }
+            if (!is_string(minion.name) || !variable_struct_exists(minion, "atk")
+            || !content_number_is_valid(minion.atk, 0, false)
+            || !variable_struct_exists(minion, "hp") || !content_number_is_valid(minion.hp, 1, false)
+            || !variable_struct_exists(minion, "art_file") || !is_string(minion.art_file)) {
+                return content_validation_result(false, "Minion '" + minion.id + "' has invalid Attack, Health, name, or artwork values.");
+            }
+            result = validate_ability_entries(minion.abilities,
+                [ABILITY_DISRUPT, ABILITY_CRUSH, ABILITY_PROTECTOR, ABILITY_SHATTER, ABILITY_DEVASTATE],
+                "Minion '" + minion.id + "'");
+            if (!result.valid) return result;
+            result = validate_effect_entries(minion.escape_effects,
+                [EFFECT_HEAL_LEADER, EFFECT_DESTROY_HAND_CARD], "Minion '" + minion.id + "' Escape");
+            if (!result.valid) return result;
         }
     }
     for (var hero_i = 0; hero_i < array_length(_heroes); hero_i++) {
         var hero = _heroes[hero_i];
-        if (!variable_struct_exists(hero, "name") || !variable_struct_exists(hero, "normal")
+        if (!variable_struct_exists(hero, "name") || !is_string(hero.name)
+        || !variable_struct_exists(hero, "normal")
         || !variable_struct_exists(hero, "ability") || !variable_struct_exists(hero, "special")) {
             return content_validation_result(false, "Hero '" + hero.id + "' is missing card templates.");
         }
@@ -273,9 +378,73 @@ function validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes
             || !variable_struct_exists(template, "abilities") || !is_array(template.abilities)) {
                 return content_validation_result(false, "Hero '" + hero.id + "' has an invalid " + kinds[template_i] + " template.");
             }
+            if (!variable_struct_exists(template, "atk") || !content_number_is_valid(template.atk, 0, false)
+            || !variable_struct_exists(template, "hp") || !content_number_is_valid(template.hp, 1, false)
+            || !variable_struct_exists(template, "name") || !is_string(template.name)
+            || !variable_struct_exists(template, "art_file") || !is_string(template.art_file)) {
+                return content_validation_result(false, "Hero '" + hero.id + "' has invalid " + kinds[template_i] + " Attack, Health, name, or artwork values.");
+            }
+            result = validate_ability_entries(template.abilities,
+                [ABILITY_OVERPOWER, ABILITY_RELENTLESS, ABILITY_RALLY, ABILITY_UNITY, ABILITY_GUARD, ABILITY_FORTRESS],
+                "Hero '" + hero.id + "' " + kinds[template_i]);
+            if (!result.valid) return result;
         }
     }
     return content_validation_result(true, "Content registries ready.");
+}
+
+function run_content_validation_self_checks(_leaders, _scenarios, _minion_sets, _heroes) {
+    var baseline = validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes);
+    if (!baseline.valid) return baseline;
+
+    var leaders = variable_clone(_leaders);
+    leaders[0].starting_hp = "invalid";
+    if (validate_content_registries(leaders, _scenarios, _minion_sets, _heroes).valid) {
+        return content_validation_result(false, "Internal validation check failed: invalid Leader Health was accepted.");
+    }
+
+    leaders = variable_clone(_leaders);
+    leaders[0].leader_strikes[0].default_copies = "three";
+    if (validate_content_registries(leaders, _scenarios, _minion_sets, _heroes).valid) {
+        return content_validation_result(false, "Internal validation check failed: invalid Enemy Event copies were accepted.");
+    }
+
+    var heroes = variable_clone(_heroes);
+    heroes[0].normal.hp = 0;
+    if (validate_content_registries(_leaders, _scenarios, _minion_sets, heroes).valid) {
+        return content_validation_result(false, "Internal validation check failed: invalid Hero Health was accepted.");
+    }
+
+    heroes = variable_clone(_heroes);
+    heroes[0].ability.abilities[0].id = "unsupported_hero_ability";
+    if (validate_content_registries(_leaders, _scenarios, _minion_sets, heroes).valid) {
+        return content_validation_result(false, "Internal validation check failed: unsupported Hero ability was accepted.");
+    }
+
+    var minion_sets = variable_clone(_minion_sets);
+    minion_sets[0].minion_slots[3].card.abilities[0].id = "unsupported_minion_ability";
+    if (validate_content_registries(_leaders, _scenarios, minion_sets, _heroes).valid) {
+        return content_validation_result(false, "Internal validation check failed: unsupported Minion ability was accepted.");
+    }
+
+    minion_sets = variable_clone(_minion_sets);
+    minion_sets[0].minion_slots[0].card.escape_effects[0].id = "unsupported_escape_effect";
+    if (validate_content_registries(_leaders, _scenarios, minion_sets, _heroes).valid) {
+        return content_validation_result(false, "Internal validation check failed: unsupported Escape effect was accepted.");
+    }
+
+    leaders = variable_clone(_leaders);
+    leaders[0].leader_strikes[0].card.effects[0].id = "unsupported_strike_effect";
+    if (validate_content_registries(leaders, _scenarios, _minion_sets, _heroes).valid) {
+        return content_validation_result(false, "Internal validation check failed: unsupported Leader Strike effect was accepted.");
+    }
+
+    var scenarios = variable_clone(_scenarios);
+    scenarios[0].twists[0].card.effects[0].id = "unsupported_twist_effect";
+    if (validate_content_registries(_leaders, scenarios, _minion_sets, _heroes).valid) {
+        return content_validation_result(false, "Internal validation check failed: unsupported Twist effect was accepted.");
+    }
+    return content_validation_result(true, "Content validation self-checks passed.");
 }
 
 function refresh_setup_validation() {

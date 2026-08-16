@@ -20,14 +20,14 @@ Player cards use:
 
 ```gml
 card_player(hero_id, display_name, kind, attack, health,
-    abilities, ability_name, effect_text, art_path, theme_color)
+    abilities, effect_text, art_path, theme_color)
 ```
 
 Minions use:
 
 ```gml
 card_minion(stable_id, display_name, kind, attack, health,
-    abilities, ability_name, effect_text, escape_effects, art_path)
+    abilities, effect_text, escape_effects, art_path)
 ```
 
 The Minion's stable ID identifies the character, such as `bunny` or `red_panda`. The surrounding Minion Set entry separately assigns that card to a structural slot such as `NA` or `SC`.
@@ -57,11 +57,15 @@ Use `make_enemy_leader()` as the current complete Leader definition. A Leader ne
 - `abilities` and `special_moves` arrays, which may remain empty; and
 - a `leader_strikes` array containing card definitions, default counts, and maximum counts.
 
+`abilities` and `special_moves` are reserved extension points. The current game does not resolve generic Leader abilities or Special moves. Add their gameplay hook when the first real Leader mechanic needs one instead of placing an entry in these arrays and expecting it to run automatically.
+
 Add each Leader constructor to `make_enemy_leader_registry()`. Every registered Leader automatically appears in setup. Its Leader Strike `default_copies` values supply the normal Leader Strike contribution to the eight Enemy Event cards.
 
 ## Add or Replace a Scenario
 
 Use `make_scenario_the_assault()` as the complete Scenario example. A Scenario needs a stable ID, display name, setup rules, and Twist definitions. It does not define the Minion cast.
+
+`setup_rules` is a reserved extension point. The current game stores and validates the array but does not execute generic setup rules. Implement the smallest required setup hook when a real Scenario introduces one.
 
 Add each Scenario constructor to `make_scenario_registry()`. Every registered Scenario automatically appears in Battle Settings. Its Twist `default_copies` values supply the recommended Twist contribution to the eight Enemy Event cards.
 
@@ -103,6 +107,8 @@ Leader Strikes belong to a Leader's `leader_strikes` array. Twists belong to a S
 
 Direct Assault demonstrates `EFFECT_LEADER_BASIC_ATTACK`. Reinforcements demonstrates `EFFECT_AREA_2_ATTACK`. Reuse those effect IDs for different names or artwork with identical behavior.
 
+Current Leader Strike and Twist effects resolve synchronously. If a new Enemy Event requires a player choice, give Enemy Event resolution a resumable effect index like Minion Entry and Escape sequencing; do not add one-off continuation state to the turn controller.
+
 The selected Leader Strike and Twist counts must total exactly eight. The setup screen automatically generates paged rows for every available definition and safely handles a Leader or Scenario with no events in one category.
 
 ## Reuse or Add an Ability
@@ -111,7 +117,7 @@ To reuse a behavior, place its stable ID in the card's `abilities` array. Do not
 
 To implement a new behavior:
 
-1. add a stable `ABILITY_*` or `EFFECT_*` macro in `vv_data.gml`;
+1. add a stable `ABILITY_*` or `EFFECT_*` macro in `vv_data.gml` and add it to the appropriate supported-ID list in content validation;
 2. add the entry to the card definition;
 3. implement Player abilities in `vv_player.gml` or Enemy abilities/effects in `vv_enemy.gml`;
 4. use entry parameters for values that vary by card;
