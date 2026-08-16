@@ -265,8 +265,13 @@ function vv_ui_handle_input() {
             pointer_max_distance = max(pointer_max_distance,
                 point_distance(pointer_down_x, pointer_down_y, pointer_x, pointer_y));
         }
-        if (pointer_held && phase == "attack" && pointer_max_distance <= tap_move_limit
-        && (pointer_card_type == "minion" || pointer_card_type == "leader")) {
+        var hold_attack_target = phase == "attack"
+            && (pointer_card_type == "minion" || pointer_card_type == "leader");
+        var hold_prompt_target = prompt_mode != ""
+            && ((prompt_mode == "destroy_hand" && pointer_card_type == "hand")
+            || (prompt_mode != "destroy_hand" && pointer_card_type == "build"));
+        if (pointer_held && pointer_max_distance <= tap_move_limit
+        && (hold_attack_target || hold_prompt_target)) {
             pointer_hold_frames++;
             if (pointer_hold_frames >= inspect_hold_frames) {
                 card_popup = pointer_card_value;
@@ -307,7 +312,10 @@ function vv_ui_handle_input() {
                 if (same_card && pointer_max_distance <= tap_move_limit) {
                     var immediate_attack = phase == "attack"
                         && (pointer_card_type == "minion" || pointer_card_type == "leader");
-                    if (immediate_attack) {
+                    var immediate_prompt_choice = prompt_mode != ""
+                        && ((prompt_mode == "destroy_hand" && pointer_card_type == "hand")
+                        || (prompt_mode != "destroy_hand" && pointer_card_type == "build"));
+                    if (immediate_attack || immediate_prompt_choice) {
                         pending_tap_type = "";
                         pending_tap_index = -1;
                         pending_tap_frames = 0;
@@ -869,6 +877,7 @@ if (prompt_mode == "enemy_attack") {
     instruction = prompt_source + "\nAttack: " + string(prompt_value) + "\n"
         + (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat.");
 }
+if (prompt_mode != "") instruction += "\nTap to choose. Hold to inspect.";
 var context_panel = {x:985, y:16, w:280, h:190};
 draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.62);
 draw_set_halign(fa_left);
