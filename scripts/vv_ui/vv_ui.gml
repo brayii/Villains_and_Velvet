@@ -806,6 +806,7 @@ if (debug_event_log) {
 
 // Context help.
 var instruction = "";
+var build_confirm_heading = "";
 if (prompt_mode == "" && enemy_attack_notice != "") instruction = enemy_attack_notice;
 else if (prompt_mode == "enemy_attack") instruction = "Choose a highlighted Build card.";
 else if (prompt_mode == "disrupt") instruction = "Choose a highlighted Build card.";
@@ -827,10 +828,10 @@ else if (phase == "build") {
         for (var warning_build_i = 0; warning_build_i < 3; warning_build_i++) {
             if (is_undefined(build[warning_build_i])) empty_build_spaces++;
         }
-        if (!build_changed && empty_build_spaces > 0) instruction = "NO CHANGES · EMPTY SPACES";
-        else if (!build_changed) instruction = "NO BUILD CHANGES";
-        else instruction = "EMPTY BUILD SPACES";
-        instruction += "\nTap DONE BUILDING again to confirm.";
+        if (!build_changed && empty_build_spaces > 0) build_confirm_heading = "NO CHANGES · EMPTY SPACES";
+        else if (!build_changed) build_confirm_heading = "NO BUILD CHANGES";
+        else build_confirm_heading = "EMPTY BUILD SPACES";
+        instruction = "Confirm your Build or move a card.";
     } else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.";
     else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.";
     else instruction = "Place or swap cards in the Build Area.\nTap DONE BUILDING when finished.";
@@ -864,8 +865,17 @@ for (var step_i = 0; step_i < 7; step_i++) {
 }
 
 // Short current instruction remains separate from the permanent step list.
-draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
-draw_text_ext(1000, 225, instruction, 18, 250);
+if (build_finish_confirm && phase == "build") {
+    var build_warning_rect = {x:985, y:215, w:280, h:105};
+    draw_glass_panel(build_warning_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.48);
+    draw_set_color(COL_GOLD);
+    draw_text_ext(1000, 230, build_confirm_heading, 18, 250);
+    draw_set_color(COL_TEXT);
+    draw_text_ext(1000, 260, instruction, 18, 250);
+} else {
+    draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
+    draw_text_ext(1000, 225, instruction, 18, 250);
+}
 
 // A selected card gets a readable description without covering the board.
 var detail_card = undefined;
