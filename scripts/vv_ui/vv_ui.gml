@@ -280,7 +280,14 @@ function vv_ui_handle_input() {
                 var same_card = !is_undefined(released_card)
                     && released_card.type == pointer_card_type && released_card.index == pointer_card_index;
                 if (same_card && pointer_max_distance <= tap_move_limit) {
-                    if (pending_tap_frames > 0 && pending_tap_type == pointer_card_type
+                    var immediate_attack = phase == "attack"
+                        && (pointer_card_type == "minion" || pointer_card_type == "leader");
+                    if (immediate_attack) {
+                        pending_tap_type = "";
+                        pending_tap_index = -1;
+                        pending_tap_frames = 0;
+                        ui_run_card_tap(pointer_card_type, pointer_card_index);
+                    } else if (pending_tap_frames > 0 && pending_tap_type == pointer_card_type
                     && pending_tap_index == pointer_card_index) {
                         card_popup = pointer_card_value;
                         card_popup_type = pointer_card_type;
