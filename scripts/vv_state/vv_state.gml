@@ -29,14 +29,6 @@ function count_occupied_hand() {
     return count;
 }
 
-function count_live_minions() {
-    var count = 0;
-    for (var count_i = 0; count_i < 2; count_i++) {
-        if (!is_undefined(minions[count_i])) count++;
-    }
-    return count;
-}
-
 function build_has_cards() {
     return count_occupied_build() > 0;
 }
@@ -401,8 +393,7 @@ function command_start_game_from_setup() {
 }
 
 function command_open_setup() {
-    match_menu_active = false;
-    quit_match_confirm = false;
+    vv_ui_reset_match_interaction();
     setup_active = true;
     phase = "setup";
     refresh_setup_validation();
@@ -500,6 +491,7 @@ function reset_game() {
     game_over = false;
     victory = false;
     enemy_exhausted = false;
+    vv_ui_reset_match_interaction();
     log_lines = [];
     log_add("The battle begins with both Minion Areas empty.");
     log_add("Tap START TURN when you are ready.");

@@ -20,7 +20,6 @@ function vv_ui_init() {
         array_push(hand_rects, {x:240 + layout_i * 245, y:520, w:240, h:195});
     }
     action_rect = {x:1025, y:628, w:235, h:68};
-    restart_rect = {x:525, y:470, w:230, h:70};
     setup_start_rect = {x:480, y:635, w:320, h:60};
     setup_exit_rect = {x:1080, y:650, w:160, h:46};
     match_menu_rect = {x:20, y:130, w:46, h:46};
@@ -38,6 +37,20 @@ function vv_ui_init() {
     setup_event_defaults_restored = false;
     debug_event_log = false;
 
+    drag_threshold = 8;
+    tap_move_limit = 6;
+    inspect_hold_frames = 30;
+    vv_ui_reset_match_interaction();
+}
+
+function setup_selector_button_rect(_category) {
+    var panel_x = 55;
+    if (_category == "scenario") panel_x = 355;
+    else if (_category == "minion_set") panel_x = 655;
+    return {x:panel_x, y:158, w:250, h:38};
+}
+
+function vv_ui_reset_match_interaction() {
     pointer_card_down = false;
     pointer_card_type = "";
     pointer_card_index = -1;
@@ -47,9 +60,6 @@ function vv_ui_init() {
     pointer_max_distance = 0;
     pointer_hold_frames = 0;
     drag_active = false;
-    drag_threshold = 8;
-    tap_move_limit = 6;
-    inspect_hold_frames = 30;
     card_popup = undefined;
     card_popup_type = "";
     build_changed = false;
@@ -59,13 +69,6 @@ function vv_ui_init() {
     attack_notice_text = "";
     match_menu_active = false;
     quit_match_confirm = false;
-}
-
-function setup_selector_button_rect(_category, _direction) {
-    var panel_x = 55;
-    if (_category == "scenario") panel_x = 355;
-    else if (_category == "minion_set") panel_x = 655;
-    return {x:panel_x, y:158, w:250, h:38};
 }
 
 function setup_gear_rect() {
@@ -345,15 +348,15 @@ function vv_ui_handle_input() {
             if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
             return;
         }
-        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("leader", 1))) {
+        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("leader"))) {
             command_select_leader(1);
             return;
         }
-        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("scenario", 1))) {
+        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("scenario"))) {
             command_select_scenario(1);
             return;
         }
-        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("minion_set", 1))) {
+        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("minion_set"))) {
             command_select_minion_set(1);
             return;
         }
@@ -682,6 +685,9 @@ function vv_ui_draw_setup() {
         draw_panel(setup_start_rect, COL_PANEL, COL_EDGE);
         draw_center("START GAME UNAVAILABLE", setup_start_rect.x + setup_start_rect.w / 2,
             setup_start_rect.y + setup_start_rect.h / 2, COL_MUTED);
+        draw_glass_panel(setup_exit_rect, make_color_rgb(24, 33, 46), COL_EDGE, 0.72);
+        draw_center("EXIT GAME", setup_exit_rect.x + setup_exit_rect.w / 2,
+            setup_exit_rect.y + setup_exit_rect.h / 2, COL_TEXT);
         return;
     }
 
@@ -703,9 +709,9 @@ function vv_ui_draw_setup() {
         draw_text(355, 134, "SCENARIO");
         draw_text(655, 134, "MINION SET");
         draw_text(955, 134, "HERO TEAM");
-        draw_setup_dropdown(setup_selector_button_rect("leader", 1), enemy_leader.name);
-        draw_setup_dropdown(setup_selector_button_rect("scenario", 1), enemy_scenario.name);
-        draw_setup_dropdown(setup_selector_button_rect("minion_set", 1), enemy_minion_set.name);
+        draw_setup_dropdown(setup_selector_button_rect("leader"), enemy_leader.name);
+        draw_setup_dropdown(setup_selector_button_rect("scenario"), enemy_scenario.name);
+        draw_setup_dropdown(setup_selector_button_rect("minion_set"), enemy_minion_set.name);
 
         draw_set_halign(fa_left);
         draw_set_valign(fa_top);
@@ -792,7 +798,8 @@ if (setup_active) {
 
 // Leader and Minions.
 draw_setup_gear(match_menu_rect, match_menu_active);
-draw_panel(leader_rect, make_color_rgb(72, 37, 48), leader_is_protected() ? COL_GOLD : COL_DANGER);
+var leader_protected = leader_is_protected();
+draw_panel(leader_rect, make_color_rgb(72, 37, 48), leader_protected ? COL_GOLD : COL_DANGER);
 draw_art_contained(leader_art_sprite, leader_rect, 2);
 
 // Live values are placed in the fields built into the Leader artwork.
@@ -805,7 +812,7 @@ draw_set_color(make_color_rgb(17, 22, 36));
 draw_rectangle(leader_rect.x + 253, leader_rect.y + 82,
     leader_rect.x + 272, leader_rect.y + 97, false);
 draw_center(string(leader_strikes_remaining), leader_rect.x + 263, leader_rect.y + 89, COL_TEXT);
-draw_set_color(leader_is_protected() ? COL_GOLD : COL_DANGER);
+draw_set_color(leader_protected ? COL_GOLD : COL_DANGER);
 draw_roundrect(leader_rect.x, leader_rect.y, leader_rect.x + leader_rect.w, leader_rect.y + leader_rect.h, true);
 
 draw_center("AREA 2", 645, 17, COL_GOLD);

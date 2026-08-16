@@ -36,6 +36,8 @@ The game opens on a battle setup screen. The current build displays The Velvet Q
 - During Player Attack, tap a Minion the available Attack can defeat or tap the Enemy Leader. Failed Minion attacks do not spend Attack.
 - During an Enemy effect, tap one of the highlighted legal cards. Cards that cannot be defeated or targeted are not highlighted.
 - The turn-step list in the upper-right corner always shows the full seven-step sequence and highlights the current step.
+- Use the small gear on the battlefield to pause, resume, return to Game Options, or exit the game. Leaving an active match requires confirmation.
+- After a victory or defeat, choose **Play Again**, **Game Options**, or **Exit Game**.
 
 ## Repository Layout
 

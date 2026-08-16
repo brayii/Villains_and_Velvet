@@ -77,6 +77,8 @@ The selected Hero IDs are also separate from the available Hero definitions. `va
 
 The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
 
+The match menu pauses automatic turn resolution. Returning to Game Options abandons the current match only after confirmation. `vv_ui_reset_match_interaction()` clears touch, drag, popup, confirmation, and menu state whenever a match resets or the player returns to setup, preventing transient UI state from leaking into Play Again or the next battle.
+
 Leader, Scenario, and Minion Set definitions are exposed through independent registries. Selecting a Leader or Scenario restores their recommended Enemy Event mix. The settings gear contains all content selectors, the three unique Hero slots, event customization, and Restore Defaults. The normal setup view remains artwork-focused.
 
 `validate_content_registries()` runs before setup selections are created. It rejects empty registries, duplicate or non-lowercase IDs, missing required fields, malformed Hero templates and Enemy Events, and incomplete Minion Sets. Invalid content reaches a safe setup error screen and cannot start a match.
