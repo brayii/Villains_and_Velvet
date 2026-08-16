@@ -47,6 +47,9 @@ function vv_ui_init() {
     card_popup_type = "";
     build_changed = false;
     build_finish_confirm = false;
+    attack_finish_confirm = false;
+    attack_notice_heading = "";
+    attack_notice_text = "";
 }
 
 function setup_selector_button_rect(_category, _direction) {
@@ -837,6 +840,7 @@ else if (phase == "build") {
     else instruction = "Place or swap cards in the Build Area.\nTap DONE BUILDING when finished.";
 } else if (phase == "attack") instruction = "Attack " + string(attack_left)
     + ": tap a Minion or the Leader.\nToo little Attack is not spent.\nTap DONE ATTACKING when finished.";
+else if (phase == "attack_complete_wait") instruction = attack_notice_text;
 else if (phase == "step5_ready") instruction = "Calculating your Attack...";
 else if (phase == "step6_ready") instruction = "Discarding the cards left in your Hand...";
 else if (phase == "end_ready") instruction = "Ending your turn...";
@@ -872,6 +876,19 @@ if (build_finish_confirm && phase == "build") {
     draw_text_ext(1000, 230, build_confirm_heading, 18, 250);
     draw_set_color(COL_TEXT);
     draw_text_ext(1000, 260, instruction, 18, 250);
+} else if ((attack_finish_confirm && phase == "attack") || phase == "attack_complete_wait") {
+    var attack_warning_rect = {x:985, y:215, w:280, h:105};
+    draw_glass_panel(attack_warning_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.48);
+    draw_set_color(COL_GOLD);
+    var attack_heading = phase == "attack_complete_wait"
+        ? attack_notice_heading
+        : "UNUSED ATTACK: " + string(attack_left);
+    draw_text_ext(1000, 230, attack_heading, 18, 250);
+    draw_set_color(COL_TEXT);
+    var attack_warning_text = phase == "attack_complete_wait"
+        ? attack_notice_text
+        : "Confirm the end of your Attack step or attack a target.";
+    draw_text_ext(1000, 260, attack_warning_text, 18, 250);
 } else {
     draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
     draw_text_ext(1000, 225, instruction, 18, 250);
@@ -923,14 +940,15 @@ draw_text(1038, 590, "ENEMY DECK: " + string(array_length(enemy_deck)));
 var button_enabled = prompt_mode == "" && action_cooldown <= 0
     && (phase == "step1_ready" || phase == "build" || phase == "attack");
 var confirming_build = phase == "build" && build_finish_confirm;
-var button_fill = button_enabled ? (confirming_build ? COL_GOLD : COL_ACCENT) : COL_PANEL;
+var confirming_attack = phase == "attack" && attack_finish_confirm;
+var button_fill = button_enabled ? ((confirming_build || confirming_attack) ? COL_GOLD : COL_ACCENT) : COL_PANEL;
 var button_outline = button_enabled ? COL_TEXT : COL_EDGE;
 draw_panel(action_rect, button_fill, button_outline);
 var button_text = "";
 if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
 else if (phase == "build") button_text = confirming_build ? "CONFIRM BUILD" : "DONE BUILDING";
-else if (phase == "attack") button_text = "DONE ATTACKING";
+else if (phase == "attack") button_text = confirming_attack ? "CONFIRM END" : "DONE ATTACKING";
 else button_text = "RESOLVING...";
 draw_center(button_text, action_rect.x + action_rect.w / 2, action_rect.y + action_rect.h / 2,
     button_enabled ? COL_BG : COL_MUTED);

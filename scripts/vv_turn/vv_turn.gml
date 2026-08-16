@@ -92,16 +92,35 @@ function begin_attack() {
     var summary = compute_attack_summary();
     attack_left = summary.total;
     kill_bonus = summary.kill_bonus;
+    attack_finish_confirm = false;
     phase = "attack";
     log_add("Step 5 — Player Attack: " + string(attack_left) + ".");
+    if (attack_left <= 0) show_attack_completion("NO ATTACK AVAILABLE", "Attack step skipped.");
 }
 
-function finish_attack() {
+function show_attack_completion(_heading, _text) {
+    attack_finish_confirm = false;
+    attack_notice_heading = _heading;
+    attack_notice_text = _text;
+    phase = "attack_complete_wait";
+    auto_timer = 60;
+}
+
+function complete_attack_step() {
     log_add("Step 5 complete. " + string(attack_left) + " unused Attack remains until End Turn.");
+    attack_finish_confirm = false;
     step_number = 6;
     phase = "step6_ready";
     auto_timer = 40;
     log_add("Attack complete. Discarding the cards left in your Hand.");
+}
+
+function finish_attack() {
+    if (attack_left > 0 && !attack_finish_confirm) {
+        attack_finish_confirm = true;
+        return;
+    }
+    complete_attack_step();
 }
 
 function do_step_6() {
@@ -157,6 +176,7 @@ function vv_turn_update() {
         auto_timer--;
         if (auto_timer == 0) {
             if (phase == "enemy_continue_wait") draw_next_enemy_card();
+            else if (phase == "attack_complete_wait") complete_attack_step();
             else command_action();
         }
     }

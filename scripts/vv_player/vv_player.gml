@@ -149,6 +149,7 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
 
 function command_attack_minion(_index) {
     if (phase != "attack" || _index < 0 || _index > 1 || is_undefined(minions[_index])) return false;
+    attack_finish_confirm = false;
     if (attack_left >= minions[_index].hp) {
         attack_left -= minions[_index].hp;
         var defeated_name = minions[_index].name;
@@ -164,11 +165,13 @@ function command_attack_minion(_index) {
             + ". Your Attack was not spent.");
     }
     validate_state("Player attacks Minion");
+    if (attack_left <= 0 && !game_over) show_attack_completion("ALL ATTACK USED", "Attack step complete.");
     return true;
 }
 
 function command_attack_leader() {
     if (phase != "attack") return false;
+    attack_finish_confirm = false;
     var protector = find_leader_protector();
     if (!is_undefined(protector)) {
         var protector_ability = find_card_ability(protector, ABILITY_PROTECTOR);
@@ -189,6 +192,7 @@ function command_attack_leader() {
         phase = "game_over";
         log_add("Victory! The Enemy Leader has been defeated.");
     }
+    if (attack_left <= 0 && !game_over) show_attack_completion("ALL ATTACK USED", "Attack step complete.");
     validate_state("Player attacks Leader");
     return true;
 }
