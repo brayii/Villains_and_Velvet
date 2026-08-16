@@ -432,7 +432,14 @@ function draw_card(_card, _rect, _selected, _legal) {
     var outline = COL_EDGE;
     if (_legal) outline = COL_LEGAL;
     if (_selected) outline = COL_GOLD;
-    draw_panel(_rect, fill, outline);
+    if (is_undefined(_card)) {
+        draw_set_alpha(0.48);
+        draw_set_color(fill);
+        draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, false);
+        draw_set_alpha(1);
+    } else {
+        draw_panel(_rect, fill, outline);
+    }
     if (is_undefined(_card)) {
         draw_center("EMPTY", _rect.x + _rect.w / 2, _rect.y + _rect.h / 2, COL_MUTED);
     } else {
