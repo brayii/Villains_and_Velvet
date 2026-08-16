@@ -1,7 +1,6 @@
 // Automatic progress pauses for the full card gesture, including the first touch.
 var card_gesture_active = !is_undefined(card_popup)
-    || pointer_card_down
-    || pending_tap_type != "";
+    || pointer_card_down;
 
 if (!card_gesture_active && !setup_active && !game_over
 && device_mouse_check_button_pressed(0, mb_left)) {

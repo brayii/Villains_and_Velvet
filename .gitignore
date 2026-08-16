@@ -66,6 +66,7 @@ Build
 .build_output/
 .build_temp/
 .runtime_test/
+.release/
 
 # GameMaker files generated beside the project during local builds
 *.win

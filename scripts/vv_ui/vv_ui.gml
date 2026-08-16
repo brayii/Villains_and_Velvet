@@ -40,11 +40,6 @@ function vv_ui_init() {
     drag_threshold = 8;
     tap_move_limit = 6;
     inspect_hold_frames = 30;
-    pending_tap_type = "";
-    pending_tap_index = -1;
-    pending_tap_value = undefined;
-    pending_tap_frames = 0;
-    double_tap_window = 18;
     card_popup = undefined;
     card_popup_type = "";
     build_changed = false;
@@ -192,17 +187,6 @@ function ui_run_card_tap(_type, _index) {
     return false;
 }
 
-function ui_finish_pending_tap() {
-    if (pending_tap_type == "") return;
-    var tap_type = pending_tap_type;
-    var tap_index = pending_tap_index;
-    pending_tap_type = "";
-    pending_tap_index = -1;
-    pending_tap_value = undefined;
-    pending_tap_frames = 0;
-    ui_run_card_tap(tap_type, tap_index);
-}
-
 function ui_drag_target_at_point(_pointer_x, _pointer_y) {
     for (var hand_i = 0; hand_i < 3; hand_i++) {
         if (point_in_rect(_pointer_x, _pointer_y, hand_rects[hand_i])) return {type:"hand", index:hand_i};
@@ -238,12 +222,6 @@ function vv_ui_handle_input() {
         return;
     }
 
-    if (pending_tap_frames > 0) {
-        pending_tap_frames--;
-        if (pending_tap_frames <= 0 && !pointer_card_down) ui_finish_pending_tap();
-    }
-    if (pending_tap_type != "" && pending_tap_frames <= 0 && !pointer_card_down) ui_finish_pending_tap();
-
     if (!setup_active && !game_over && pointer_pressed) {
         var pressed_card = ui_card_at_point(pointer_x, pointer_y);
         if (!is_undefined(pressed_card)) {
@@ -265,20 +243,11 @@ function vv_ui_handle_input() {
             pointer_max_distance = max(pointer_max_distance,
                 point_distance(pointer_down_x, pointer_down_y, pointer_x, pointer_y));
         }
-        var hold_attack_target = phase == "attack"
-            && (pointer_card_type == "minion" || pointer_card_type == "leader");
-        var hold_prompt_target = prompt_mode != ""
-            && ((prompt_mode == "destroy_hand" && pointer_card_type == "hand")
-            || (prompt_mode != "destroy_hand" && pointer_card_type == "build"));
-        if (pointer_held && pointer_max_distance <= tap_move_limit
-        && (hold_attack_target || hold_prompt_target)) {
+        if (pointer_held && pointer_max_distance <= tap_move_limit) {
             pointer_hold_frames++;
             if (pointer_hold_frames >= inspect_hold_frames) {
                 card_popup = pointer_card_value;
                 card_popup_type = pointer_card_type;
-                pending_tap_type = "";
-                pending_tap_index = -1;
-                pending_tap_frames = 0;
                 pointer_card_down = false;
                 pointer_card_type = "";
                 pointer_card_index = -1;
@@ -291,10 +260,7 @@ function vv_ui_handle_input() {
         && (pointer_card_type == "hand" || pointer_card_type == "build")) {
             if (pointer_max_distance >= drag_threshold && !drag_active) {
                 drag_active = true;
-                // Once movement becomes a drag, it cannot complete an earlier double-tap.
-                pending_tap_type = "";
-                pending_tap_index = -1;
-                pending_tap_frames = 0;
+                pointer_hold_frames = 0;
             }
         }
         if (pointer_released) {
@@ -303,38 +269,12 @@ function vv_ui_handle_input() {
                 if (!is_undefined(drag_target)) {
                     command_drag_card(pointer_card_type, pointer_card_index, drag_target.type, drag_target.index);
                 }
-                pending_tap_type = "";
-                pending_tap_frames = 0;
             } else {
                 var released_card = ui_card_at_point(pointer_x, pointer_y);
                 var same_card = !is_undefined(released_card)
                     && released_card.type == pointer_card_type && released_card.index == pointer_card_index;
                 if (same_card && pointer_max_distance <= tap_move_limit) {
-                    var immediate_attack = phase == "attack"
-                        && (pointer_card_type == "minion" || pointer_card_type == "leader");
-                    var immediate_prompt_choice = prompt_mode != ""
-                        && ((prompt_mode == "destroy_hand" && pointer_card_type == "hand")
-                        || (prompt_mode != "destroy_hand" && pointer_card_type == "build"));
-                    if (immediate_attack || immediate_prompt_choice) {
-                        pending_tap_type = "";
-                        pending_tap_index = -1;
-                        pending_tap_frames = 0;
-                        ui_run_card_tap(pointer_card_type, pointer_card_index);
-                    } else if (pending_tap_frames > 0 && pending_tap_type == pointer_card_type
-                    && pending_tap_index == pointer_card_index) {
-                        card_popup = pointer_card_value;
-                        card_popup_type = pointer_card_type;
-                        pending_tap_type = "";
-                        pending_tap_index = -1;
-                        pending_tap_value = undefined;
-                        pending_tap_frames = 0;
-                    } else {
-                        if (pending_tap_type != "") ui_finish_pending_tap();
-                        pending_tap_type = pointer_card_type;
-                        pending_tap_index = pointer_card_index;
-                        pending_tap_value = pointer_card_value;
-                        pending_tap_frames = double_tap_window;
-                    }
+                    ui_run_card_tap(pointer_card_type, pointer_card_index);
                 }
             }
             pointer_card_down = false;
@@ -525,6 +465,29 @@ function draw_enemy_reveal(_card, _rect) {
 
 function ui_drag_hides_card(_type, _index) {
     return pointer_card_down && drag_active && pointer_card_type == _type && pointer_card_index == _index;
+}
+
+function ui_card_rect(_type, _index) {
+    if (_type == "leader") return leader_rect;
+    if (_type == "hand" && _index >= 0 && _index < 3) return hand_rects[_index];
+    if (_type == "build" && _index >= 0 && _index < 3) return build_rects[_index];
+    if (_type == "reveal") return minion_rects[1];
+    if (_type == "minion" && _index >= 0 && _index < 2) return minion_rects[_index];
+    return undefined;
+}
+
+function draw_hold_feedback() {
+    if (!pointer_card_down || drag_active || pointer_hold_frames <= 0) return;
+    var held_rect = ui_card_rect(pointer_card_type, pointer_card_index);
+    if (is_undefined(held_rect)) return;
+    var hold_progress = clamp(pointer_hold_frames / inspect_hold_frames, 0, 1);
+    draw_set_alpha(0.45 + hold_progress * 0.55);
+    draw_set_color(COL_GOLD);
+    draw_roundrect(held_rect.x - 2, held_rect.y - 2,
+        held_rect.x + held_rect.w + 2, held_rect.y + held_rect.h + 2, true);
+    draw_rectangle(held_rect.x, held_rect.y + held_rect.h - 5,
+        held_rect.x + held_rect.w * hold_progress, held_rect.y + held_rect.h, false);
+    draw_set_alpha(1);
 }
 
 function draw_card_popup() {
@@ -864,9 +827,9 @@ else if (phase == "build") {
         else if (!build_changed) build_confirm_heading = "NO BUILD CHANGES";
         else build_confirm_heading = "EMPTY BUILD SPACES";
         instruction = "Confirm your Build or move a card.";
-    } else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.";
-    else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.";
-    else instruction = "Place or swap cards in the Build Area.\nTap DONE BUILDING when finished.";
+    } else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.\nHold to inspect.";
+    else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.\nHold to inspect.";
+    else instruction = "Tap or drag cards to build. Hold to inspect.\nTap DONE BUILDING when finished.";
 } else if (phase == "attack") instruction = "ATTACK " + string(attack_left)
     + "\nTap to attack. Hold to inspect.\nToo little Attack is not spent.\nTap DONE ATTACKING when finished.";
 else if (phase == "attack_complete_wait") instruction = attack_notice_text;
@@ -984,6 +947,8 @@ draw_center(button_text, action_rect.x + action_rect.w / 2, action_rect.y + acti
     button_enabled ? COL_BG : COL_MUTED);
 
 // The dragged card follows the pointer and is drawn above the board.
+draw_hold_feedback();
+
 if (pointer_card_down && drag_active && !is_undefined(pointer_card_value)) {
     var drag_w = pointer_card_type == "hand" ? hand_rects[0].w : build_rects[0].w;
     var drag_h = pointer_card_type == "hand" ? hand_rects[0].h : build_rects[0].h;

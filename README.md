@@ -31,9 +31,10 @@ The game opens on a battle setup screen. The current build displays The Velvet Q
 ## Basic Controls
 
 - Tap the large action button when it is offered. Automatic resolutions pause briefly between steps so the current step and its result remain visible.
-- During Build, tap a Hand card and then a Build space. Select occupied spaces to swap cards between the Hand and Build.
+- Tap a card to perform its current action. Press and hold any visible card or the Enemy Leader to enlarge it for reading, then tap anywhere to close the enlarged view.
+- During Build, tap a Hand card and then a Build space, or drag between legal Hand and Build spaces. Occupied destinations swap cards.
 - During Player Attack, tap a Minion the available Attack can defeat or tap the Enemy Leader. Failed Minion attacks do not spend Attack.
-- During an Enemy effect, choose one of the highlighted legal cards. Cards that cannot be defeated or targeted are not highlighted.
+- During an Enemy effect, tap one of the highlighted legal cards. Cards that cannot be defeated or targeted are not highlighted.
 - The turn-step list in the upper-right corner always shows the full seven-step sequence and highlights the current step.
 
 ## Repository Layout
