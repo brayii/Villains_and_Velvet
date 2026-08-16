@@ -812,11 +812,11 @@ else if (phase == "step1_ready") instruction = turn_number == 1
     ? "Tap START TURN to draw three cards."
     : "Tap START NEXT TURN to draw three cards.";
 else if (phase == "step2_ready") instruction = "Minions advance and escape.";
-else if (phase == "step3_ready" || phase == "enemy_continue_wait") instruction = "Enemy cards are being drawn.";
+else if (phase == "step3_ready" || phase == "enemy_continue_wait") instruction = "Draw and resolve Enemy cards. New Minions attack the Build Area.";
 else if (phase == "step4_ready") instruction = "Build phase is opening.";
 else if (phase == "start_resolving") instruction = step_number == 2
     ? "Resolving Minion movement and escapes..."
-    : "Resolving the Enemy Draw...";
+    : "Resolving the Enemy Draw and Attack...";
 else if (phase == "build") {
     if (build_finish_confirm) {
         var empty_build_spaces = 0;
@@ -850,7 +850,7 @@ draw_text(1000, 29, "TURN STEPS");
 var step_list = [
     "STEP 1: DRAW CARDS",
     "STEP 2: ADVANCE / ESCAPE",
-    "STEP 3: ENEMY DRAW",
+    "STEP 3: ENEMY DRAW / ATTACK",
     "STEP 4: BUILD",
     "STEP 5: PLAYER ATTACK",
     "STEP 6: DISCARD",
