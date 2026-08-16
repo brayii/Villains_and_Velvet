@@ -45,6 +45,8 @@ function vv_ui_init() {
     double_tap_window = 18;
     card_popup = undefined;
     card_popup_type = "";
+    build_changed = false;
+    build_finish_confirm = false;
 }
 
 function setup_selector_button_rect(_category, _direction) {
@@ -379,6 +381,15 @@ function vv_ui_handle_input() {
 function draw_panel(_rect, _fill, _outline) {
     draw_set_color(_fill);
     draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, false);
+    draw_set_color(_outline);
+    draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, true);
+}
+
+function draw_glass_panel(_rect, _fill, _outline, _alpha) {
+    draw_set_alpha(_alpha);
+    draw_set_color(_fill);
+    draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, false);
+    draw_set_alpha(1);
     draw_set_color(_outline);
     draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, true);
 }
@@ -719,7 +730,7 @@ draw_clear(COL_BG);
 // Battlefield artwork with a dark veil keeps the cards and instructions readable.
 var background_rect = {x:0, y:0, w:1280, h:720};
 draw_art_cover(background_art_sprite, background_rect);
-draw_set_alpha(setup_active ? 0.30 : 0.62);
+draw_set_alpha(setup_active ? 0.30 : 0.48);
 draw_set_color(COL_BG);
 draw_rectangle(0, 0, 1280, 720, false);
 draw_set_alpha(1);
@@ -811,7 +822,16 @@ else if (phase == "start_resolving") instruction = step_number == 2
     ? "Resolving Minion movement and escapes..."
     : "Resolving the Enemy Draw...";
 else if (phase == "build") {
-    if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.";
+    if (build_finish_confirm) {
+        var empty_build_spaces = 0;
+        for (var warning_build_i = 0; warning_build_i < 3; warning_build_i++) {
+            if (is_undefined(build[warning_build_i])) empty_build_spaces++;
+        }
+        if (!build_changed && empty_build_spaces > 0) instruction = "NO CHANGES · EMPTY SPACES";
+        else if (!build_changed) instruction = "NO BUILD CHANGES";
+        else instruction = "EMPTY BUILD SPACES";
+        instruction += "\nTap DONE BUILDING again to confirm.";
+    } else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.";
     else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.";
     else instruction = "Place or swap cards in the Build Area.\nTap DONE BUILDING when finished.";
 } else if (phase == "attack") instruction = "Attack " + string(attack_left)
@@ -824,7 +844,7 @@ if (prompt_mode == "enemy_attack") {
         + (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat.");
 }
 var context_panel = {x:985, y:16, w:280, h:190};
-draw_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE);
+draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.84);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 draw_set_color(COL_MUTED);
@@ -857,7 +877,7 @@ else if (!is_undefined(minions[0])) detail_card = minions[0];
 
 if (!is_undefined(detail_card)) {
     var detail_panel = {x:985, y:365, w:280, h:145};
-    draw_panel(detail_panel, make_color_rgb(24, 33, 46), COL_EDGE);
+    draw_glass_panel(detail_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.84);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
     draw_set_color(COL_MUTED);
@@ -880,7 +900,7 @@ if (!is_undefined(detail_card)) {
 
 // Main action.
 var match_panel = {x:1025, y:515, w:235, h:96};
-draw_panel(match_panel, make_color_rgb(24, 33, 46), COL_EDGE);
+draw_glass_panel(match_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.84);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 draw_set_color(COL_GOLD);

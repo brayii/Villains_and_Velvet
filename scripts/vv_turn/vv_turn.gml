@@ -62,11 +62,24 @@ function do_step_3() {
 function begin_build() {
     if (phase != "step4_ready" || game_over) return;
     enemy_attack_notice = "";
+    build_changed = false;
+    build_finish_confirm = false;
     phase = "build";
     log_add("Build your team, then tap DONE BUILDING.");
 }
 
 function finish_build() {
+    var empty_build_spaces = 0;
+    for (var build_check_i = 0; build_check_i < 3; build_check_i++) {
+        if (is_undefined(build[build_check_i])) empty_build_spaces++;
+    }
+    if ((!build_changed || empty_build_spaces > 0) && !build_finish_confirm) {
+        build_finish_confirm = true;
+        selected_hand = -1;
+        selected_build = -1;
+        return;
+    }
+    build_finish_confirm = false;
     selected_hand = -1;
     selected_build = -1;
     step_number = 5;

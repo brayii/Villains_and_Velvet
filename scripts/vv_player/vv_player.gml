@@ -70,6 +70,8 @@ function command_select_hand(_index) {
         log_add("Swapped " + build_card.name + " with " + hand_card.name + ".");
         selected_build = -1;
         selected_hand = -1;
+        build_changed = true;
+        build_finish_confirm = false;
         validate_state("Build-first swap");
         return true;
     }
@@ -99,6 +101,8 @@ function command_select_build(_index) {
         }
         selected_hand = -1;
         selected_build = -1;
+        build_changed = true;
+        build_finish_confirm = false;
         validate_state("Hand-first Build action");
         return true;
     }
@@ -131,6 +135,8 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
     else build[_target_index] = source_card;
     selected_hand = -1;
     selected_build = -1;
+    build_changed = true;
+    build_finish_confirm = false;
 
     if (is_undefined(target_card)) {
         log_add("Moved " + source_card.name + " to Build " + string(_target_index + 1) + ".");
