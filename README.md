@@ -20,7 +20,7 @@ This project is an in-development prototype. Gameplay rules and content may chan
 
 The game opens on a battle setup screen. The current build displays The Velvet Queen, The Assault, and the three current Heroes. Use the plus and minus controls to adjust Leader Strike and Twist counts. Exactly eight Enemy Events are required before **Start Game** is enabled.
 
-`CardGamePrototype.exe` is a prebuilt Windows prototype. The GameMaker project is the source of truth for development.
+Installable Windows and Android builds are published on the repository's GitHub Releases page. Packaged builds are not stored with the source project; the GameMaker project is the source of truth for development.
 
 ## Documentation
 

@@ -73,3 +73,9 @@ Build
 *.yydebug
 data.win
 options.ini
+
+# Packaged game builds belong in GitHub Releases, not source control
+*.exe
+*.apk
+*.aab
+/*.zip
