@@ -22,6 +22,16 @@ function vv_ui_init() {
     action_rect = {x:1025, y:628, w:235, h:68};
     restart_rect = {x:525, y:470, w:230, h:70};
     setup_start_rect = {x:480, y:635, w:320, h:60};
+    setup_exit_rect = {x:1080, y:650, w:160, h:46};
+    match_menu_rect = {x:20, y:130, w:46, h:46};
+    menu_resume_rect = {x:490, y:280, w:300, h:58};
+    menu_options_rect = {x:490, y:352, w:300, h:58};
+    menu_exit_rect = {x:490, y:424, w:300, h:58};
+    menu_confirm_rect = {x:490, y:344, w:300, h:58};
+    menu_cancel_rect = {x:490, y:416, w:300, h:58};
+    result_play_rect = {x:490, y:400, w:300, h:54};
+    result_options_rect = {x:490, y:466, w:300, h:54};
+    result_exit_rect = {x:490, y:532, w:300, h:54};
     setup_strike_page = 0;
     setup_twist_page = 0;
     setup_advanced_events = false;
@@ -47,6 +57,8 @@ function vv_ui_init() {
     attack_finish_confirm = false;
     attack_notice_heading = "";
     attack_notice_text = "";
+    match_menu_active = false;
+    quit_match_confirm = false;
 }
 
 function setup_selector_button_rect(_category, _direction) {
@@ -222,6 +234,35 @@ function vv_ui_handle_input() {
         return;
     }
 
+    if (pointer_pressed && !setup_active && !game_over && !match_menu_active
+    && point_in_rect(pointer_x, pointer_y, match_menu_rect)) {
+        match_menu_active = true;
+        quit_match_confirm = false;
+        return;
+    }
+
+    if (match_menu_active) {
+        if (!pointer_pressed) return;
+        if (quit_match_confirm) {
+            if (point_in_rect(pointer_x, pointer_y, menu_confirm_rect)) {
+                match_menu_active = false;
+                quit_match_confirm = false;
+                command_open_setup();
+            } else if (point_in_rect(pointer_x, pointer_y, menu_cancel_rect)) {
+                quit_match_confirm = false;
+            }
+            return;
+        }
+        if (point_in_rect(pointer_x, pointer_y, menu_resume_rect)) {
+            match_menu_active = false;
+        } else if (point_in_rect(pointer_x, pointer_y, menu_options_rect)) {
+            quit_match_confirm = true;
+        } else if (point_in_rect(pointer_x, pointer_y, menu_exit_rect)) {
+            game_end();
+        }
+        return;
+    }
+
     if (!setup_active && !game_over && pointer_pressed) {
         var pressed_card = ui_card_at_point(pointer_x, pointer_y);
         if (!is_undefined(pressed_card)) {
@@ -291,6 +332,10 @@ function vv_ui_handle_input() {
     if (!pointer_pressed) return;
 
     if (setup_active) {
+        if (point_in_rect(pointer_x, pointer_y, setup_exit_rect)) {
+            game_end();
+            return;
+        }
         if (point_in_rect(pointer_x, pointer_y, setup_gear_rect())) {
             setup_advanced_events = !setup_advanced_events;
             return;
@@ -329,7 +374,14 @@ function vv_ui_handle_input() {
     }
 
     if (game_over) {
-        if (point_in_rect(pointer_x, pointer_y, restart_rect)) command_open_setup();
+        if (point_in_rect(pointer_x, pointer_y, result_play_rect)) {
+            reset_game();
+            setup_active = false;
+        } else if (point_in_rect(pointer_x, pointer_y, result_options_rect)) {
+            command_open_setup();
+        } else if (point_in_rect(pointer_x, pointer_y, result_exit_rect)) {
+            game_end();
+        }
         return;
     }
 
@@ -718,6 +770,9 @@ function vv_ui_draw_setup() {
     draw_center("START GAME", setup_start_rect.x + setup_start_rect.w / 2,
         setup_start_rect.y + setup_start_rect.h / 2,
         setup_validation.valid ? COL_BG : COL_MUTED);
+    draw_glass_panel(setup_exit_rect, make_color_rgb(24, 33, 46), COL_EDGE, 0.72);
+    draw_center("EXIT GAME", setup_exit_rect.x + setup_exit_rect.w / 2,
+        setup_exit_rect.y + setup_exit_rect.h / 2, COL_TEXT);
 }
 
 function vv_ui_draw_game() {
@@ -736,6 +791,7 @@ if (setup_active) {
 }
 
 // Leader and Minions.
+draw_setup_gear(match_menu_rect, match_menu_active);
 draw_panel(leader_rect, make_color_rgb(72, 37, 48), leader_is_protected() ? COL_GOLD : COL_DANGER);
 draw_art_contained(leader_art_sprite, leader_rect, 2);
 
@@ -964,10 +1020,37 @@ if (game_over) {
     draw_set_color(COL_BG);
     draw_rectangle(0, 0, 1280, 720, false);
     draw_set_alpha(1);
-    draw_center(victory ? "VICTORY" : "DEFEAT", 640, 305, victory ? COL_ACCENT : COL_DANGER);
+    draw_center(victory ? "VICTORY" : "DEFEAT", 640, 270, victory ? COL_ACCENT : COL_DANGER);
     draw_center(victory ? "The Enemy Leader has been defeated." : "The Enemy Deck ran out before the Leader fell.",
-        640, 365, COL_TEXT);
-    draw_panel(restart_rect, COL_GOLD, COL_TEXT);
-    draw_center("PLAY AGAIN", 640, 505, COL_BG);
+        640, 325, COL_TEXT);
+    draw_panel(result_play_rect, COL_ACCENT, COL_TEXT);
+    draw_center("PLAY AGAIN", 640, result_play_rect.y + result_play_rect.h / 2, COL_BG);
+    draw_panel(result_options_rect, COL_PANEL, COL_EDGE);
+    draw_center("GAME OPTIONS", 640, result_options_rect.y + result_options_rect.h / 2, COL_TEXT);
+    draw_panel(result_exit_rect, COL_PANEL, COL_EDGE);
+    draw_center("EXIT GAME", 640, result_exit_rect.y + result_exit_rect.h / 2, COL_TEXT);
+}
+
+if (match_menu_active) {
+    draw_set_alpha(0.88);
+    draw_set_color(COL_BG);
+    draw_rectangle(0, 0, 1280, 720, false);
+    draw_set_alpha(1);
+    if (quit_match_confirm) {
+        draw_center("QUIT THIS MATCH?", 640, 250, COL_GOLD);
+        draw_center("Your current match progress will be lost.", 640, 300, COL_TEXT);
+        draw_panel(menu_confirm_rect, COL_DANGER, COL_TEXT);
+        draw_center("QUIT TO GAME OPTIONS", 640, menu_confirm_rect.y + menu_confirm_rect.h / 2, COL_TEXT);
+        draw_panel(menu_cancel_rect, COL_PANEL, COL_EDGE);
+        draw_center("CONTINUE PLAYING", 640, menu_cancel_rect.y + menu_cancel_rect.h / 2, COL_TEXT);
+    } else {
+        draw_center("GAME MENU", 640, 225, COL_GOLD);
+        draw_panel(menu_resume_rect, COL_ACCENT, COL_TEXT);
+        draw_center("RESUME GAME", 640, menu_resume_rect.y + menu_resume_rect.h / 2, COL_BG);
+        draw_panel(menu_options_rect, COL_PANEL, COL_EDGE);
+        draw_center("QUIT TO GAME OPTIONS", 640, menu_options_rect.y + menu_options_rect.h / 2, COL_TEXT);
+        draw_panel(menu_exit_rect, COL_PANEL, COL_EDGE);
+        draw_center("EXIT GAME", 640, menu_exit_rect.y + menu_exit_rect.h / 2, COL_TEXT);
+    }
 }
 }

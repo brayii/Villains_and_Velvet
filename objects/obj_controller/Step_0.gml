@@ -9,5 +9,5 @@ if (!card_gesture_active && !setup_active && !game_over
     card_gesture_active = !is_undefined(ui_card_at_point(gesture_x, gesture_y));
 }
 
-if (!card_gesture_active) vv_turn_update();
+if (!card_gesture_active && !match_menu_active) vv_turn_update();
 vv_ui_handle_input();

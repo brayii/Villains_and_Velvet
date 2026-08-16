@@ -401,6 +401,8 @@ function command_start_game_from_setup() {
 }
 
 function command_open_setup() {
+    match_menu_active = false;
+    quit_match_confirm = false;
     setup_active = true;
     phase = "setup";
     refresh_setup_validation();
