@@ -42,6 +42,7 @@ function vv_ui_init() {
     pending_tap_frames = 0;
     double_tap_window = 18;
     card_popup = undefined;
+    card_popup_type = "";
 }
 
 function setup_selector_button_rect(_category, _direction) {
@@ -144,6 +145,9 @@ function setup_event_handle_category_input(_category, _pointer_x, _pointer_y) {
 }
 
 function ui_card_at_point(_pointer_x, _pointer_y) {
+    if (point_in_rect(_pointer_x, _pointer_y, leader_rect)) {
+        return {type:"leader", index:0, card:enemy_leader};
+    }
     for (var hand_i = 0; hand_i < 3; hand_i++) {
         if (point_in_rect(_pointer_x, _pointer_y, hand_rects[hand_i])
         && hand_i < array_length(hand) && !is_undefined(hand[hand_i])) {
@@ -175,6 +179,7 @@ function ui_run_card_tap(_type, _index) {
         if (_type == "build") return command_select_build(_index);
     }
     if (phase == "attack" && _type == "minion") return command_attack_minion(_index);
+    if (phase == "attack" && _type == "leader") return command_attack_leader();
     return false;
 }
 
@@ -207,7 +212,10 @@ function vv_ui_handle_input() {
     var pointer_released = device_mouse_check_button_released(0, mb_left);
 
     if (!is_undefined(card_popup)) {
-        if (pointer_pressed) card_popup = undefined;
+        if (pointer_pressed) {
+            card_popup = undefined;
+            card_popup_type = "";
+        }
         return;
     }
 
@@ -253,6 +261,7 @@ function vv_ui_handle_input() {
                     if (pending_tap_frames > 0 && pending_tap_type == pointer_card_type
                     && pending_tap_index == pointer_card_index) {
                         card_popup = pointer_card_value;
+                        card_popup_type = pointer_card_type;
                         pending_tap_type = "";
                         pending_tap_index = -1;
                         pending_tap_value = undefined;
@@ -445,9 +454,31 @@ function draw_card_popup() {
     draw_rectangle(0, 0, 1280, 720, false);
     draw_set_alpha(1);
 
-    var popup_rect = {x:425, y:25, w:430, h:645};
-    draw_panel({x:410, y:10, w:460, h:700}, make_color_rgb(24, 33, 46), COL_GOLD);
-    draw_card(card_popup, popup_rect, false, false);
+    if (card_popup_type == "leader") {
+        var leader_popup = {x:40, y:220, w:1200, h:228};
+        draw_panel({x:25, y:205, w:1230, h:258}, make_color_rgb(24, 33, 46), COL_GOLD);
+        draw_art_contained(leader_art_sprite, leader_popup, 2);
+
+        var leader_scale = leader_popup.w / leader_rect.w;
+        draw_center(string(leader_hp), leader_popup.x + 224 * leader_scale,
+            leader_popup.y + 61 * leader_scale, make_color_rgb(43, 24, 24));
+        var strikes_left = 0;
+        for (var popup_strike_i = 0; popup_strike_i < array_length(enemy_deck); popup_strike_i++) {
+            if (enemy_deck[popup_strike_i].card_type == "strike") strikes_left++;
+        }
+        draw_set_color(make_color_rgb(17, 22, 36));
+        draw_rectangle(leader_popup.x + 253 * leader_scale, leader_popup.y + 82 * leader_scale,
+            leader_popup.x + 272 * leader_scale, leader_popup.y + 97 * leader_scale, false);
+        draw_center(string(strikes_left), leader_popup.x + 263 * leader_scale,
+            leader_popup.y + 89 * leader_scale, COL_TEXT);
+        draw_set_color(COL_GOLD);
+        draw_roundrect(leader_popup.x, leader_popup.y,
+            leader_popup.x + leader_popup.w, leader_popup.y + leader_popup.h, true);
+    } else {
+        var popup_rect = {x:425, y:25, w:430, h:645};
+        draw_panel({x:410, y:10, w:460, h:700}, make_color_rgb(24, 33, 46), COL_GOLD);
+        draw_card(card_popup, popup_rect, false, false);
+    }
     draw_center("TAP ANYWHERE TO CLOSE", 640, 690, COL_TEXT);
 }
 
