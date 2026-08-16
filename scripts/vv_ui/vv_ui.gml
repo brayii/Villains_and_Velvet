@@ -844,7 +844,7 @@ if (prompt_mode == "enemy_attack") {
         + (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat.");
 }
 var context_panel = {x:985, y:16, w:280, h:190};
-draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.84);
+draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.62);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 draw_set_color(COL_MUTED);
@@ -900,7 +900,7 @@ if (!is_undefined(detail_card)) {
 
 // Main action.
 var match_panel = {x:1025, y:515, w:235, h:96};
-draw_glass_panel(match_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.84);
+draw_glass_panel(match_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.62);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 draw_set_color(COL_GOLD);
@@ -912,11 +912,14 @@ draw_text(1038, 590, "ENEMY DECK: " + string(array_length(enemy_deck)));
 
 var button_enabled = prompt_mode == "" && action_cooldown <= 0
     && (phase == "step1_ready" || phase == "build" || phase == "attack");
-draw_panel(action_rect, button_enabled ? COL_ACCENT : COL_PANEL, button_enabled ? COL_TEXT : COL_EDGE);
+var confirming_build = phase == "build" && build_finish_confirm;
+var button_fill = button_enabled ? (confirming_build ? COL_GOLD : COL_ACCENT) : COL_PANEL;
+var button_outline = button_enabled ? COL_TEXT : COL_EDGE;
+draw_panel(action_rect, button_fill, button_outline);
 var button_text = "";
 if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
-else if (phase == "build") button_text = "DONE BUILDING";
+else if (phase == "build") button_text = confirming_build ? "CONFIRM BUILD" : "DONE BUILDING";
 else if (phase == "attack") button_text = "DONE ATTACKING";
 else button_text = "RESOLVING...";
 draw_center(button_text, action_rect.x + action_rect.w / 2, action_rect.y + action_rect.h / 2,
