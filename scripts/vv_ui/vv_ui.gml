@@ -849,21 +849,21 @@ else if (!is_undefined(minions[1])) detail_card = minions[1];
 else if (!is_undefined(minions[0])) detail_card = minions[0];
 
 if (!is_undefined(detail_card)) {
-    var detail_panel = {x:985, y:325, w:280, h:170};
+    var detail_panel = {x:985, y:365, w:280, h:145};
     draw_panel(detail_panel, make_color_rgb(24, 33, 46), COL_EDGE);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
     draw_set_color(COL_MUTED);
-    draw_text(1000, 337, "CARD DETAILS");
+    draw_text(1000, 377, "CARD DETAILS");
     draw_set_color(COL_TEXT);
-    draw_text(1000, 361, string_upper(detail_card.name));
+    draw_text(1000, 401, string_upper(detail_card.name));
     if (variable_struct_exists(detail_card, "atk")) {
         draw_set_color(COL_GOLD);
-        draw_text(1000, 385, "ATK " + string(detail_card.atk));
+        draw_text(1000, 425, "ATK " + string(detail_card.atk));
         draw_set_color(COL_ACCENT);
-        draw_text(1090, 385, "HP " + string(detail_card.hp));
+        draw_text(1090, 425, "HP " + string(detail_card.hp));
     }
-    var detail_y = variable_struct_exists(detail_card, "atk") ? 410 : 385;
+    var detail_y = variable_struct_exists(detail_card, "atk") ? 450 : 425;
     draw_set_color(COL_TEXT);
     var detail_text = variable_struct_exists(detail_card, "abilities")
         ? card_abilities_text(detail_card)
