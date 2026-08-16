@@ -116,11 +116,14 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
     if (_source_area != "hand" && _source_area != "build") return false;
     if (_target_area != "hand" && _target_area != "build") return false;
     if (_source_index < 0 || _source_index >= 3 || _target_index < 0 || _target_index >= 3) return false;
-    if (_source_area == _target_area && _source_index == _target_index) return false;
+    if (_source_area == _target_area) return false;
 
     var source_card = _source_area == "hand" ? hand[_source_index] : build[_source_index];
     if (is_undefined(source_card)) return false;
     var target_card = _target_area == "hand" ? hand[_target_index] : build[_target_index];
+
+    // Build cards return to Hand only by swapping with a card already there.
+    if (_source_area == "build" && _target_area == "hand" && is_undefined(target_card)) return false;
 
     if (_source_area == "hand") hand[_source_index] = target_card;
     else build[_source_index] = target_card;
@@ -130,8 +133,7 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
     selected_build = -1;
 
     if (is_undefined(target_card)) {
-        log_add("Moved " + source_card.name + " to "
-            + (_target_area == "hand" ? "Hand " : "Build ") + string(_target_index + 1) + ".");
+        log_add("Moved " + source_card.name + " to Build " + string(_target_index + 1) + ".");
     } else {
         log_add("Swapped " + source_card.name + " with " + target_card.name + ".");
     }
