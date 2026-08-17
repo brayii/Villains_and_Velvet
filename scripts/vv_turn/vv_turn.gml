@@ -54,6 +54,7 @@ function do_step_1() {
 
 function do_step_2() {
     if (phase != "step2_ready" || game_over) return;
+    enemy_ai_policy_begin_turn();
     phase = "start_resolving";
     begin_advance_phase();
 }

@@ -563,6 +563,7 @@ function command_start_game_from_setup() {
 
 function command_open_setup() {
     enemy_ai_reward_cancel_turn();
+    enemy_ai_policy_cancel_turn();
     vv_ui_reset_match_interaction();
     setup_active = true;
     phase = "setup";
@@ -632,6 +633,7 @@ function reset_game() {
     player_discard = [];
     enemy_deck = make_enemy_deck(enemy_leader, enemy_scenario, enemy_minion_set, enemy_event_selection);
     enemy_ai_reward_init_match(array_length(enemy_deck));
+    enemy_ai_policy_cancel_turn();
     enemy_used = [];
     hand = [undefined, undefined, undefined];
     build = [undefined, undefined, undefined];

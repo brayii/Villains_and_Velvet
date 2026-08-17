@@ -1,6 +1,7 @@
 /// Deterministic Enemy AI scoring. This module ranks Build slots but does not resolve attacks.
 
 #macro ENEMY_AI_HEALTH_WEIGHT 1.0
+#macro ENEMY_AI_HEALTH_LEARNING_RATE 0.02
 #macro ENEMY_AI_REWARD_EMA_BETA 0.05
 #macro ENEMY_AI_TARGET_DELAY_FRAMES 45
 #macro ENEMY_AI_RESULT_DELAY_FRAMES 30
@@ -53,7 +54,7 @@ function enemy_ai_reward_init_match(_enemy_deck_initial_size) {
 }
 
 function enemy_ai_reward_begin_player_response() {
-    enemy_ai_reward_turn_active = enemy_auto_play;
+    enemy_ai_reward_turn_active = enemy_auto_play && enemy_ai_policy_turn_auto_eligible;
     enemy_ai_reward_hp_before = leader_hp;
     enemy_ai_reward_turn_number = turn_number;
 }
@@ -62,6 +63,102 @@ function enemy_ai_reward_cancel_turn() {
     enemy_ai_reward_turn_active = false;
     enemy_ai_reward_hp_before = 0;
     enemy_ai_reward_turn_number = -1;
+}
+
+function enemy_ai_policy_begin_turn() {
+    enemy_ai_policy_decisions = [];
+    enemy_ai_policy_turn_number = turn_number;
+    enemy_ai_policy_turn_auto_eligible = enemy_auto_play;
+}
+
+function enemy_ai_policy_cancel_turn() {
+    enemy_ai_policy_decisions = [];
+    enemy_ai_policy_turn_number = -1;
+    enemy_ai_policy_turn_auto_eligible = false;
+    enemy_ai_pending_decision_record = undefined;
+}
+
+function enemy_ai_health_weight() {
+    return clamp(ai_health_weight, 0.25, 3.0);
+}
+
+function enemy_ai_policy_choice_is_eligible(
+_auto_enabled, _turn_auto_eligible, _decision_turn, _current_turn, _candidate_count) {
+    return _auto_enabled && _turn_auto_eligible
+        && _decision_turn == _current_turn && _candidate_count >= 2;
+}
+
+function enemy_ai_normalized_health_delta(_candidate_healths, _chosen_index) {
+    var candidate_count = array_length(_candidate_healths);
+    if (candidate_count < 2 || _chosen_index < 0 || _chosen_index >= candidate_count) return 0;
+    var health_total = 0;
+    var health_min = _candidate_healths[0];
+    var health_max = _candidate_healths[0];
+    for (var health_i = 0; health_i < candidate_count; health_i++) {
+        health_total += _candidate_healths[health_i];
+        health_min = min(health_min, _candidate_healths[health_i]);
+        health_max = max(health_max, _candidate_healths[health_i]);
+    }
+    var health_range = health_max - health_min;
+    if (health_range <= 0) return 0;
+    var chosen_health = _candidate_healths[_chosen_index];
+    var alternative_mean = (health_total - chosen_health) / (candidate_count - 1);
+    return (chosen_health - alternative_mean) / health_range;
+}
+
+function enemy_ai_make_decision_record(_current_state, _selected_slot) {
+    if (!enemy_ai_policy_choice_is_eligible(enemy_auto_play,
+    enemy_ai_policy_turn_auto_eligible, enemy_ai_policy_turn_number, turn_number, 2)) {
+        return undefined;
+    }
+    var ranked = enemy_ai_rank_build_with_weights(_current_state.build_snapshot,
+        enemy_ai_conditional_weight(), enemy_ai_health_weight());
+    var candidates = [];
+    var candidate_healths = [];
+    var health_total = 0;
+    var chosen_health = 0;
+    var chosen_found = false;
+    var chosen_candidate_index = -1;
+    for (var rank_i = 0; rank_i < array_length(ranked); rank_i++) {
+        var candidate = ranked[rank_i];
+        if (!enemy_target_is_legal_in_build(_current_state.build_snapshot,
+        candidate.slot, _current_state.attack_remaining)) continue;
+        array_push(candidates, candidate);
+        array_push(candidate_healths, candidate.health);
+        health_total += candidate.health;
+        if (candidate.slot == _selected_slot) {
+            chosen_health = candidate.health;
+            chosen_found = true;
+            chosen_candidate_index = array_length(candidates) - 1;
+        }
+    }
+    var candidate_count = array_length(candidates);
+    if (!chosen_found || candidate_count < 2) return undefined;
+    var alternative_mean = (health_total - chosen_health) / (candidate_count - 1);
+    return {
+        turn_id: turn_number,
+        decision_index: array_length(enemy_ai_policy_decisions) + 1,
+        remaining_enemy_attack: _current_state.attack_remaining,
+        candidate_count: candidate_count,
+        candidates: candidates,
+        chosen_target: _selected_slot,
+        chosen_target_health: chosen_health,
+        alternative_health_mean: alternative_mean,
+        normalized_health_delta: enemy_ai_normalized_health_delta(
+            candidate_healths, chosen_candidate_index)
+    };
+}
+
+function enemy_ai_apply_health_learning(_weight, _advantage, _decisions) {
+    var next_weight = clamp(_weight, 0.25, 3.0);
+    var decision_count = array_length(_decisions);
+    if (decision_count <= 0) return next_weight;
+    for (var decision_i = 0; decision_i < decision_count; decision_i++) {
+        next_weight -= ENEMY_AI_HEALTH_LEARNING_RATE * _advantage
+            * _decisions[decision_i].normalized_health_delta / decision_count;
+        next_weight = clamp(next_weight, 0.25, 3.0);
+    }
+    return next_weight;
 }
 
 function enemy_ai_reward_measurement_is_eligible(
@@ -82,6 +179,7 @@ function enemy_ai_reward_ema_transition(_old_ema, _reward) {
 function enemy_ai_reward_finish_player_response(_terminal_result) {
     if (!enemy_ai_reward_measurement_is_eligible(enemy_ai_reward_turn_active,
     enemy_auto_play, enemy_ai_reward_turn_number, turn_number)) {
+        enemy_ai_policy_cancel_turn();
         enemy_ai_reward_cancel_turn();
         return false;
     }
@@ -91,6 +189,11 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
     var ema_update = enemy_ai_reward_ema_transition(ai_reward_ema, result.reward);
     enemy_ai_last_turn_reward = result.reward;
     enemy_ai_last_advantage = ema_update.advantage;
+    var meaningful_choice_count = array_length(enemy_ai_policy_decisions);
+    var old_health_weight = enemy_ai_health_weight();
+    ai_health_weight = enemy_ai_apply_health_learning(
+        old_health_weight, ema_update.advantage, enemy_ai_policy_decisions);
+    ai_meaningful_choice_count += meaningful_choice_count;
     ai_reward_ema = ema_update.new_ema;
     ai_auto_turn_count++;
     if (_terminal_result > 0) ai_games_won_auto++;
@@ -109,8 +212,12 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
         + " | reward=" + string(result.reward)
         + " | ema_old=" + string(ema_update.old_ema)
         + " | advantage=" + string(ema_update.advantage)
+        + " | meaningful_choices=" + string(meaningful_choice_count)
+        + " | W_H_old=" + string(old_health_weight)
+        + " | W_H_new=" + string(ai_health_weight)
         + " | ema_new=" + string(ema_update.new_ema)
         + " | auto_turns=" + string(ai_auto_turn_count));
+    enemy_ai_policy_cancel_turn();
     enemy_ai_reward_cancel_turn();
     return true;
 }
@@ -218,6 +325,7 @@ function enemy_ai_baseline_begin_match() {
 function enemy_ai_baseline_note_mode_change() {
     if (enemy_ai_baseline_match_active) enemy_ai_baseline_match.mode_changed = true;
     enemy_ai_reward_cancel_turn();
+    enemy_ai_policy_cancel_turn();
     if (!enemy_auto_play) enemy_ai_baseline_end_attack();
 }
 
@@ -379,7 +487,7 @@ function enemy_ai_rank_build_with_weights(_build_snapshot, _conditional_weight, 
 
 function enemy_ai_rank_build(_build_snapshot) {
     return enemy_ai_rank_build_with_weights(_build_snapshot,
-        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+        enemy_ai_conditional_weight(), enemy_ai_health_weight());
 }
 
 function enemy_ai_choose_target_with_weights(_current_state, _conditional_weight, _health_weight) {
@@ -402,7 +510,7 @@ function enemy_ai_choose_target_with_weights(_current_state, _conditional_weight
 
 function enemy_ai_choose_target(_current_state) {
     return enemy_ai_choose_target_with_weights(_current_state,
-        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+        enemy_ai_conditional_weight(), enemy_ai_health_weight());
 }
 
 function enemy_ai_cancel_pending_targeting() {
@@ -413,6 +521,7 @@ function enemy_ai_cancel_pending_targeting() {
     enemy_ai_pending_prompt_id = -1;
     enemy_ai_pending_attack = 0;
     enemy_ai_pending_source = "";
+    enemy_ai_pending_decision_record = undefined;
     enemy_ai_result_heading = "";
     enemy_ai_result_text = "";
 }
@@ -441,6 +550,8 @@ function enemy_ai_schedule_current_target() {
     };
     var selected_slot = enemy_ai_choose_target(current_state);
     if (selected_slot < 0) return command_end_enemy_attack_if_blocked();
+    enemy_ai_pending_decision_record = enemy_ai_make_decision_record(
+        current_state, selected_slot);
     enemy_ai_visual_stage = "targeting";
     enemy_ai_visual_timer = ENEMY_AI_TARGET_DELAY_FRAMES;
     enemy_ai_selected_slot = selected_slot;
@@ -458,8 +569,14 @@ function enemy_ai_submit_current_target() {
     }
     var selected_slot = enemy_ai_selected_slot;
     var submitted_prompt_id = enemy_ai_pending_prompt_id;
+    var decision_record = enemy_ai_pending_decision_record;
     enemy_ai_cancel_pending_targeting();
     var submitted = command_prompt_build(selected_slot);
+    if (submitted && !is_undefined(decision_record)
+    && enemy_ai_policy_turn_auto_eligible
+    && decision_record.turn_id == enemy_ai_policy_turn_number) {
+        array_push(enemy_ai_policy_decisions, decision_record);
+    }
     enemy_ai_visual_stage = "result";
     enemy_ai_visual_timer = ENEMY_AI_RESULT_DELAY_FRAMES;
     if (prompt_mode == "enemy_attack" && enemy_attack_prompt_id == submitted_prompt_id) {
@@ -564,7 +681,8 @@ function enemy_ai_oracle_search(_initial_evaluation, _build_snapshot, _attack_re
 }
 
 function enemy_ai_oracle_greedy_sequence_with_weights(
-_build_snapshot, _attack_remaining, _policy_conditional_weight, _value_conditional_weight) {
+_build_snapshot, _attack_remaining, _policy_conditional_weight,
+_policy_health_weight, _value_conditional_weight) {
     var initial_evaluation = evaluate_build(_build_snapshot);
     var simulated_build = copy_build_snapshot(_build_snapshot);
     var simulated_attack = _attack_remaining;
@@ -573,7 +691,7 @@ _build_snapshot, _attack_remaining, _policy_conditional_weight, _value_condition
         var selected_slot = enemy_ai_choose_target_with_weights({
             build_snapshot: simulated_build,
             attack_remaining: simulated_attack
-        }, _policy_conditional_weight, ENEMY_AI_HEALTH_WEIGHT);
+        }, _policy_conditional_weight, _policy_health_weight);
         if (selected_slot < 0) break;
         simulated_attack -= simulated_build[selected_slot].hp;
         simulated_build = copy_build_without_slot(simulated_build, selected_slot);
@@ -591,13 +709,17 @@ _build_snapshot, _attack_remaining, _policy_conditional_weight, _value_condition
 function enemy_ai_oracle_greedy_sequence(_build_snapshot, _attack_remaining) {
     var conditional_weight = enemy_ai_conditional_weight();
     return enemy_ai_oracle_greedy_sequence_with_weights(_build_snapshot, _attack_remaining,
-        conditional_weight, conditional_weight);
+        conditional_weight, enemy_ai_health_weight(), conditional_weight);
 }
 
-function enemy_ai_oracle_compare(_build_snapshot, _attack_remaining) {
+function enemy_ai_oracle_compare_with_health_weight(
+_build_snapshot, _attack_remaining, _health_weight) {
     var oracle_snapshot = copy_build_snapshot(_build_snapshot);
     var initial_evaluation = evaluate_build(oracle_snapshot);
-    var greedy_result = enemy_ai_oracle_greedy_sequence(oracle_snapshot, _attack_remaining);
+    var conditional_weight = enemy_ai_conditional_weight();
+    var greedy_result = enemy_ai_oracle_greedy_sequence_with_weights(
+        oracle_snapshot, _attack_remaining, conditional_weight,
+        _health_weight, conditional_weight);
     var exhaustive_result = enemy_ai_oracle_search(initial_evaluation, oracle_snapshot,
         _attack_remaining, []);
     return {
@@ -607,6 +729,11 @@ function enemy_ai_oracle_compare(_build_snapshot, _attack_remaining) {
         best_exhaustive_sequence_value: exhaustive_result.sequence_value,
         greedy_regret: exhaustive_result.sequence_value - greedy_result.sequence_value
     };
+}
+
+function enemy_ai_oracle_compare(_build_snapshot, _attack_remaining) {
+    return enemy_ai_oracle_compare_with_health_weight(
+        _build_snapshot, _attack_remaining, enemy_ai_health_weight());
 }
 
 function enemy_ai_sequences_match(_left, _right) {
@@ -624,9 +751,9 @@ _build_snapshot, _attack_remaining, _learned_weight) {
     var exhaustive = enemy_ai_oracle_search_with_weight(initial_evaluation,
         copy_build_snapshot(_build_snapshot), _attack_remaining, [], learned_weight);
     var fixed = enemy_ai_oracle_greedy_sequence_with_weights(_build_snapshot,
-        _attack_remaining, 0.5, learned_weight);
+        _attack_remaining, 0.5, ENEMY_AI_HEALTH_WEIGHT, learned_weight);
     var learned = enemy_ai_oracle_greedy_sequence_with_weights(_build_snapshot,
-        _attack_remaining, learned_weight, learned_weight);
+        _attack_remaining, learned_weight, ENEMY_AI_HEALTH_WEIGHT, learned_weight);
     return {
         learned_weight: learned_weight,
         fixed_sequence: fixed.sequence,
@@ -657,13 +784,15 @@ function enemy_ai_run_scoring_self_checks(_hero_definitions) {
         return content_validation_result(false, "Enemy AI scoring checks require the core Heroes.");
     }
 
-    var ranked = enemy_ai_rank_build([goblin.normal, skeleton.normal, orc.normal]);
+    var ranked = enemy_ai_rank_build_with_weights([goblin.normal, skeleton.normal, orc.normal],
+        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 3 || ranked[0].slot != 0 || ranked[1].slot != 1
     || ranked[2].slot != 2 || !enemy_ai_scores_are_close(ranked[0].score, 2)) {
         return content_validation_result(false, "Enemy AI basic scoring check failed.");
     }
 
-    ranked = enemy_ai_rank_build([goblin.ability, skeleton.normal, undefined]);
+    ranked = enemy_ai_rank_build_with_weights([goblin.ability, skeleton.normal, undefined],
+        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 2 || ranked[0].slot != 0
     || !enemy_ai_scores_are_close(ranked[0].guaranteed_threat, 4)
     || !enemy_ai_scores_are_close(ranked[0].conditional_threat, 2)
@@ -672,13 +801,15 @@ function enemy_ai_run_scoring_self_checks(_hero_definitions) {
         return content_validation_result(false, "Enemy AI conditional scoring check failed.");
     }
 
-    ranked = enemy_ai_rank_build([skeleton.ability, goblin.normal, orc.normal]);
+    ranked = enemy_ai_rank_build_with_weights([skeleton.ability, goblin.normal, orc.normal],
+        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 3 || ranked[0].slot != 1
     || ranked[1].slot != 0 || ranked[2].slot != 2) {
         return content_validation_result(false, "Enemy AI Build-synergy scoring check failed.");
     }
 
-    ranked = enemy_ai_rank_build([goblin.normal, goblin.normal, undefined]);
+    ranked = enemy_ai_rank_build_with_weights([goblin.normal, goblin.normal, undefined],
+        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 2 || ranked[0].slot != 0 || ranked[1].slot != 1) {
         return content_validation_result(false, "Enemy AI stable-slot tie-break check failed.");
     }
@@ -687,7 +818,8 @@ function enemy_ai_run_scoring_self_checks(_hero_definitions) {
         [ability_entry(ABILITY_OVERPOWER, "Test", "", {amount:2})], "", "", 0);
     var higher_health = card_player("test_b", "Test B", "Ability", 4, 4,
         [ability_entry(ABILITY_OVERPOWER, "Test", "", {amount:4})], "", "", 0);
-    ranked = enemy_ai_rank_build([higher_health, lower_health, undefined]);
+    ranked = enemy_ai_rank_build_with_weights([higher_health, lower_health, undefined],
+        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 2 || ranked[0].slot != 1
     || !enemy_ai_scores_are_close(ranked[0].score, ranked[1].score)
     || !enemy_ai_scores_are_close(ranked[0].guaranteed_threat, ranked[1].guaranteed_threat)) {
@@ -709,24 +841,28 @@ function enemy_ai_run_selection_self_checks(_hero_definitions) {
         build_snapshot: [goblin.normal, skeleton.normal, orc.normal],
         attack_remaining: 10
     };
-    if (enemy_ai_choose_target(state) != 0) {
+    if (enemy_ai_choose_target_with_weights(state,
+    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != 0) {
         return content_validation_result(false, "Enemy AI preferred-target selection check failed.");
     }
 
     state.attack_remaining = 2;
-    if (enemy_ai_choose_target(state) != -1) {
+    if (enemy_ai_choose_target_with_weights(state,
+    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != -1) {
         return content_validation_result(false, "Enemy AI no-destroyable-target check failed.");
     }
 
     state.build_snapshot = [goblin.normal, skeleton.normal, orc.ability];
     state.attack_remaining = 10;
-    if (enemy_ai_choose_target(state) != 2) {
+    if (enemy_ai_choose_target_with_weights(state,
+    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != 2) {
         return content_validation_result(false, "Enemy AI Guard-priority selection check failed.");
     }
 
     state.build_snapshot = [goblin.normal, skeleton.normal, orc.special];
     state.attack_remaining = 7;
-    if (enemy_ai_choose_target(state) != -1) {
+    if (enemy_ai_choose_target_with_weights(state,
+    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != -1) {
         return content_validation_result(false, "Enemy AI undestroyable-priority check failed.");
     }
 
@@ -734,12 +870,16 @@ function enemy_ai_run_selection_self_checks(_hero_definitions) {
         [], "", "", 0);
     state.build_snapshot = [expensive_threat, goblin.normal, undefined];
     state.attack_remaining = 5;
-    if (enemy_ai_choose_target(state) != 1) {
+    if (enemy_ai_choose_target_with_weights(state,
+    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != 1) {
         return content_validation_result(false, "Enemy AI valid-ranked-fallback check failed.");
     }
 
     state.build_snapshot = [undefined, undefined, undefined];
-    if (enemy_ai_choose_target(state) != -1 || enemy_ai_choose_target(undefined) != -1) {
+    if (enemy_ai_choose_target_with_weights(state,
+    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != -1
+    || enemy_ai_choose_target_with_weights(undefined,
+    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != -1) {
         return content_validation_result(false, "Enemy AI empty-state selection check failed.");
     }
 
@@ -755,7 +895,8 @@ function enemy_ai_run_oracle_self_checks(_hero_definitions) {
     }
 
     var original_snapshot = [goblin.normal, skeleton.normal, orc.normal];
-    var result = enemy_ai_oracle_compare(original_snapshot, 12);
+    var result = enemy_ai_oracle_compare_with_health_weight(
+        original_snapshot, 12, ENEMY_AI_HEALTH_WEIGHT);
     if (!enemy_ai_scores_are_close(result.greedy_sequence_value,
     result.best_exhaustive_sequence_value) || !enemy_ai_scores_are_close(result.greedy_regret, 0)
     || is_undefined(original_snapshot[0]) || is_undefined(original_snapshot[1])
@@ -766,7 +907,8 @@ function enemy_ai_run_oracle_self_checks(_hero_definitions) {
     var greedy_card = card_player("oracle_a", "Oracle A", "Normal", 8, 4, [], "", "", 0);
     var pair_card_b = card_player("oracle_b", "Oracle B", "Normal", 6, 3, [], "", "", 0);
     var pair_card_c = card_player("oracle_c", "Oracle C", "Normal", 6, 3, [], "", "", 0);
-    result = enemy_ai_oracle_compare([greedy_card, pair_card_b, pair_card_c], 6);
+    result = enemy_ai_oracle_compare_with_health_weight(
+        [greedy_card, pair_card_b, pair_card_c], 6, ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(result.greedy_sequence) != 1 || result.greedy_sequence[0] != 0
     || array_length(result.best_exhaustive_sequence) != 2
     || result.best_exhaustive_sequence[0] != 1 || result.best_exhaustive_sequence[1] != 2
@@ -776,20 +918,23 @@ function enemy_ai_run_oracle_self_checks(_hero_definitions) {
         return content_validation_result(false, "Enemy AI oracle regret check failed.");
     }
 
-    result = enemy_ai_oracle_compare([goblin.normal, skeleton.normal, orc.ability], 9);
+    result = enemy_ai_oracle_compare_with_health_weight(
+        [goblin.normal, skeleton.normal, orc.ability], 9, ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(result.best_exhaustive_sequence) < 1
     || result.best_exhaustive_sequence[0] != 2) {
         return content_validation_result(false, "Enemy AI oracle priority check failed.");
     }
 
-    result = enemy_ai_oracle_compare([goblin.ability, undefined, undefined], 2);
+    result = enemy_ai_oracle_compare_with_health_weight(
+        [goblin.ability, undefined, undefined], 2, ENEMY_AI_HEALTH_WEIGHT);
     var conditional_sequence_value = 4 + 2 * enemy_ai_conditional_weight();
     if (!enemy_ai_scores_are_close(result.greedy_sequence_value, conditional_sequence_value)
     || !enemy_ai_scores_are_close(result.best_exhaustive_sequence_value, conditional_sequence_value)) {
         return content_validation_result(false, "Enemy AI oracle conditional-value check failed.");
     }
 
-    result = enemy_ai_oracle_compare([undefined, undefined, undefined], 10);
+    result = enemy_ai_oracle_compare_with_health_weight(
+        [undefined, undefined, undefined], 10, ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(result.greedy_sequence) != 0
     || array_length(result.best_exhaustive_sequence) != 0
     || !enemy_ai_scores_are_close(result.greedy_regret, 0)) {
@@ -805,6 +950,8 @@ function enemy_ai_run_release_self_checks() {
     || !enemy_ai_scores_are_close(enemy_ai_conditional_weight_from_counts(3, 3), 0.8)
     || enemy_ai_conditional_weight() < 0 || enemy_ai_conditional_weight() > 1
     || !enemy_ai_scores_are_close(ENEMY_AI_HEALTH_WEIGHT, 1.0)
+    || !enemy_ai_scores_are_close(ENEMY_AI_HEALTH_LEARNING_RATE, 0.02)
+    || enemy_ai_health_weight() < 0.25 || enemy_ai_health_weight() > 3.0
     || ENEMY_AI_TARGET_DELAY_FRAMES <= 0 || ENEMY_AI_RESULT_DELAY_FRAMES <= 0) {
         return content_validation_result(false, "Enemy AI deterministic release constants are invalid.");
     }
@@ -896,6 +1043,36 @@ function enemy_ai_run_reward_self_checks() {
     || enemy_ai_reward_measurement_is_eligible(false, true, 4, 4)
     || enemy_ai_reward_measurement_is_eligible(true, true, 3, 4)) {
         return content_validation_result(false, "Enemy AI reward calculation check failed.");
+    }
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_health_learning_self_checks() {
+    var one_expensive = [{normalized_health_delta:0.5}];
+    var two_expensive = [
+        {normalized_health_delta:0.5},
+        {normalized_health_delta:0.5}
+    ];
+    var positive = enemy_ai_apply_health_learning(1.0, 1.0, one_expensive);
+    var negative = enemy_ai_apply_health_learning(1.0, -1.0, one_expensive);
+    var shared = enemy_ai_apply_health_learning(1.0, 1.0, two_expensive);
+    var lower_clamp = enemy_ai_apply_health_learning(0.251, 100, one_expensive);
+    var upper_clamp = enemy_ai_apply_health_learning(2.999, -100, one_expensive);
+    var forced = enemy_ai_apply_health_learning(1.25, 1.0, []);
+    if (!enemy_ai_scores_are_close(enemy_ai_normalized_health_delta([2, 4, 8], 2), 5 / 6)
+    || !enemy_ai_scores_are_close(enemy_ai_normalized_health_delta([4, 4], 0), 0)
+    || !enemy_ai_scores_are_close(positive, 0.99)
+    || !enemy_ai_scores_are_close(negative, 1.01)
+    || !enemy_ai_scores_are_close(shared, 0.99)
+    || !enemy_ai_scores_are_close(lower_clamp, 0.25)
+    || !enemy_ai_scores_are_close(upper_clamp, 3.0)
+    || !enemy_ai_scores_are_close(forced, 1.25)
+    || !enemy_ai_policy_choice_is_eligible(true, true, 2, 2, 2)
+    || enemy_ai_policy_choice_is_eligible(false, true, 2, 2, 2)
+    || enemy_ai_policy_choice_is_eligible(true, false, 2, 2, 2)
+    || enemy_ai_policy_choice_is_eligible(true, true, 1, 2, 2)
+    || enemy_ai_policy_choice_is_eligible(true, true, 2, 2, 1)) {
+        return content_validation_result(false, "Enemy AI Health learning check failed.");
     }
     return content_validation_result(true, "");
 }
