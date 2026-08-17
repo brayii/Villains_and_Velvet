@@ -11,6 +11,7 @@
 - `scripts/vv_turn/vv_turn.gml`: the seven turn steps, automatic timing, prompt continuation, and action-button commands.
 - `scripts/vv_ui/vv_ui.gml`: board layout, colors, drawing, highlighting, hit testing, and translating taps into gameplay commands.
 - `scripts/vv_assets/vv_assets.gml`: loading, caching, and releasing dynamically loaded artwork.
+- `scripts/vv_settings/vv_settings.gml`: versioned player preferences, validation, safe defaults, and independent settings persistence.
 
 ## Adding or Changing Content
 
@@ -77,7 +78,9 @@ The selected Hero IDs are also separate from the available Hero definitions. `va
 
 The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
 
-The match menu pauses automatic turn resolution. Returning to Game Options abandons the current match only after confirmation. `vv_ui_reset_match_interaction()` clears touch, drag, popup, confirmation, and menu state whenever a match resets or the player returns to setup, preventing transient UI state from leaking into Play Again or the next battle.
+The match menu pauses automatic turn resolution. Returning to Game Options abandons the current match only after confirmation. The Enemy Targeting preference can be changed from this menu without restarting the match. `vv_ui_reset_match_interaction()` clears touch, drag, popup, confirmation, and menu state whenever a match resets or the player returns to setup, preventing transient UI state from leaking into Play Again or the next battle.
+
+Player preferences are loaded by `vv_settings_init()` before setup begins. The versioned settings file stores only the Manual/Auto targeting preference and falls back to Manual when missing, invalid, or corrupt. It remains independent of match state and future learned AI data. Preference changes save immediately, while the controller Clean Up event retries any dirty settings save.
 
 Leader, Scenario, and Minion Set definitions are exposed through independent registries. Selecting a Leader or Scenario restores their recommended Enemy Event mix. The settings gear contains all content selectors, the three unique Hero slots, event customization, and Restore Defaults. The normal setup view remains artwork-focused.
 

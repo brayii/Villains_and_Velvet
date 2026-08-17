@@ -50,6 +50,7 @@
     {"id":{"name":"vv_turn","path":"scripts/vv_turn/vv_turn.yy",},},
     {"id":{"name":"vv_ui","path":"scripts/vv_ui/vv_ui.yy",},},
     {"id":{"name":"vv_assets","path":"scripts/vv_assets/vv_assets.yy",},},
+    {"id":{"name":"vv_settings","path":"scripts/vv_settings/vv_settings.yy",},},
   ],
   "resourceType":"GMProject",
   "resourceVersion":"2.0",

@@ -24,8 +24,9 @@ function vv_ui_init() {
     setup_exit_rect = {x:1080, y:650, w:160, h:46};
     match_menu_rect = {x:20, y:130, w:46, h:46};
     menu_resume_rect = {x:490, y:280, w:300, h:58};
-    menu_options_rect = {x:490, y:352, w:300, h:58};
-    menu_exit_rect = {x:490, y:424, w:300, h:58};
+    menu_targeting_rect = {x:490, y:352, w:300, h:58};
+    menu_options_rect = {x:490, y:424, w:300, h:58};
+    menu_exit_rect = {x:490, y:496, w:300, h:58};
     menu_confirm_rect = {x:490, y:344, w:300, h:58};
     menu_cancel_rect = {x:490, y:416, w:300, h:58};
     result_play_rect = {x:490, y:400, w:300, h:54};
@@ -81,6 +82,10 @@ function setup_hero_button_rect(_slot, _direction) {
 
 function setup_restore_defaults_rect() {
     return {x:930, y:66, w:230, h:44};
+}
+
+function setup_enemy_targeting_rect() {
+    return {x:680, y:66, w:230, h:44};
 }
 
 function point_in_rect(_px, _py, _rect) {
@@ -258,6 +263,8 @@ function vv_ui_handle_input() {
         }
         if (point_in_rect(pointer_x, pointer_y, menu_resume_rect)) {
             match_menu_active = false;
+        } else if (point_in_rect(pointer_x, pointer_y, menu_targeting_rect)) {
+            vv_settings_toggle_enemy_auto();
         } else if (point_in_rect(pointer_x, pointer_y, menu_options_rect)) {
             quit_match_confirm = true;
         } else if (point_in_rect(pointer_x, pointer_y, menu_exit_rect)) {
@@ -344,6 +351,10 @@ function vv_ui_handle_input() {
             return;
         }
         if (!content_registry_validation.valid) return;
+        if (setup_advanced_events && point_in_rect(pointer_x, pointer_y, setup_enemy_targeting_rect())) {
+            vv_settings_toggle_enemy_auto();
+            return;
+        }
         if (!setup_advanced_events) {
             if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
             return;
@@ -692,6 +703,12 @@ function vv_ui_draw_setup() {
     }
 
     if (setup_advanced_events) {
+        var targeting_rect = setup_enemy_targeting_rect();
+        draw_panel(targeting_rect, enemy_auto_play ? COL_ACCENT : COL_PANEL,
+            enemy_auto_play ? COL_TEXT : COL_EDGE);
+        draw_center("ENEMY TARGETING: " + (enemy_auto_play ? "AUTO" : "MANUAL"),
+            targeting_rect.x + targeting_rect.w / 2, targeting_rect.y + targeting_rect.h / 2,
+            enemy_auto_play ? COL_BG : COL_TEXT);
         var setup_panels = [
             {x:35, y:120, w:280, h:175},
             {x:335, y:120, w:280, h:175},
@@ -1054,6 +1071,10 @@ if (match_menu_active) {
         draw_center("GAME MENU", 640, 225, COL_GOLD);
         draw_panel(menu_resume_rect, COL_ACCENT, COL_TEXT);
         draw_center("RESUME GAME", 640, menu_resume_rect.y + menu_resume_rect.h / 2, COL_BG);
+        draw_panel(menu_targeting_rect, enemy_auto_play ? COL_ACCENT : COL_PANEL,
+            enemy_auto_play ? COL_TEXT : COL_EDGE);
+        draw_center("ENEMY TARGETING: " + (enemy_auto_play ? "AUTO" : "MANUAL"), 640,
+            menu_targeting_rect.y + menu_targeting_rect.h / 2, enemy_auto_play ? COL_BG : COL_TEXT);
         draw_panel(menu_options_rect, COL_PANEL, COL_EDGE);
         draw_center("QUIT TO GAME OPTIONS", 640, menu_options_rect.y + menu_options_rect.h / 2, COL_TEXT);
         draw_panel(menu_exit_rect, COL_PANEL, COL_EDGE);

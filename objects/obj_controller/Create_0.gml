@@ -2,6 +2,7 @@ display_set_gui_size(1280, 720);
 randomize();
 gpu_set_texfilter(true);
 vv_ui_init();
+vv_settings_init();
 available_leaders = make_enemy_leader_registry();
 available_scenarios = make_scenario_registry();
 available_minion_sets = make_minion_set_registry();
