@@ -119,6 +119,24 @@ function start_queued_attack() {
     return false;
 }
 
+function command_end_enemy_attack_if_blocked() {
+    if (prompt_mode != "enemy_attack" || enemy_has_legal_target(prompt_value)) return false;
+    if (!build_has_cards()) {
+        enemy_attack_notice = "The Build Area is clear.\nThe unused Attack ends.";
+    } else if (build_has_priority()) {
+        enemy_attack_notice = "Guard/Fortress blocks the rest.\nThe unused Attack ends.";
+    } else {
+        enemy_attack_notice = "No other card can be defeated.\nThe unused Attack ends.";
+    }
+    log_add(string(prompt_value) + " Attack remains, but no legal card can be defeated. The Attack ends.");
+    prompt_mode = "";
+    prompt_value = 0;
+    prompt_source = "";
+    resume_after_prompts();
+    validate_state("Enemy Attack ends without a target");
+    return true;
+}
+
 function heal_leader(_amount) {
     var healing_room = enemy_leader.max_hp - leader_hp;
     var healed = min(_amount, healing_room);
@@ -360,16 +378,7 @@ function command_prompt_build(_index) {
             log_add(string(prompt_value) + " Attack remains. Choose another highlighted target.");
             return true;
         }
-        if (prompt_value > 0) {
-            if (!build_has_cards()) {
-                enemy_attack_notice = "The Build Area is clear.\nThe unused Attack ends.";
-            } else if (build_has_priority()) {
-                enemy_attack_notice = "Guard/Fortress blocks the rest.\nThe unused Attack ends.";
-            } else {
-                enemy_attack_notice = "No other card can be defeated.\nThe unused Attack ends.";
-            }
-            log_add(string(prompt_value) + " Attack remains, but no legal card can be defeated. The Attack ends.");
-        }
+        if (prompt_value > 0) return command_end_enemy_attack_if_blocked();
         prompt_mode = "";
         prompt_value = 0;
         prompt_source = "";

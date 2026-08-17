@@ -172,6 +172,10 @@ function command_action() {
 function vv_turn_update() {
     if (setup_active) return;
     if (action_cooldown > 0) action_cooldown--;
+    if (enemy_auto_play && prompt_mode == "enemy_attack") {
+        enemy_ai_submit_current_target();
+        return;
+    }
     if (auto_timer > 0 && prompt_mode == "" && !game_over) {
         auto_timer--;
         if (auto_timer == 0) {

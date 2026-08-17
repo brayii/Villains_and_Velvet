@@ -196,6 +196,7 @@ function ui_card_at_point(_pointer_x, _pointer_y) {
 
 function ui_run_card_tap(_type, _index) {
     if (prompt_mode == "destroy_hand" && _type == "hand") return command_prompt_hand(_index);
+    if (enemy_auto_play && prompt_mode == "enemy_attack") return false;
     if (prompt_mode != "" && _type == "build") return command_prompt_build(_index);
     if (prompt_mode != "") return false;
     if (phase == "build") {
@@ -918,9 +919,14 @@ else if (phase == "step6_ready") instruction = "Discarding the cards left in you
 else if (phase == "end_ready") instruction = "Ending your turn...";
 if (prompt_mode == "enemy_attack") {
     instruction = prompt_source + "\nAttack: " + string(prompt_value) + "\n"
-        + (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat.");
+        + (enemy_auto_play ? "Enemy is choosing a target."
+            : (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat."));
 }
-if (prompt_mode != "") instruction += "\nTap to choose. Hold to inspect.";
+if (prompt_mode != "") {
+    instruction += enemy_auto_play && prompt_mode == "enemy_attack"
+        ? "\nHold to inspect."
+        : "\nTap to choose. Hold to inspect.";
+}
 var context_panel = {x:985, y:16, w:280, h:190};
 draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.62);
 draw_set_halign(fa_left);

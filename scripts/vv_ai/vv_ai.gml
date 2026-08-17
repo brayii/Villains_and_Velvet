@@ -69,6 +69,19 @@ function enemy_ai_choose_target(_current_state) {
     return -1;
 }
 
+function enemy_ai_submit_current_target() {
+    if (!enemy_auto_play || prompt_mode != "enemy_attack" || setup_active
+    || game_over || match_menu_active) return false;
+
+    var current_state = {
+        build_snapshot: copy_build_snapshot(build),
+        attack_remaining: prompt_value
+    };
+    var selected_slot = enemy_ai_choose_target(current_state);
+    if (selected_slot < 0) return command_end_enemy_attack_if_blocked();
+    return command_prompt_build(selected_slot);
+}
+
 function enemy_ai_scores_are_close(_left, _right) {
     return abs(_left - _right) < 0.0001;
 }
