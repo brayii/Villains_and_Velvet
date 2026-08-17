@@ -99,6 +99,8 @@ Rules that need a player choice set `prompt_mode`, `prompt_value`, and `prompt_s
 
 Auto enemy targeting uses a short presentation state machine. It captures the prompt identity, Attack amount, source, selected slot, and selected card before displaying the choice. Submission occurs only if all captured values still match the live prompt and the target remains legal. Pausing, quitting, restarting, ending the match, changing targeting mode, or replacing the prompt cancels the pending selection. A separate result delay keeps consecutive attacks visually distinct.
 
+The development-only exhaustive oracle in `vv_ai.gml` evaluates every legal whole-card destruction sequence on copied Build arrays. It measures the production greedy sequence against the best exhaustive sequence and reports regret for validation. It has no player-facing control or reporting path and never replaces the production selector.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior

@@ -154,6 +154,96 @@ function enemy_ai_update_auto_targeting() {
     return false;
 }
 
+// Development-only oracle helpers. Production Auto targeting never calls these functions.
+function enemy_ai_oracle_sequence_value(_initial_evaluation, _final_snapshot) {
+    var final_evaluation = evaluate_build(_final_snapshot);
+    var guaranteed_removed = _initial_evaluation.guaranteed_attack
+        - final_evaluation.guaranteed_attack;
+    var conditional_removed = _initial_evaluation.conditional_attack
+        - final_evaluation.conditional_attack;
+    return guaranteed_removed + ENEMY_AI_CONDITIONAL_WEIGHT * conditional_removed;
+}
+
+function enemy_ai_copy_sequence(_source_sequence) {
+    var copied_sequence = [];
+    for (var sequence_i = 0; sequence_i < array_length(_source_sequence); sequence_i++) {
+        array_push(copied_sequence, _source_sequence[sequence_i]);
+    }
+    return copied_sequence;
+}
+
+function enemy_ai_oracle_sequence_ranks_before(_left, _right) {
+    var shared_length = min(array_length(_left), array_length(_right));
+    for (var sequence_i = 0; sequence_i < shared_length; sequence_i++) {
+        if (_left[sequence_i] != _right[sequence_i]) return _left[sequence_i] < _right[sequence_i];
+    }
+    return array_length(_left) < array_length(_right);
+}
+
+function enemy_ai_oracle_search(_initial_evaluation, _build_snapshot, _attack_remaining, _sequence) {
+    var best_result = undefined;
+    for (var slot_i = 0; slot_i < array_length(_build_snapshot); slot_i++) {
+        if (!enemy_target_is_legal_in_build(_build_snapshot, slot_i, _attack_remaining)) continue;
+        var next_attack = _attack_remaining - _build_snapshot[slot_i].hp;
+        var next_snapshot = copy_build_without_slot(_build_snapshot, slot_i);
+        var next_sequence = enemy_ai_copy_sequence(_sequence);
+        array_push(next_sequence, slot_i);
+        var candidate = enemy_ai_oracle_search(_initial_evaluation, next_snapshot,
+            next_attack, next_sequence);
+        if (is_undefined(best_result)
+        || candidate.sequence_value > best_result.sequence_value
+        || (enemy_ai_scores_are_close(candidate.sequence_value, best_result.sequence_value)
+            && enemy_ai_oracle_sequence_ranks_before(candidate.sequence, best_result.sequence))) {
+            best_result = candidate;
+        }
+    }
+    if (!is_undefined(best_result)) return best_result;
+    return {
+        sequence: enemy_ai_copy_sequence(_sequence),
+        sequence_value: enemy_ai_oracle_sequence_value(_initial_evaluation, _build_snapshot),
+        final_snapshot: copy_build_snapshot(_build_snapshot),
+        attack_remaining: _attack_remaining
+    };
+}
+
+function enemy_ai_oracle_greedy_sequence(_build_snapshot, _attack_remaining) {
+    var initial_evaluation = evaluate_build(_build_snapshot);
+    var simulated_build = copy_build_snapshot(_build_snapshot);
+    var simulated_attack = _attack_remaining;
+    var sequence = [];
+    while (true) {
+        var selected_slot = enemy_ai_choose_target({
+            build_snapshot: simulated_build,
+            attack_remaining: simulated_attack
+        });
+        if (selected_slot < 0) break;
+        simulated_attack -= simulated_build[selected_slot].hp;
+        simulated_build = copy_build_without_slot(simulated_build, selected_slot);
+        array_push(sequence, selected_slot);
+    }
+    return {
+        sequence: sequence,
+        sequence_value: enemy_ai_oracle_sequence_value(initial_evaluation, simulated_build),
+        final_snapshot: simulated_build,
+        attack_remaining: simulated_attack
+    };
+}
+
+function enemy_ai_oracle_compare(_build_snapshot, _attack_remaining) {
+    var oracle_snapshot = copy_build_snapshot(_build_snapshot);
+    var initial_evaluation = evaluate_build(oracle_snapshot);
+    var greedy_result = enemy_ai_oracle_greedy_sequence(oracle_snapshot, _attack_remaining);
+    var exhaustive_result = enemy_ai_oracle_search(initial_evaluation, oracle_snapshot,
+        _attack_remaining, []);
+    return {
+        greedy_sequence: greedy_result.sequence,
+        best_exhaustive_sequence: exhaustive_result.sequence,
+        greedy_sequence_value: greedy_result.sequence_value,
+        best_exhaustive_sequence_value: exhaustive_result.sequence_value,
+        greedy_regret: exhaustive_result.sequence_value - greedy_result.sequence_value
+    };
+}
+
 function enemy_ai_scores_are_close(_left, _right) {
     return abs(_left - _right) < 0.0001;
 }
@@ -249,6 +339,58 @@ function enemy_ai_run_selection_self_checks(_hero_definitions) {
     state.build_snapshot = [undefined, undefined, undefined];
     if (enemy_ai_choose_target(state) != -1 || enemy_ai_choose_target(undefined) != -1) {
         return content_validation_result(false, "Enemy AI empty-state selection check failed.");
+    }
+
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_oracle_self_checks(_hero_definitions) {
+    var goblin = find_hero_definition(_hero_definitions, "goblin");
+    var skeleton = find_hero_definition(_hero_definitions, "skeleton");
+    var orc = find_hero_definition(_hero_definitions, "orc");
+    if (is_undefined(goblin) || is_undefined(skeleton) || is_undefined(orc)) {
+        return content_validation_result(false, "Enemy AI oracle checks require the core Heroes.");
+    }
+
+    var original_snapshot = [goblin.normal, skeleton.normal, orc.normal];
+    var result = enemy_ai_oracle_compare(original_snapshot, 12);
+    if (!enemy_ai_scores_are_close(result.greedy_sequence_value,
+    result.best_exhaustive_sequence_value) || !enemy_ai_scores_are_close(result.greedy_regret, 0)
+    || is_undefined(original_snapshot[0]) || is_undefined(original_snapshot[1])
+    || is_undefined(original_snapshot[2])) {
+        return content_validation_result(false, "Enemy AI oracle baseline/snapshot check failed.");
+    }
+
+    var greedy_card = card_player("oracle_a", "Oracle A", "Normal", 8, 4, [], "", "", 0);
+    var pair_card_b = card_player("oracle_b", "Oracle B", "Normal", 6, 3, [], "", "", 0);
+    var pair_card_c = card_player("oracle_c", "Oracle C", "Normal", 6, 3, [], "", "", 0);
+    result = enemy_ai_oracle_compare([greedy_card, pair_card_b, pair_card_c], 6);
+    if (array_length(result.greedy_sequence) != 1 || result.greedy_sequence[0] != 0
+    || array_length(result.best_exhaustive_sequence) != 2
+    || result.best_exhaustive_sequence[0] != 1 || result.best_exhaustive_sequence[1] != 2
+    || !enemy_ai_scores_are_close(result.greedy_sequence_value, 8)
+    || !enemy_ai_scores_are_close(result.best_exhaustive_sequence_value, 12)
+    || !enemy_ai_scores_are_close(result.greedy_regret, 4)) {
+        return content_validation_result(false, "Enemy AI oracle regret check failed.");
+    }
+
+    result = enemy_ai_oracle_compare([goblin.normal, skeleton.normal, orc.ability], 9);
+    if (array_length(result.best_exhaustive_sequence) < 1
+    || result.best_exhaustive_sequence[0] != 2) {
+        return content_validation_result(false, "Enemy AI oracle priority check failed.");
+    }
+
+    result = enemy_ai_oracle_compare([goblin.ability, undefined, undefined], 2);
+    if (!enemy_ai_scores_are_close(result.greedy_sequence_value, 5)
+    || !enemy_ai_scores_are_close(result.best_exhaustive_sequence_value, 5)) {
+        return content_validation_result(false, "Enemy AI oracle conditional-value check failed.");
+    }
+
+    result = enemy_ai_oracle_compare([undefined, undefined, undefined], 10);
+    if (array_length(result.greedy_sequence) != 0
+    || array_length(result.best_exhaustive_sequence) != 0
+    || !enemy_ai_scores_are_close(result.greedy_regret, 0)) {
+        return content_validation_result(false, "Enemy AI oracle empty-Build check failed.");
     }
 
     return content_validation_result(true, "");
