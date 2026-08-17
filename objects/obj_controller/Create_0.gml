@@ -3,6 +3,7 @@ randomize();
 gpu_set_texfilter(true);
 vv_ui_init();
 vv_settings_init();
+vv_ai_data_init();
 enemy_ai_baseline_init();
 available_leaders = make_enemy_leader_registry();
 available_scenarios = make_scenario_registry();
@@ -30,6 +31,10 @@ if (content_registry_validation.valid) {
 if (content_registry_validation.valid) {
     var ai_release_self_checks = enemy_ai_run_release_self_checks();
     if (!ai_release_self_checks.valid) content_registry_validation = ai_release_self_checks;
+}
+if (content_registry_validation.valid) {
+    var ai_data_self_checks = vv_ai_data_run_self_checks();
+    if (!ai_data_self_checks.valid) content_registry_validation = ai_data_self_checks;
 }
 if (!content_registry_validation.valid) {
     show_debug_message("STARTUP VALIDATION FAILED: " + content_registry_validation.message);

@@ -13,6 +13,7 @@
 - `scripts/vv_assets/vv_assets.gml`: loading, caching, and releasing dynamically loaded artwork.
 - `scripts/vv_settings/vv_settings.gml`: versioned player preferences, validation, safe defaults, and independent settings persistence.
 - `scripts/vv_ai/vv_ai.gml`: snapshot-based Enemy target scoring, deterministic ranking, and Build-slot selection; Auto submits its selected slot through the normal Enemy combat command and never resolves attacks directly.
+- `scripts/vv_ai_data/vv_ai_data.gml`: versioned Enemy learning values and counters, field-level validation, safe recovery, dirty-only saving, and the confirmed developer reset entry point.
 
 ## Adding or Changing Content
 
@@ -82,6 +83,8 @@ The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality
 The match menu pauses automatic turn resolution. Returning to Game Options abandons the current match only after confirmation. The Enemy Targeting preference can be changed from this menu without restarting the match. `vv_ui_reset_match_interaction()` clears touch, drag, popup, confirmation, and menu state whenever a match resets or the player returns to setup, preventing transient UI state from leaking into Play Again or the next battle.
 
 Player preferences are loaded by `vv_settings_init()` before setup begins. The versioned settings file stores only the Manual/Auto targeting preference and falls back to Manual when missing, invalid, or corrupt. It remains independent of match state and future learned AI data. Preference changes save immediately, while the controller Clean Up event retries any dirty settings save.
+
+Enemy learning data uses its own versioned `villains_and_velvet_ai_data.json` file. Missing, corrupt, or incompatible data returns only the AI values to safe defaults; an invalid individual field is repaired without discarding other valid fields. The stored Health weight and counters are reserved for later learning phases and do not alter the fixed deterministic targeting policy yet. Data is written only while dirty, and controller cleanup retries a failed save. `vv_ai_data_reset_enemy_learning(true)` is the developer/test reset entry point and deliberately leaves player settings and live match state alone.
 
 Leader, Scenario, and Minion Set definitions are exposed through independent registries. Selecting a Leader or Scenario restores their recommended Enemy Event mix. The settings gear contains all content selectors, the three unique Hero slots, event customization, and Restore Defaults. The normal setup view remains artwork-focused.
 

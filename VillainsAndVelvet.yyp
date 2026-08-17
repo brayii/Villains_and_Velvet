@@ -52,6 +52,7 @@
     {"id":{"name":"vv_assets","path":"scripts/vv_assets/vv_assets.yy",},},
     {"id":{"name":"vv_settings","path":"scripts/vv_settings/vv_settings.yy",},},
     {"id":{"name":"vv_ai","path":"scripts/vv_ai/vv_ai.yy",},},
+    {"id":{"name":"vv_ai_data","path":"scripts/vv_ai_data/vv_ai_data.yy",},},
   ],
   "resourceType":"GMProject",
   "resourceVersion":"2.0",
