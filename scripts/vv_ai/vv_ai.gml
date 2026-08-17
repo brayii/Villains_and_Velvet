@@ -1056,6 +1056,9 @@ function enemy_ai_scores_are_close(_left, _right) {
 }
 
 function enemy_ai_run_scoring_self_checks(_hero_definitions) {
+    // Startup checks must be deterministic and must never depend on a player's
+    // persisted learning history.
+    var check_conditional_weight = enemy_ai_conditional_weight_from_counts(0, 0);
     var goblin = find_hero_definition(_hero_definitions, "goblin");
     var skeleton = find_hero_definition(_hero_definitions, "skeleton");
     var orc = find_hero_definition(_hero_definitions, "orc");
@@ -1064,31 +1067,31 @@ function enemy_ai_run_scoring_self_checks(_hero_definitions) {
     }
 
     var ranked = enemy_ai_rank_build_with_weights([goblin.normal, skeleton.normal, orc.normal],
-        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+        check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 3 || ranked[0].slot != 0 || ranked[1].slot != 1
     || ranked[2].slot != 2 || !enemy_ai_scores_are_close(ranked[0].score, 2)) {
         return content_validation_result(false, "Enemy AI basic scoring check failed.");
     }
 
     ranked = enemy_ai_rank_build_with_weights([goblin.ability, skeleton.normal, undefined],
-        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+        check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 2 || ranked[0].slot != 0
     || !enemy_ai_scores_are_close(ranked[0].guaranteed_threat, 4)
     || !enemy_ai_scores_are_close(ranked[0].conditional_threat, 2)
     || !enemy_ai_scores_are_close(ranked[0].score,
-        2 + 2 * enemy_ai_conditional_weight())) {
+        2 + 2 * check_conditional_weight)) {
         return content_validation_result(false, "Enemy AI conditional scoring check failed.");
     }
 
     ranked = enemy_ai_rank_build_with_weights([skeleton.ability, goblin.normal, orc.normal],
-        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+        check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 3 || ranked[0].slot != 1
     || ranked[1].slot != 0 || ranked[2].slot != 2) {
         return content_validation_result(false, "Enemy AI Build-synergy scoring check failed.");
     }
 
     ranked = enemy_ai_rank_build_with_weights([goblin.normal, goblin.normal, undefined],
-        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+        check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 2 || ranked[0].slot != 0 || ranked[1].slot != 1) {
         return content_validation_result(false, "Enemy AI stable-slot tie-break check failed.");
     }
@@ -1098,7 +1101,7 @@ function enemy_ai_run_scoring_self_checks(_hero_definitions) {
     var higher_health = card_player("test_b", "Test B", "Ability", 4, 4,
         [ability_entry(ABILITY_OVERPOWER, "Test", "", {amount:4})], "", "", 0);
     ranked = enemy_ai_rank_build_with_weights([higher_health, lower_health, undefined],
-        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+        check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT);
     if (array_length(ranked) != 2 || ranked[0].slot != 1
     || !enemy_ai_scores_are_close(ranked[0].score, ranked[1].score)
     || !enemy_ai_scores_are_close(ranked[0].guaranteed_threat, ranked[1].guaranteed_threat)) {
@@ -1109,6 +1112,8 @@ function enemy_ai_run_scoring_self_checks(_hero_definitions) {
 }
 
 function enemy_ai_run_selection_self_checks(_hero_definitions) {
+    // Keep selection checks isolated from persisted learning data as well.
+    var check_conditional_weight = enemy_ai_conditional_weight_from_counts(0, 0);
     var goblin = find_hero_definition(_hero_definitions, "goblin");
     var skeleton = find_hero_definition(_hero_definitions, "skeleton");
     var orc = find_hero_definition(_hero_definitions, "orc");
@@ -1121,27 +1126,27 @@ function enemy_ai_run_selection_self_checks(_hero_definitions) {
         attack_remaining: 10
     };
     if (enemy_ai_choose_target_with_weights(state,
-    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != 0) {
+    check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT) != 0) {
         return content_validation_result(false, "Enemy AI preferred-target selection check failed.");
     }
 
     state.attack_remaining = 2;
     if (enemy_ai_choose_target_with_weights(state,
-    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != -1) {
+    check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT) != -1) {
         return content_validation_result(false, "Enemy AI no-destroyable-target check failed.");
     }
 
     state.build_snapshot = [goblin.normal, skeleton.normal, orc.ability];
     state.attack_remaining = 10;
     if (enemy_ai_choose_target_with_weights(state,
-    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != 2) {
+    check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT) != 2) {
         return content_validation_result(false, "Enemy AI Guard-priority selection check failed.");
     }
 
     state.build_snapshot = [goblin.normal, skeleton.normal, orc.special];
     state.attack_remaining = 7;
     if (enemy_ai_choose_target_with_weights(state,
-    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != -1) {
+    check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT) != -1) {
         return content_validation_result(false, "Enemy AI undestroyable-priority check failed.");
     }
 
@@ -1150,15 +1155,15 @@ function enemy_ai_run_selection_self_checks(_hero_definitions) {
     state.build_snapshot = [expensive_threat, goblin.normal, undefined];
     state.attack_remaining = 5;
     if (enemy_ai_choose_target_with_weights(state,
-    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != 1) {
+    check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT) != 1) {
         return content_validation_result(false, "Enemy AI valid-ranked-fallback check failed.");
     }
 
     state.build_snapshot = [undefined, undefined, undefined];
     if (enemy_ai_choose_target_with_weights(state,
-    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != -1
+    check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT) != -1
     || enemy_ai_choose_target_with_weights(undefined,
-    enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT) != -1) {
+    check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT) != -1) {
         return content_validation_result(false, "Enemy AI empty-state selection check failed.");
     }
 
