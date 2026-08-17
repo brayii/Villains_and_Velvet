@@ -68,6 +68,10 @@ if (content_registry_validation.valid) {
     var stability_self_checks = vv_ai_data_run_stability_self_checks();
     if (!stability_self_checks.valid) content_registry_validation = stability_self_checks;
 }
+if (content_registry_validation.valid) {
+    var future_content_self_checks = enemy_ai_run_future_content_self_checks();
+    if (!future_content_self_checks.valid) content_registry_validation = future_content_self_checks;
+}
 if (!content_registry_validation.valid) {
     show_debug_message("STARTUP VALIDATION FAILED: " + content_registry_validation.message);
 }

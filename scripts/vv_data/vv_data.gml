@@ -108,6 +108,32 @@ function card_has_ability(_card, _ability_id) {
     return !is_undefined(find_card_ability(_card, _ability_id));
 }
 
+function card_ability_param_total(_card, _param_name) {
+    if (is_undefined(_card) || !variable_struct_exists(_card, "abilities")) return 0;
+    var total = 0;
+    for (var ability_i = 0; ability_i < array_length(_card.abilities); ability_i++) {
+        total += ability_param_value(_card.abilities[ability_i], _param_name, 0);
+    }
+    return total;
+}
+
+function card_has_enemy_target_priority(_card) {
+    if (card_has_ability(_card, ABILITY_GUARD)
+    || card_has_ability(_card, ABILITY_FORTRESS)) return true;
+    if (is_undefined(_card) || !variable_struct_exists(_card, "abilities")) return false;
+    for (var ability_i = 0; ability_i < array_length(_card.abilities); ability_i++) {
+        if (ability_param_value(_card.abilities[ability_i], "enemy_target_priority", false) == true) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function card_enemy_destruction_cost(_card) {
+    if (is_undefined(_card)) return 0;
+    return max(0, _card.hp + card_ability_param_total(_card, "enemy_destruction_cost_delta"));
+}
+
 function effect_entry(_id, _params) {
     return {id:_id, params:_params};
 }

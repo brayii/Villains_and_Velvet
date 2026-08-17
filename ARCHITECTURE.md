@@ -128,6 +128,8 @@ Seeded development matches evaluate four policies against the same exhaustive at
 
 AI learning storage is a small versioned JSON record. Observations mark it dirty in memory; normal play consolidates writes at turn end, terminal outcomes save immediately, and a two-second safety flush protects interrupted or suspended sessions. Cleanup also flushes pending changes. Startup validation exercises long-run weight and EMA stability, bounded storage size, clean defaults, round-trip restart behavior, corrupt-data repair, and migration from the previous data version.
 
+Future card abilities can expose shared evaluation metadata through ability parameters: `guaranteed_attack_self`, `guaranteed_attack_others`, `conditional_attack_self`, and `conditional_attack_others`. Targeting mechanics use `enemy_target_priority` and `enemy_destruction_cost_delta` through authoritative rules helpers shared by Manual resolution, Auto selection, and oracle simulation. These interfaces depend on stable effect data rather than display names, allowing supported mechanics to extend card data and shared rules without card-specific AI branches.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior

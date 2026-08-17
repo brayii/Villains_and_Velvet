@@ -826,7 +826,7 @@ _initial_evaluation, _build_snapshot, _attack_remaining, _sequence, _conditional
     var best_result = undefined;
     for (var slot_i = 0; slot_i < array_length(_build_snapshot); slot_i++) {
         if (!enemy_target_is_legal_in_build(_build_snapshot, slot_i, _attack_remaining)) continue;
-        var next_attack = _attack_remaining - _build_snapshot[slot_i].hp;
+        var next_attack = _attack_remaining - card_enemy_destruction_cost(_build_snapshot[slot_i]);
         var next_snapshot = copy_build_without_slot(_build_snapshot, slot_i);
         var next_sequence = enemy_ai_copy_sequence(_sequence);
         array_push(next_sequence, slot_i);
@@ -867,7 +867,7 @@ _policy_health_weight, _value_conditional_weight) {
             attack_remaining: simulated_attack
         }, _policy_conditional_weight, _policy_health_weight);
         if (selected_slot < 0) break;
-        simulated_attack -= simulated_build[selected_slot].hp;
+        simulated_attack -= card_enemy_destruction_cost(simulated_build[selected_slot]);
         simulated_build = copy_build_without_slot(simulated_build, selected_slot);
         array_push(sequence, selected_slot);
     }
@@ -909,7 +909,7 @@ _policy_health_weight, _value_conditional_weight, _exploration_rng) {
             selected_index = vv_rng_irandom(_exploration_rng, array_length(near_equal) - 1);
         }
         var selected_slot = near_equal[selected_index].slot;
-        simulated_attack -= simulated_build[selected_slot].hp;
+        simulated_attack -= card_enemy_destruction_cost(simulated_build[selected_slot]);
         simulated_build = copy_build_without_slot(simulated_build, selected_slot);
         array_push(sequence, selected_slot);
     }
@@ -1362,6 +1362,58 @@ function enemy_ai_run_evaluation_self_checks(_hero_definitions) {
     || is_undefined(snapshot[0]) || is_undefined(snapshot[1]) || is_undefined(snapshot[2])) {
         return content_validation_result(false,
             "Enemy AI adaptive evaluation check failed.");
+    }
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_future_content_self_checks() {
+    var future_effect = ability_entry("future_shared_effect", "Any Display Name", "", {
+        guaranteed_attack_self: 3,
+        guaranteed_attack_others: 2,
+        conditional_attack_self: 4,
+        conditional_attack_others: 2,
+        enemy_target_priority: true,
+        enemy_destruction_cost_delta: 2
+    });
+    var source = card_player("future_source", "Source Display Name", "Ability",
+        1, 3, [future_effect], "", "", 0);
+    var partner = card_player("future_partner", "Partner Display Name", "Normal",
+        2, 2, [], "", "", 0);
+    var snapshot = [source, partner, undefined];
+    var evaluation = evaluate_build(snapshot);
+    var without_source = evaluate_build(copy_build_without_slot(snapshot, 0));
+    var scored = enemy_ai_score_candidate(evaluation, snapshot, 0, 0.5, 1.0);
+
+    var renamed = variable_clone(source);
+    renamed.name = "Completely Different Display Name";
+    renamed.abilities[0].name = "Renamed Effect";
+    var renamed_evaluation = evaluate_build([renamed, partner, undefined]);
+    var state = {build_snapshot:snapshot, attack_remaining:6};
+    var legal_pool = enemy_ai_near_equal_valid_targets(state,
+        enemy_ai_rank_build_with_weights(snapshot, 0.5, 1.0), 999);
+    var sequence = enemy_ai_oracle_greedy_sequence_with_weights(
+        snapshot, 6, 0.5, 1.0, 0.5);
+
+    if (!enemy_ai_scores_are_close(evaluation.guaranteed_attack, 8)
+    || !enemy_ai_scores_are_close(evaluation.conditional_attack, 6)
+    || !enemy_ai_scores_are_close(without_source.guaranteed_attack, 2)
+    || !enemy_ai_scores_are_close(without_source.conditional_attack, 0)
+    || !enemy_ai_scores_are_close(scored.guaranteed_threat, 6)
+    || !enemy_ai_scores_are_close(scored.conditional_threat, 6)
+    || !enemy_ai_scores_are_close(renamed_evaluation.guaranteed_attack,
+        evaluation.guaranteed_attack)
+    || !enemy_ai_scores_are_close(renamed_evaluation.conditional_attack,
+        evaluation.conditional_attack)
+    || !build_snapshot_has_priority(snapshot)
+    || enemy_target_is_legal_in_build(snapshot, 1, 6)
+    || enemy_target_is_legal_in_build(snapshot, 0, 4)
+    || !enemy_target_is_legal_in_build(snapshot, 0, 5)
+    || card_enemy_destruction_cost(source) != 5
+    || array_length(legal_pool) != 1 || legal_pool[0].slot != 0
+    || array_length(sequence.sequence) != 1 || sequence.sequence[0] != 0
+    || is_undefined(sequence.final_snapshot[1])) {
+        return content_validation_result(false,
+            "Enemy AI future-content compatibility check failed.");
     }
     return content_validation_result(true, "");
 }

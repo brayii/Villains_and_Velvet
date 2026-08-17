@@ -3,8 +3,7 @@
 function build_snapshot_has_priority(_build_snapshot) {
     for (var priority_i = 0; priority_i < array_length(_build_snapshot); priority_i++) {
         if (!is_undefined(_build_snapshot[priority_i])
-        && (card_has_ability(_build_snapshot[priority_i], ABILITY_GUARD)
-        || card_has_ability(_build_snapshot[priority_i], ABILITY_FORTRESS))) return true;
+        && card_has_enemy_target_priority(_build_snapshot[priority_i])) return true;
     }
     return false;
 }
@@ -17,9 +16,8 @@ function enemy_target_is_legal_in_build(_build_snapshot, _index, _amount) {
     if (_index < 0 || _index >= array_length(_build_snapshot)
     || is_undefined(_build_snapshot[_index])) return false;
     if (build_snapshot_has_priority(_build_snapshot)
-    && !card_has_ability(_build_snapshot[_index], ABILITY_GUARD)
-    && !card_has_ability(_build_snapshot[_index], ABILITY_FORTRESS)) return false;
-    return _amount >= _build_snapshot[_index].hp;
+    && !card_has_enemy_target_priority(_build_snapshot[_index])) return false;
+    return _amount >= card_enemy_destruction_cost(_build_snapshot[_index]);
 }
 
 function enemy_target_is_legal(_index, _amount) {
@@ -413,7 +411,7 @@ function command_prompt_build(_index) {
     }
     if (prompt_mode == "enemy_attack") {
         enemy_ai_baseline_record_destroyed_card(copy_build_snapshot(build), _index);
-        prompt_value -= build[_index].hp;
+        prompt_value -= card_enemy_destruction_cost(build[_index]);
         destroy_build_card(_index, "enemy Attack");
         if (prompt_value > 0 && enemy_has_legal_target(prompt_value)) {
             log_add(string(prompt_value) + " Attack remains. Choose another highlighted target.");

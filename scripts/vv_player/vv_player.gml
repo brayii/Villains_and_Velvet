@@ -57,6 +57,8 @@ function evaluate_build(_build_snapshot) {
     var guaranteed_attack = 0;
     var rally_power = 0;
     var conditional_attack = 0;
+    var generic_guaranteed_others = 0;
+    var generic_conditional_others = 0;
     for (var card_i = 0; card_i < array_length(_build_snapshot); card_i++) {
         if (is_undefined(_build_snapshot[card_i])) continue;
         var card = _build_snapshot[card_i];
@@ -67,6 +69,10 @@ function evaluate_build(_build_snapshot) {
         rally_power += ability_param_value(rally, "amount", 0);
         conditional_attack += ability_param_value(overpower, "amount", 0);
         conditional_attack += ability_param_value(relentless, "amount", 0);
+        guaranteed_attack += card_ability_param_total(card, "guaranteed_attack_self");
+        conditional_attack += card_ability_param_total(card, "conditional_attack_self");
+        generic_guaranteed_others += card_ability_param_total(card, "guaranteed_attack_others");
+        generic_conditional_others += card_ability_param_total(card, "conditional_attack_others");
     }
     for (var card_i = 0; card_i < array_length(_build_snapshot); card_i++) {
         if (is_undefined(_build_snapshot[card_i])) continue;
@@ -76,6 +82,10 @@ function evaluate_build(_build_snapshot) {
         var unity = find_card_ability(card, ABILITY_UNITY);
         guaranteed_attack += ability_param_value(unity, "amount_per_hero", 0)
             * count_unique_other_heroes(_build_snapshot, card_i);
+        guaranteed_attack += max(0, generic_guaranteed_others
+            - card_ability_param_total(card, "guaranteed_attack_others"));
+        conditional_attack += max(0, generic_conditional_others
+            - card_ability_param_total(card, "conditional_attack_others"));
     }
     return {
         guaranteed_attack: guaranteed_attack,
