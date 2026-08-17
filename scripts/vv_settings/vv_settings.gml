@@ -82,6 +82,7 @@ function vv_settings_set_enemy_auto(_enabled) {
     var next_value = _enabled == true;
     if (enemy_auto_play == next_value) return false;
     enemy_auto_play = next_value;
+    enemy_ai_baseline_note_mode_change();
     if (!enemy_auto_play) enemy_ai_cancel_pending_targeting();
     settings_dirty = true;
     vv_settings_save_if_dirty();

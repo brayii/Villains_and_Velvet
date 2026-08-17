@@ -214,13 +214,16 @@ function command_attack_leader() {
         return false;
     }
     var damage = attack_left;
+    var actual_damage = min(damage, leader_hp);
     leader_hp = max(0, leader_hp - damage);
+    enemy_ai_baseline_record_leader_damage(actual_damage);
     attack_left = 0;
     log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
     if (leader_hp == 0) {
         game_over = true;
         victory = true;
         phase = "game_over";
+        enemy_ai_baseline_finish_match(false);
         log_add("Victory! The Enemy Leader has been defeated.");
     }
     if (attack_left <= 0 && !game_over) show_attack_completion("ALL ATTACK USED", "Attack step complete.");

@@ -3,6 +3,7 @@ randomize();
 gpu_set_texfilter(true);
 vv_ui_init();
 vv_settings_init();
+enemy_ai_baseline_init();
 available_leaders = make_enemy_leader_registry();
 available_scenarios = make_scenario_registry();
 available_minion_sets = make_minion_set_registry();
@@ -25,6 +26,13 @@ if (content_registry_validation.valid) {
 if (content_registry_validation.valid) {
     var ai_oracle_self_checks = enemy_ai_run_oracle_self_checks(available_heroes);
     if (!ai_oracle_self_checks.valid) content_registry_validation = ai_oracle_self_checks;
+}
+if (content_registry_validation.valid) {
+    var ai_release_self_checks = enemy_ai_run_release_self_checks();
+    if (!ai_release_self_checks.valid) content_registry_validation = ai_release_self_checks;
+}
+if (!content_registry_validation.valid) {
+    show_debug_message("STARTUP VALIDATION FAILED: " + content_registry_validation.message);
 }
 selected_leader_index = content_registry_validation.valid ? 0 : -1;
 selected_scenario_index = content_registry_validation.valid ? 0 : -1;

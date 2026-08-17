@@ -5,6 +5,133 @@
 #macro ENEMY_AI_TARGET_DELAY_FRAMES 45
 #macro ENEMY_AI_RESULT_DELAY_FRAMES 30
 
+function enemy_ai_baseline_init() {
+    gameplay_seed = -1;
+    enemy_ai_baseline_totals = {
+        matches: 0,
+        enemy_wins: 0,
+        leader_hp_remaining: 0,
+        leader_damage: 0,
+        turns: 0,
+        enemy_attacks: 0,
+        guaranteed_attack_removed: 0,
+        conditional_attack_removed: 0,
+        cards_destroyed: 0,
+        greedy_regret: 0,
+        oracle_checks: 0
+    };
+    enemy_ai_baseline_match_active = false;
+    enemy_ai_baseline_attack_active = false;
+}
+
+function enemy_ai_baseline_begin_match() {
+    enemy_ai_baseline_match_active = gameplay_seed >= 0;
+    enemy_ai_baseline_attack_active = false;
+    enemy_ai_baseline_match = {
+        seeded: gameplay_seed >= 0,
+        started_in_auto: enemy_auto_play,
+        mode_changed: false,
+        leader_damage: 0,
+        enemy_attacks: 0,
+        guaranteed_attack_removed: 0,
+        conditional_attack_removed: 0,
+        cards_destroyed: 0,
+        greedy_regret: 0,
+        oracle_checks: 0
+    };
+}
+
+function enemy_ai_baseline_note_mode_change() {
+    if (enemy_ai_baseline_match_active) enemy_ai_baseline_match.mode_changed = true;
+    if (!enemy_auto_play) enemy_ai_baseline_end_attack();
+}
+
+function enemy_ai_baseline_begin_attack(_build_snapshot, _attack_amount) {
+    enemy_ai_baseline_attack_active = false;
+    if (!enemy_ai_baseline_match_active || !enemy_auto_play) return;
+    var comparison = enemy_ai_oracle_compare(_build_snapshot, _attack_amount);
+    enemy_ai_baseline_attack_active = true;
+    enemy_ai_baseline_match.enemy_attacks++;
+    enemy_ai_baseline_match.greedy_regret += comparison.greedy_regret;
+    enemy_ai_baseline_match.oracle_checks++;
+}
+
+function enemy_ai_baseline_record_destroyed_card(_build_snapshot, _slot) {
+    if (!enemy_ai_baseline_attack_active || _slot < 0
+    || _slot >= array_length(_build_snapshot) || is_undefined(_build_snapshot[_slot])) return;
+    var before = evaluate_build(_build_snapshot);
+    var after = evaluate_build(copy_build_without_slot(_build_snapshot, _slot));
+    enemy_ai_baseline_match.guaranteed_attack_removed +=
+        before.guaranteed_attack - after.guaranteed_attack;
+    enemy_ai_baseline_match.conditional_attack_removed +=
+        before.conditional_attack - after.conditional_attack;
+    enemy_ai_baseline_match.cards_destroyed++;
+}
+
+function enemy_ai_baseline_end_attack() {
+    enemy_ai_baseline_attack_active = false;
+}
+
+function enemy_ai_baseline_record_leader_damage(_amount) {
+    if (enemy_ai_baseline_match_active && _amount > 0) {
+        enemy_ai_baseline_match.leader_damage += _amount;
+    }
+}
+
+function enemy_ai_baseline_finish_match(_enemy_won) {
+    if (!enemy_ai_baseline_match_active) return;
+    enemy_ai_baseline_end_attack();
+    enemy_ai_baseline_match_active = false;
+    if (!enemy_ai_baseline_match.started_in_auto || enemy_ai_baseline_match.mode_changed) {
+        show_debug_message("ENEMY AI BASELINE | mixed/manual match excluded");
+        return;
+    }
+    var totals = enemy_ai_baseline_totals;
+    totals.matches++;
+    if (_enemy_won) totals.enemy_wins++;
+    totals.leader_hp_remaining += leader_hp;
+    totals.leader_damage += enemy_ai_baseline_match.leader_damage;
+    totals.turns += turn_number;
+    totals.enemy_attacks += enemy_ai_baseline_match.enemy_attacks;
+    totals.guaranteed_attack_removed += enemy_ai_baseline_match.guaranteed_attack_removed;
+    totals.conditional_attack_removed += enemy_ai_baseline_match.conditional_attack_removed;
+    totals.cards_destroyed += enemy_ai_baseline_match.cards_destroyed;
+    totals.greedy_regret += enemy_ai_baseline_match.greedy_regret;
+    totals.oracle_checks += enemy_ai_baseline_match.oracle_checks;
+
+    var win_rate = totals.matches > 0 ? totals.enemy_wins / totals.matches : 0;
+    var damage_per_turn = totals.turns > 0 ? totals.leader_damage / totals.turns : 0;
+    var cards_per_attack = totals.enemy_attacks > 0
+        ? totals.cards_destroyed / totals.enemy_attacks : 0;
+    var average_regret = totals.oracle_checks > 0
+        ? totals.greedy_regret / totals.oracle_checks : 0;
+    show_debug_message("ENEMY AI BASELINE | seed=" + string(gameplay_seed)
+        + " | matches=" + string(totals.matches)
+        + " | enemy_win_rate=" + string(win_rate)
+        + " | leader_hp=" + string(leader_hp)
+        + " | leader_damage_per_turn=" + string(damage_per_turn)
+        + " | guaranteed_attack_removed=" + string(totals.guaranteed_attack_removed)
+        + " | conditional_attack_removed=" + string(totals.conditional_attack_removed)
+        + " | cards_per_attack=" + string(cards_per_attack)
+        + " | average_greedy_regret=" + string(average_regret));
+}
+
+function enemy_ai_start_seeded_playtest(_seed) {
+    if (!is_real(_seed)) return false;
+    gameplay_seed = floor(_seed);
+    random_set_seed(gameplay_seed);
+    if (!reset_game()) return false;
+    setup_active = false;
+    return true;
+}
+
+function enemy_ai_stop_seeded_playtest() {
+    gameplay_seed = -1;
+    enemy_ai_baseline_match_active = false;
+    enemy_ai_baseline_end_attack();
+    randomize();
+}
+
 function enemy_ai_score_candidate(_evaluation_before, _build_snapshot, _slot,
 _conditional_weight, _health_weight) {
     var candidate_snapshot = copy_build_without_slot(_build_snapshot, _slot);
@@ -393,5 +520,34 @@ function enemy_ai_run_oracle_self_checks(_hero_definitions) {
         return content_validation_result(false, "Enemy AI oracle empty-Build check failed.");
     }
 
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_release_self_checks() {
+    if (!enemy_ai_scores_are_close(ENEMY_AI_CONDITIONAL_WEIGHT, 0.5)
+    || !enemy_ai_scores_are_close(ENEMY_AI_HEALTH_WEIGHT, 1.0)
+    || ENEMY_AI_TARGET_DELAY_FRAMES <= 0 || ENEMY_AI_RESULT_DELAY_FRAMES <= 0) {
+        return content_validation_result(false, "Enemy AI deterministic release constants are invalid.");
+    }
+    var manual_settings = vv_settings_decode("{\"settings_version\":1,\"enemy_targeting_mode\":\"manual\"}");
+    var auto_settings = vv_settings_decode("{\"settings_version\":1,\"enemy_targeting_mode\":\"auto\"}");
+    var corrupt_settings = vv_settings_decode("not valid json");
+    if (!manual_settings.valid || manual_settings.enemy_auto_play
+    || !auto_settings.valid || !auto_settings.enemy_auto_play
+    || corrupt_settings.valid || corrupt_settings.enemy_auto_play) {
+        return content_validation_result(false, "Enemy AI settings recovery release check failed.");
+    }
+
+    var previous_seed = random_get_seed();
+    random_set_seed(18427);
+    var first_shuffle = array_shuffle_copy([0, 1, 2, 3, 4, 5, 6, 7]);
+    random_set_seed(18427);
+    var second_shuffle = array_shuffle_copy([0, 1, 2, 3, 4, 5, 6, 7]);
+    random_set_seed(previous_seed);
+    for (var shuffle_i = 0; shuffle_i < array_length(first_shuffle); shuffle_i++) {
+        if (first_shuffle[shuffle_i] != second_shuffle[shuffle_i]) {
+            return content_validation_result(false, "Enemy AI seeded-playtest release check failed.");
+        }
+    }
     return content_validation_result(true, "");
 }

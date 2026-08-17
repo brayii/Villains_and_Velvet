@@ -101,6 +101,8 @@ Auto enemy targeting uses a short presentation state machine. It captures the pr
 
 The development-only exhaustive oracle in `vv_ai.gml` evaluates every legal whole-card destruction sequence on copied Build arrays. It measures the production greedy sequence against the best exhaustive sequence and reports regret for validation. It has no player-facing control or reporting path and never replaces the production selector.
 
+The deterministic baseline harness records match results, Leader HP, Leader damage per turn, guaranteed and conditional Build Attack removed, cards destroyed per enemy attack, and average greedy regret to the development output. `enemy_ai_start_seeded_playtest(seed)` starts a repeatable development match without adding seed controls to the player UI, and `enemy_ai_stop_seeded_playtest()` returns development play to normal randomness. Baseline collection and exhaustive regret measurement are disabled unless a development seed is active, so ordinary player matches remain randomly shuffled and pay no oracle cost.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior

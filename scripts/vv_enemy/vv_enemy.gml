@@ -110,6 +110,7 @@ function start_queued_attack() {
             continue;
         }
         enemy_attack_notice = "";
+        enemy_ai_baseline_begin_attack(copy_build_snapshot(build), next_attack.amount);
         enemy_attack_prompt_id++;
         prompt_mode = "enemy_attack";
         prompt_value = next_attack.amount;
@@ -133,6 +134,7 @@ function command_end_enemy_attack_if_blocked() {
     prompt_mode = "";
     prompt_value = 0;
     prompt_source = "";
+    enemy_ai_baseline_end_attack();
     resume_after_prompts();
     validate_state("Enemy Attack ends without a target");
     return true;
@@ -373,6 +375,7 @@ function command_prompt_build(_index) {
         return false;
     }
     if (prompt_mode == "enemy_attack") {
+        enemy_ai_baseline_record_destroyed_card(copy_build_snapshot(build), _index);
         prompt_value -= build[_index].hp;
         destroy_build_card(_index, "enemy Attack");
         if (prompt_value > 0 && enemy_has_legal_target(prompt_value)) {
@@ -383,6 +386,7 @@ function command_prompt_build(_index) {
         prompt_mode = "";
         prompt_value = 0;
         prompt_source = "";
+        enemy_ai_baseline_end_attack();
         resume_after_prompts();
         validate_state("Enemy Attack");
         return true;

@@ -663,6 +663,7 @@ function reset_game() {
     victory = false;
     enemy_exhausted = false;
     vv_ui_reset_match_interaction();
+    enemy_ai_baseline_begin_match();
     log_lines = [];
     log_add("The battle begins with both Minion Areas empty.");
     log_add("Tap START TURN when you are ready.");
