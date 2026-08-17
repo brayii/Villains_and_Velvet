@@ -1,4 +1,5 @@
 // Automatic progress pauses for the full card gesture, including the first touch.
+vv_ai_data_update();
 var card_gesture_active = !is_undefined(card_popup)
     || pointer_card_down;
 var opening_match_menu = false;

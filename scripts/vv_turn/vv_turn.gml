@@ -162,6 +162,7 @@ function finish_turn() {
         phase = "step1_ready";
         log_add("Turn " + string(turn_number) + " ready. Tap START NEXT TURN.");
     }
+    vv_ai_data_save_if_dirty();
     validate_state("End Turn");
 }
 

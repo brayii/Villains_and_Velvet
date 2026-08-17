@@ -227,8 +227,8 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
     ai_auto_turn_count++;
     if (_terminal_result > 0) ai_games_won_auto++;
     else if (_terminal_result < 0) ai_games_lost_auto++;
-    ai_data_dirty = true;
-    vv_ai_data_save_if_dirty();
+    vv_ai_data_mark_dirty();
+    if (_terminal_result != 0) vv_ai_data_save_if_dirty();
     show_debug_message("ENEMY AI REWARD | turn=" + string(turn_number)
         + " | hp_before=" + string(enemy_ai_reward_hp_before)
         + " | hp_end=" + string(leader_hp)
@@ -319,8 +319,7 @@ function enemy_ai_conditional_learning_finish_attack() {
     ai_conditional_activations = learned.activations;
     conditional_learning_exposed_count = 0;
     conditional_learning_activated = false;
-    ai_data_dirty = true;
-    vv_ai_data_save_if_dirty();
+    vv_ai_data_mark_dirty();
     return true;
 }
 

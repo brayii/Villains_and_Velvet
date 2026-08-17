@@ -33,11 +33,12 @@ function vv_ai_data_decode(_text) {
         var loaded = json_parse(_text);
         if (!is_struct(loaded)
         || !variable_struct_exists(loaded, "ai_data_version")
-        || loaded.ai_data_version != defaults.ai_data_version) {
+        || (loaded.ai_data_version != defaults.ai_data_version
+            && loaded.ai_data_version != 0)) {
             return result;
         }
 
-        var repaired = false;
+        var repaired = loaded.ai_data_version != defaults.ai_data_version;
         var data = vv_ai_data_defaults();
 
         if (variable_struct_exists(loaded, "W_H") && vv_ai_data_is_finite_number(loaded.W_H)) {
@@ -114,6 +115,8 @@ function vv_ai_data_init() {
     ai_data_filename = "villains_and_velvet_ai_data.json";
     ai_data_version = 1;
     ai_data_dirty = true;
+    ai_data_dirty_frames = 0;
+    ai_data_write_count = 0;
     vv_ai_data_apply(vv_ai_data_defaults());
     vv_ai_data_load();
     vv_ai_data_save_if_dirty();
@@ -149,6 +152,8 @@ function vv_ai_data_save_if_dirty() {
         file_text_write_string(data_file, json_stringify(vv_ai_data_current()));
         file_text_close(data_file);
         ai_data_dirty = false;
+        ai_data_dirty_frames = 0;
+        ai_data_write_count++;
         return true;
     } catch (_error) {
         ai_data_dirty = true;
@@ -156,11 +161,28 @@ function vv_ai_data_save_if_dirty() {
     }
 }
 
+function vv_ai_data_mark_dirty() {
+    if (!ai_data_dirty) ai_data_dirty_frames = 0;
+    ai_data_dirty = true;
+}
+
+function vv_ai_data_should_flush(_dirty, _dirty_frames, _delay_frames) {
+    return _dirty && _dirty_frames >= _delay_frames;
+}
+
+function vv_ai_data_update() {
+    if (!ai_data_dirty) return;
+    ai_data_dirty_frames++;
+    if (vv_ai_data_should_flush(ai_data_dirty, ai_data_dirty_frames, 120)) {
+        vv_ai_data_save_if_dirty();
+    }
+}
+
 /// Developer/test entry point. Call only after the test UI has confirmed the reset.
 function vv_ai_data_reset_enemy_learning(_confirmed) {
     if (_confirmed != true) return false;
     vv_ai_data_apply(vv_ai_data_defaults());
-    ai_data_dirty = true;
+    vv_ai_data_mark_dirty();
     return vv_ai_data_save_if_dirty();
 }
 
@@ -199,9 +221,53 @@ function vv_ai_data_run_self_checks() {
     old_version.ai_data_version = 0;
     old_version.W_H = 3.0;
     decoded = vv_ai_data_decode(json_stringify(old_version));
-    if (decoded.valid || decoded.data.W_H != 1.0) {
-        return {valid:false, message:"AI data version recovery check failed"};
+    if (decoded.valid || decoded.data.W_H != 3.0) {
+        return {valid:false, message:"AI data migration check failed"};
     }
 
+    return {valid:true, message:""};
+}
+
+function vv_ai_data_run_stability_self_checks() {
+    var simulated_weight = 1.0;
+    var simulated_ema = 0;
+    var clamp_samples = 0;
+    var decisions = [{normalized_health_delta:0.75}];
+    for (var sample_i = 0; sample_i < 50000; sample_i++) {
+        var advantage = ((sample_i mod 9) - 4) / 4;
+        if ((sample_i mod 2) == 1) decisions[0].normalized_health_delta = -0.75;
+        else decisions[0].normalized_health_delta = 0.75;
+        simulated_weight = enemy_ai_apply_health_learning(
+            simulated_weight, advantage, decisions);
+        var reward = ((sample_i mod 7) - 3) / 3;
+        simulated_ema = enemy_ai_reward_ema_transition(simulated_ema, reward).new_ema;
+        if (simulated_weight <= 0.25 || simulated_weight >= 3.0) clamp_samples++;
+    }
+
+    var stable_data = vv_ai_data_defaults();
+    stable_data.W_H = simulated_weight;
+    stable_data.conditional_exposures = 50000;
+    stable_data.conditional_activations = 17500;
+    stable_data.reward_ema = simulated_ema;
+    stable_data.auto_turn_count = 50000;
+    stable_data.meaningful_ai_choice_count = 24000;
+    stable_data.games_won_auto = 1200;
+    stable_data.games_lost_auto = 1100;
+    var encoded = json_stringify(stable_data);
+    var round_trip = vv_ai_data_decode(encoded);
+    if (!vv_ai_data_is_finite_number(simulated_weight)
+    || !vv_ai_data_is_finite_number(simulated_ema)
+    || simulated_weight < 0.25 || simulated_weight > 3.0
+    || clamp_samples > 500
+    || string_length(encoded) > 1024
+    || !round_trip.valid
+    || round_trip.data.W_H != stable_data.W_H
+    || round_trip.data.reward_ema != stable_data.reward_ema
+    || round_trip.data.meaningful_ai_choice_count != 24000
+    || vv_ai_data_should_flush(false, 999, 120)
+    || vv_ai_data_should_flush(true, 119, 120)
+    || !vv_ai_data_should_flush(true, 120, 120)) {
+        return {valid:false, message:"AI data long-run stability check failed"};
+    }
     return {valid:true, message:""};
 }

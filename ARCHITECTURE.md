@@ -126,6 +126,8 @@ Auto targeting uses bounded exploration on five percent of decisions that have m
 
 Seeded development matches evaluate four policies against the same exhaustive attack-state oracle: fixed deterministic (`A`), learned conditional weight (`B`), learned conditional plus Health weights (`C`), and both learned weights with bounded exploration (`D`). Evaluation uses a cloned exploration stream, so it cannot change the live choice. Aggregates include regret, best-sequence matches, outcome and survival metrics, weight ranges, per-match regret variance, both controlled seeds, and the selected Leader, Scenario, Minion Set, and Event mix. This is instrumentation rather than a claim that adaptive play has passed cross-content validation; additional content automatically enters the same evaluator when registered.
 
+AI learning storage is a small versioned JSON record. Observations mark it dirty in memory; normal play consolidates writes at turn end, terminal outcomes save immediately, and a two-second safety flush protects interrupted or suspended sessions. Cleanup also flushes pending changes. Startup validation exercises long-run weight and EMA stability, bounded storage size, clean defaults, round-trip restart behavior, corrupt-data repair, and migration from the previous data version.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior
