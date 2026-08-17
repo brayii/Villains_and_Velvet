@@ -2,6 +2,8 @@
 
 #macro ENEMY_AI_CONDITIONAL_WEIGHT 0.5
 #macro ENEMY_AI_HEALTH_WEIGHT 1.0
+#macro ENEMY_AI_TARGET_DELAY_FRAMES 45
+#macro ENEMY_AI_RESULT_DELAY_FRAMES 30
 
 function enemy_ai_score_candidate(_evaluation_before, _build_snapshot, _slot,
 _conditional_weight, _health_weight) {
@@ -69,9 +71,33 @@ function enemy_ai_choose_target(_current_state) {
     return -1;
 }
 
-function enemy_ai_submit_current_target() {
+function enemy_ai_cancel_pending_targeting() {
+    enemy_ai_visual_stage = "";
+    enemy_ai_visual_timer = 0;
+    enemy_ai_selected_slot = -1;
+    enemy_ai_pending_card = undefined;
+    enemy_ai_pending_prompt_id = -1;
+    enemy_ai_pending_attack = 0;
+    enemy_ai_pending_source = "";
+}
+
+function enemy_ai_pending_target_is_current() {
+    return enemy_auto_play && !setup_active && !game_over && !match_menu_active
+        && enemy_ai_visual_stage == "targeting"
+        && prompt_mode == "enemy_attack"
+        && enemy_attack_prompt_id == enemy_ai_pending_prompt_id
+        && prompt_value == enemy_ai_pending_attack
+        && prompt_source == enemy_ai_pending_source
+        && enemy_ai_selected_slot >= 0
+        && enemy_ai_selected_slot < array_length(build)
+        && !is_undefined(build[enemy_ai_selected_slot])
+        && build[enemy_ai_selected_slot] == enemy_ai_pending_card
+        && enemy_target_is_legal(enemy_ai_selected_slot, prompt_value);
+}
+
+function enemy_ai_schedule_current_target() {
     if (!enemy_auto_play || prompt_mode != "enemy_attack" || setup_active
-    || game_over || match_menu_active) return false;
+    || game_over || match_menu_active || enemy_ai_visual_stage != "") return false;
 
     var current_state = {
         build_snapshot: copy_build_snapshot(build),
@@ -79,7 +105,53 @@ function enemy_ai_submit_current_target() {
     };
     var selected_slot = enemy_ai_choose_target(current_state);
     if (selected_slot < 0) return command_end_enemy_attack_if_blocked();
-    return command_prompt_build(selected_slot);
+    enemy_ai_visual_stage = "targeting";
+    enemy_ai_visual_timer = ENEMY_AI_TARGET_DELAY_FRAMES;
+    enemy_ai_selected_slot = selected_slot;
+    enemy_ai_pending_card = build[selected_slot];
+    enemy_ai_pending_prompt_id = enemy_attack_prompt_id;
+    enemy_ai_pending_attack = prompt_value;
+    enemy_ai_pending_source = prompt_source;
+    return true;
+}
+
+function enemy_ai_submit_current_target() {
+    if (!enemy_ai_pending_target_is_current()) {
+        enemy_ai_cancel_pending_targeting();
+        return false;
+    }
+    var selected_slot = enemy_ai_selected_slot;
+    enemy_ai_cancel_pending_targeting();
+    var submitted = command_prompt_build(selected_slot);
+    enemy_ai_visual_stage = "result";
+    enemy_ai_visual_timer = ENEMY_AI_RESULT_DELAY_FRAMES;
+    return submitted;
+}
+
+function enemy_ai_update_auto_targeting() {
+    if (enemy_ai_visual_stage == "targeting") {
+        if (!enemy_ai_pending_target_is_current()) {
+            enemy_ai_cancel_pending_targeting();
+            return true;
+        }
+        enemy_ai_visual_timer--;
+        if (enemy_ai_visual_timer <= 0) enemy_ai_submit_current_target();
+        return true;
+    }
+    if (enemy_ai_visual_stage == "result") {
+        if (!enemy_auto_play || setup_active || game_over || match_menu_active) {
+            enemy_ai_cancel_pending_targeting();
+            return true;
+        }
+        enemy_ai_visual_timer--;
+        if (enemy_ai_visual_timer <= 0) enemy_ai_cancel_pending_targeting();
+        return true;
+    }
+    if (enemy_auto_play && prompt_mode == "enemy_attack") {
+        enemy_ai_schedule_current_target();
+        return true;
+    }
+    return false;
 }
 
 function enemy_ai_scores_are_close(_left, _right) {

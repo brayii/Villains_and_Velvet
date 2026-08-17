@@ -645,6 +645,8 @@ function reset_game() {
     prompt_mode = "";
     prompt_value = 0;
     prompt_source = "";
+    enemy_attack_prompt_id = 0;
+    enemy_ai_cancel_pending_targeting();
     enemy_attack_notice = "";
     resume_action = "";
     queued_attacks = [];

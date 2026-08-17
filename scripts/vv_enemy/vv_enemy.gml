@@ -110,6 +110,7 @@ function start_queued_attack() {
             continue;
         }
         enemy_attack_notice = "";
+        enemy_attack_prompt_id++;
         prompt_mode = "enemy_attack";
         prompt_value = next_attack.amount;
         prompt_source = next_attack.source;

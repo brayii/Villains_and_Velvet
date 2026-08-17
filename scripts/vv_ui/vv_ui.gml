@@ -52,6 +52,7 @@ function setup_selector_button_rect(_category) {
 }
 
 function vv_ui_reset_match_interaction() {
+    enemy_ai_cancel_pending_targeting();
     pointer_card_down = false;
     pointer_card_type = "";
     pointer_card_index = -1;
@@ -245,6 +246,7 @@ function vv_ui_handle_input() {
 
     if (pointer_pressed && !setup_active && !game_over && !match_menu_active
     && point_in_rect(pointer_x, pointer_y, match_menu_rect)) {
+        enemy_ai_cancel_pending_targeting();
         match_menu_active = true;
         quit_match_confirm = false;
         return;
@@ -854,7 +856,9 @@ for (var build_i = 0; build_i < 3; build_i++) {
         || (phase == "build" && prompt_mode == "" && selected_hand >= 0)
         || ui_drag_target_is_legal("build", build_i);
     var visible_build_card = ui_drag_hides_card("build", build_i) ? undefined : build[build_i];
-    draw_card(visible_build_card, build_rects[build_i], selected_build == build_i, legal_build);
+    var auto_selected = enemy_auto_play && enemy_ai_visual_stage == "targeting"
+        && enemy_ai_selected_slot == build_i;
+    draw_card(visible_build_card, build_rects[build_i], selected_build == build_i || auto_selected, legal_build);
 }
 
 draw_center("HAND", 640, 512, COL_MUTED);
@@ -919,8 +923,13 @@ else if (phase == "step6_ready") instruction = "Discarding the cards left in you
 else if (phase == "end_ready") instruction = "Ending your turn...";
 if (prompt_mode == "enemy_attack") {
     instruction = prompt_source + "\nAttack: " + string(prompt_value) + "\n"
-        + (enemy_auto_play ? "Enemy is choosing a target."
-            : (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat."));
+        + (enemy_auto_play && enemy_ai_visual_stage == "targeting"
+            ? "Target: " + build[enemy_ai_selected_slot].name
+            : (enemy_auto_play ? "Enemy is choosing a target."
+            : (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat.")));
+}
+if (enemy_auto_play && enemy_ai_visual_stage == "result") {
+    instruction = "ATTACK RESOLVED\nReview the Build Area.";
 }
 if (prompt_mode != "") {
     instruction += enemy_auto_play && prompt_mode == "enemy_attack"
@@ -1024,7 +1033,9 @@ var button_fill = button_enabled ? ((confirming_build || confirming_attack) ? CO
 var button_outline = button_enabled ? COL_TEXT : COL_EDGE;
 draw_panel(action_rect, button_fill, button_outline);
 var button_text = "";
-if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
+if (enemy_auto_play && enemy_ai_visual_stage == "result") button_text = "ATTACK RESOLVED";
+else if (prompt_mode == "enemy_attack" && enemy_auto_play) button_text = "ENEMY TARGETING...";
+else if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
 else if (phase == "build") button_text = confirming_build ? "CONFIRM BUILD" : "DONE BUILDING";
 else if (phase == "attack") button_text = confirming_attack ? "CONFIRM END" : "DONE ATTACKING";
