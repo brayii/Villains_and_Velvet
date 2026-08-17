@@ -120,6 +120,8 @@ Each eligible Auto reward computes Advantage from the old persistent reward EMA,
 
 Experimental Health-weight learning records a temporary decision only when Auto successfully submits a target and at least two targets were legal. Each record stores the complete scored candidate list, selected slot and Health, and the selected Health normalized against the alternatives. At the end of an eligible Auto turn, every meaningful choice receives an equal share of the same pre-EMA Advantage; `W_H` updates with `alpha = 0.02`, is clamped after each choice to `0.25–3.0`, and is then persisted. Forced targets, Manual targeting, stale submissions, mode-switched turns, and abandoned matches cannot train the policy. Temporary decisions are discarded after processing.
 
+Gameplay randomness and AI exploration use separate deterministic random-number states. Deck shuffling and discard recycling consume only `gameplay_rng`; future exploratory target selection consumes only `ai_exploration_rng`. Their seeds can be reset independently, so changing or consuming the exploration stream cannot alter deck order or any later gameplay random result.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior

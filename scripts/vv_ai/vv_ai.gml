@@ -8,6 +8,9 @@
 
 function enemy_ai_baseline_init() {
     gameplay_seed = -1;
+    gameplay_rng = vv_rng_create(irandom(2147483645));
+    ai_exploration_seed = 104729;
+    ai_exploration_rng = vv_rng_create(ai_exploration_seed);
     enemy_ai_baseline_totals = {
         matches: 0,
         enemy_wins: 0,
@@ -423,7 +426,7 @@ function enemy_ai_baseline_finish_match(_enemy_won) {
 function enemy_ai_start_seeded_playtest(_seed) {
     if (!is_real(_seed)) return false;
     gameplay_seed = floor(_seed);
-    random_set_seed(gameplay_seed);
+    vv_rng_set_seed(gameplay_rng, gameplay_seed);
     if (!reset_game()) return false;
     setup_active = false;
     return true;
@@ -434,6 +437,22 @@ function enemy_ai_stop_seeded_playtest() {
     enemy_ai_baseline_match_active = false;
     enemy_ai_baseline_end_attack();
     randomize();
+    vv_rng_set_seed(gameplay_rng, irandom(2147483645));
+}
+
+function enemy_ai_set_exploration_seed(_seed) {
+    if (!is_real(_seed) || is_nan(_seed) || is_infinity(_seed)) return false;
+    ai_exploration_seed = vv_rng_normalize_seed(_seed);
+    vv_rng_set_seed(ai_exploration_rng, ai_exploration_seed);
+    return true;
+}
+
+function enemy_ai_exploration_random() {
+    return vv_rng_random(ai_exploration_rng);
+}
+
+function enemy_ai_exploration_irandom(_maximum) {
+    return vv_rng_irandom(ai_exploration_rng, _maximum);
 }
 
 function enemy_ai_score_candidate(_evaluation_before, _build_snapshot, _slot,
@@ -964,16 +983,52 @@ function enemy_ai_run_release_self_checks() {
         return content_validation_result(false, "Enemy AI settings recovery release check failed.");
     }
 
-    var previous_seed = random_get_seed();
-    random_set_seed(18427);
-    var first_shuffle = array_shuffle_copy([0, 1, 2, 3, 4, 5, 6, 7]);
-    random_set_seed(18427);
-    var second_shuffle = array_shuffle_copy([0, 1, 2, 3, 4, 5, 6, 7]);
-    random_set_seed(previous_seed);
+    var first_shuffle = array_shuffle_copy_with_rng(
+        [0, 1, 2, 3, 4, 5, 6, 7], vv_rng_create(18427));
+    var second_shuffle = array_shuffle_copy_with_rng(
+        [0, 1, 2, 3, 4, 5, 6, 7], vv_rng_create(18427));
     for (var shuffle_i = 0; shuffle_i < array_length(first_shuffle); shuffle_i++) {
         if (first_shuffle[shuffle_i] != second_shuffle[shuffle_i]) {
             return content_validation_result(false, "Enemy AI seeded-playtest release check failed.");
         }
+    }
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_rng_self_checks() {
+    var gameplay_a = vv_rng_create(271828);
+    var gameplay_b = vv_rng_create(271828);
+    var exploration_a = vv_rng_create(111);
+    var exploration_b = vv_rng_create(999);
+
+    // Different AI streams may be consumed differently without moving gameplay state.
+    vv_rng_random(exploration_a);
+    vv_rng_random(exploration_b);
+    vv_rng_random(exploration_b);
+    var deck_a = array_shuffle_copy_with_rng(
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], gameplay_a);
+    var deck_b = array_shuffle_copy_with_rng(
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], gameplay_b);
+    for (var deck_i = 0; deck_i < array_length(deck_a); deck_i++) {
+        if (deck_a[deck_i] != deck_b[deck_i]) {
+            return content_validation_result(false,
+                "Enemy AI exploration changed gameplay RNG results.");
+        }
+    }
+
+    var repeat_a = vv_rng_create(314159);
+    var repeat_b = vv_rng_create(314159);
+    for (var repeat_i = 0; repeat_i < 8; repeat_i++) {
+        if (!enemy_ai_scores_are_close(vv_rng_random(repeat_a), vv_rng_random(repeat_b))) {
+            return content_validation_result(false,
+                "Enemy AI exploration RNG reproducibility check failed.");
+        }
+    }
+    if (gameplay_a.state != gameplay_b.state
+    || exploration_a.state == exploration_b.state
+    || vv_rng_irandom(vv_rng_create(42), 0) != 0) {
+        return content_validation_result(false,
+            "Enemy AI independent RNG state check failed.");
     }
     return content_validation_result(true, "");
 }

@@ -290,16 +290,47 @@ function array_add_minion_slot_copies(_array, _definition) {
     }
 }
 
-function array_shuffle_copy(_source) {
+function vv_rng_normalize_seed(_seed) {
+    if (!is_real(_seed) || is_nan(_seed) || is_infinity(_seed)) return 1;
+    var normalized_seed = abs(floor(_seed)) mod 2147483646;
+    return normalized_seed == 0 ? 1 : normalized_seed;
+}
+
+function vv_rng_create(_seed) {
+    var normalized_seed = vv_rng_normalize_seed(_seed);
+    return {seed: normalized_seed, state: normalized_seed};
+}
+
+function vv_rng_set_seed(_rng, _seed) {
+    var normalized_seed = vv_rng_normalize_seed(_seed);
+    _rng.seed = normalized_seed;
+    _rng.state = normalized_seed;
+}
+
+function vv_rng_random(_rng) {
+    _rng.state = (_rng.state * 48271) mod 2147483647;
+    return (_rng.state - 1) / 2147483646;
+}
+
+function vv_rng_irandom(_rng, _maximum) {
+    var maximum = max(0, floor(_maximum));
+    return min(maximum, floor(vv_rng_random(_rng) * (maximum + 1)));
+}
+
+function array_shuffle_copy_with_rng(_source, _rng) {
     var result = [];
     for (var copy_i = 0; copy_i < array_length(_source); copy_i++) array_push(result, _source[copy_i]);
     for (var shuffle_i = array_length(result) - 1; shuffle_i > 0; shuffle_i--) {
-        var swap_i = irandom(shuffle_i);
+        var swap_i = vv_rng_irandom(_rng, shuffle_i);
         var held = result[shuffle_i];
         result[shuffle_i] = result[swap_i];
         result[swap_i] = held;
     }
     return result;
+}
+
+function array_shuffle_copy(_source) {
+    return array_shuffle_copy_with_rng(_source, gameplay_rng);
 }
 
 function find_enemy_event_definition(_definitions, _id) {
