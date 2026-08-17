@@ -1,0 +1,10 @@
+{
+  "$GMScript":"v1",
+  "%Name":"vv_ai",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"vv_ai",
+  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0"
+}

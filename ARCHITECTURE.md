@@ -12,6 +12,7 @@
 - `scripts/vv_ui/vv_ui.gml`: board layout, colors, drawing, highlighting, hit testing, and translating taps into gameplay commands.
 - `scripts/vv_assets/vv_assets.gml`: loading, caching, and releasing dynamically loaded artwork.
 - `scripts/vv_settings/vv_settings.gml`: versioned player preferences, validation, safe defaults, and independent settings persistence.
+- `scripts/vv_ai/vv_ai.gml`: snapshot-based Enemy target scoring and deterministic ranking; it never resolves attacks or mutates match state.
 
 ## Adding or Changing Content
 
