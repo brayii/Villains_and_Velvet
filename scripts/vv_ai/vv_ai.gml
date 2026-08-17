@@ -52,6 +52,23 @@ function enemy_ai_rank_build(_build_snapshot) {
     return ranked;
 }
 
+function enemy_ai_choose_target(_current_state) {
+    if (!is_struct(_current_state)
+    || !variable_struct_exists(_current_state, "build_snapshot")
+    || !is_array(_current_state.build_snapshot)
+    || !variable_struct_exists(_current_state, "attack_remaining")
+    || !is_real(_current_state.attack_remaining)
+    || _current_state.attack_remaining < 0) return -1;
+
+    var ranked = enemy_ai_rank_build(_current_state.build_snapshot);
+    for (var rank_i = 0; rank_i < array_length(ranked); rank_i++) {
+        var slot = ranked[rank_i].slot;
+        if (enemy_target_is_legal_in_build(_current_state.build_snapshot, slot,
+        _current_state.attack_remaining)) return slot;
+    }
+    return -1;
+}
+
 function enemy_ai_scores_are_close(_left, _right) {
     return abs(_left - _right) < 0.0001;
 }
@@ -98,6 +115,55 @@ function enemy_ai_run_scoring_self_checks(_hero_definitions) {
     || !enemy_ai_scores_are_close(ranked[0].score, ranked[1].score)
     || !enemy_ai_scores_are_close(ranked[0].guaranteed_threat, ranked[1].guaranteed_threat)) {
         return content_validation_result(false, "Enemy AI Health tie-break check failed.");
+    }
+
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_selection_self_checks(_hero_definitions) {
+    var goblin = find_hero_definition(_hero_definitions, "goblin");
+    var skeleton = find_hero_definition(_hero_definitions, "skeleton");
+    var orc = find_hero_definition(_hero_definitions, "orc");
+    if (is_undefined(goblin) || is_undefined(skeleton) || is_undefined(orc)) {
+        return content_validation_result(false, "Enemy AI selection checks require the core Heroes.");
+    }
+
+    var state = {
+        build_snapshot: [goblin.normal, skeleton.normal, orc.normal],
+        attack_remaining: 10
+    };
+    if (enemy_ai_choose_target(state) != 0) {
+        return content_validation_result(false, "Enemy AI preferred-target selection check failed.");
+    }
+
+    state.attack_remaining = 2;
+    if (enemy_ai_choose_target(state) != -1) {
+        return content_validation_result(false, "Enemy AI no-destroyable-target check failed.");
+    }
+
+    state.build_snapshot = [goblin.normal, skeleton.normal, orc.ability];
+    state.attack_remaining = 10;
+    if (enemy_ai_choose_target(state) != 2) {
+        return content_validation_result(false, "Enemy AI Guard-priority selection check failed.");
+    }
+
+    state.build_snapshot = [goblin.normal, skeleton.normal, orc.special];
+    state.attack_remaining = 7;
+    if (enemy_ai_choose_target(state) != -1) {
+        return content_validation_result(false, "Enemy AI undestroyable-priority check failed.");
+    }
+
+    var expensive_threat = card_player("test_threat", "Test Threat", "Normal", 20, 10,
+        [], "", "", 0);
+    state.build_snapshot = [expensive_threat, goblin.normal, undefined];
+    state.attack_remaining = 5;
+    if (enemy_ai_choose_target(state) != 1) {
+        return content_validation_result(false, "Enemy AI valid-ranked-fallback check failed.");
+    }
+
+    state.build_snapshot = [undefined, undefined, undefined];
+    if (enemy_ai_choose_target(state) != -1 || enemy_ai_choose_target(undefined) != -1) {
+        return content_validation_result(false, "Enemy AI empty-state selection check failed.");
     }
 
     return content_validation_result(true, "");

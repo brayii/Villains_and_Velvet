@@ -1,18 +1,29 @@
 /// Enemy targeting, attacks, Minion effects, Enemy Draw, and prompt resolution.
 
-function build_has_priority() {
-    for (var priority_i = 0; priority_i < 3; priority_i++) {
-        if (!is_undefined(build[priority_i])
-        && (card_has_ability(build[priority_i], ABILITY_GUARD) || card_has_ability(build[priority_i], ABILITY_FORTRESS))) return true;
+function build_snapshot_has_priority(_build_snapshot) {
+    for (var priority_i = 0; priority_i < array_length(_build_snapshot); priority_i++) {
+        if (!is_undefined(_build_snapshot[priority_i])
+        && (card_has_ability(_build_snapshot[priority_i], ABILITY_GUARD)
+        || card_has_ability(_build_snapshot[priority_i], ABILITY_FORTRESS))) return true;
     }
     return false;
 }
 
+function build_has_priority() {
+    return build_snapshot_has_priority(build);
+}
+
+function enemy_target_is_legal_in_build(_build_snapshot, _index, _amount) {
+    if (_index < 0 || _index >= array_length(_build_snapshot)
+    || is_undefined(_build_snapshot[_index])) return false;
+    if (build_snapshot_has_priority(_build_snapshot)
+    && !card_has_ability(_build_snapshot[_index], ABILITY_GUARD)
+    && !card_has_ability(_build_snapshot[_index], ABILITY_FORTRESS)) return false;
+    return _amount >= _build_snapshot[_index].hp;
+}
+
 function enemy_target_is_legal(_index, _amount) {
-    if (_index < 0 || _index > 2 || is_undefined(build[_index])) return false;
-    if (build_has_priority()
-    && !card_has_ability(build[_index], ABILITY_GUARD) && !card_has_ability(build[_index], ABILITY_FORTRESS)) return false;
-    return _amount >= build[_index].hp;
+    return enemy_target_is_legal_in_build(build, _index, _amount);
 }
 
 function enemy_has_legal_target(_amount) {

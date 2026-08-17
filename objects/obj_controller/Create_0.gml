@@ -18,6 +18,10 @@ if (content_registry_validation.valid) {
     var ai_scoring_self_checks = enemy_ai_run_scoring_self_checks(available_heroes);
     if (!ai_scoring_self_checks.valid) content_registry_validation = ai_scoring_self_checks;
 }
+if (content_registry_validation.valid) {
+    var ai_selection_self_checks = enemy_ai_run_selection_self_checks(available_heroes);
+    if (!ai_selection_self_checks.valid) content_registry_validation = ai_selection_self_checks;
+}
 selected_leader_index = content_registry_validation.valid ? 0 : -1;
 selected_scenario_index = content_registry_validation.valid ? 0 : -1;
 selected_minion_set_index = content_registry_validation.valid ? 0 : -1;
