@@ -18,6 +18,7 @@ function enemy_ai_baseline_init() {
     enemy_ai_baseline_totals = {
         matches: 0,
         enemy_wins: 0,
+        leader_survivals: 0,
         leader_hp_remaining: 0,
         leader_damage: 0,
         turns: 0,
@@ -30,7 +31,28 @@ function enemy_ai_baseline_init() {
         comparison_states: 0,
         comparison_differences: 0,
         fixed_conditional_regret: 0,
-        learned_conditional_regret: 0
+        learned_conditional_regret: 0,
+        evaluation_states: 0,
+        policy_a_regret: 0,
+        policy_b_regret: 0,
+        policy_c_regret: 0,
+        policy_d_regret: 0,
+        policy_a_threat_removed: 0,
+        policy_b_threat_removed: 0,
+        policy_c_threat_removed: 0,
+        policy_d_threat_removed: 0,
+        policy_a_regret_squared: 0,
+        policy_b_regret_squared: 0,
+        policy_c_regret_squared: 0,
+        policy_d_regret_squared: 0,
+        policy_a_best_matches: 0,
+        policy_b_best_matches: 0,
+        policy_c_best_matches: 0,
+        policy_d_best_matches: 0,
+        wc_min: enemy_ai_conditional_weight(),
+        wc_max: enemy_ai_conditional_weight(),
+        wh_min: enemy_ai_health_weight(),
+        wh_max: enemy_ai_health_weight()
     };
     enemy_ai_baseline_match_active = false;
     enemy_ai_baseline_attack_active = false;
@@ -325,7 +347,28 @@ function enemy_ai_baseline_begin_match() {
         comparison_states: 0,
         comparison_differences: 0,
         fixed_conditional_regret: 0,
-        learned_conditional_regret: 0
+        learned_conditional_regret: 0,
+        evaluation_states: 0,
+        policy_a_regret: 0,
+        policy_b_regret: 0,
+        policy_c_regret: 0,
+        policy_d_regret: 0,
+        policy_a_threat_removed: 0,
+        policy_b_threat_removed: 0,
+        policy_c_threat_removed: 0,
+        policy_d_threat_removed: 0,
+        policy_a_best_matches: 0,
+        policy_b_best_matches: 0,
+        policy_c_best_matches: 0,
+        policy_d_best_matches: 0,
+        wc_start: enemy_ai_conditional_weight(),
+        wh_start: enemy_ai_health_weight(),
+        exploration_seed: ai_exploration_seed,
+        leader_id: enemy_leader.id,
+        scenario_id: enemy_scenario.id,
+        minion_set_id: enemy_minion_set.id,
+        leader_strikes: array_length(enemy_event_selection.leader_strikes),
+        twists: array_length(enemy_event_selection.twists)
     };
 }
 
@@ -342,6 +385,8 @@ function enemy_ai_baseline_begin_attack(_build_snapshot, _attack_amount) {
     var comparison = enemy_ai_oracle_compare(_build_snapshot, _attack_amount);
     var conditional_comparison = enemy_ai_compare_conditional_policies(
         _build_snapshot, _attack_amount);
+    var evaluation = enemy_ai_evaluate_policy_variants(
+        _build_snapshot, _attack_amount, vv_rng_clone(ai_exploration_rng));
     enemy_ai_baseline_attack_active = true;
     enemy_ai_baseline_match.enemy_attacks++;
     enemy_ai_baseline_match.greedy_regret += comparison.greedy_regret;
@@ -352,6 +397,23 @@ function enemy_ai_baseline_begin_attack(_build_snapshot, _attack_amount) {
     }
     enemy_ai_baseline_match.fixed_conditional_regret += conditional_comparison.fixed_regret;
     enemy_ai_baseline_match.learned_conditional_regret += conditional_comparison.learned_regret;
+    enemy_ai_baseline_match.evaluation_states++;
+    enemy_ai_baseline_match.policy_a_regret += evaluation.A.regret;
+    enemy_ai_baseline_match.policy_b_regret += evaluation.B.regret;
+    enemy_ai_baseline_match.policy_c_regret += evaluation.C.regret;
+    enemy_ai_baseline_match.policy_d_regret += evaluation.D.regret;
+    enemy_ai_baseline_match.policy_a_threat_removed += evaluation.A.threat_removed;
+    enemy_ai_baseline_match.policy_b_threat_removed += evaluation.B.threat_removed;
+    enemy_ai_baseline_match.policy_c_threat_removed += evaluation.C.threat_removed;
+    enemy_ai_baseline_match.policy_d_threat_removed += evaluation.D.threat_removed;
+    enemy_ai_baseline_totals.wc_min = min(enemy_ai_baseline_totals.wc_min, evaluation.W_C);
+    enemy_ai_baseline_totals.wc_max = max(enemy_ai_baseline_totals.wc_max, evaluation.W_C);
+    enemy_ai_baseline_totals.wh_min = min(enemy_ai_baseline_totals.wh_min, evaluation.W_H);
+    enemy_ai_baseline_totals.wh_max = max(enemy_ai_baseline_totals.wh_max, evaluation.W_H);
+    if (enemy_ai_scores_are_close(evaluation.A.regret, 0)) enemy_ai_baseline_match.policy_a_best_matches++;
+    if (enemy_ai_scores_are_close(evaluation.B.regret, 0)) enemy_ai_baseline_match.policy_b_best_matches++;
+    if (enemy_ai_scores_are_close(evaluation.C.regret, 0)) enemy_ai_baseline_match.policy_c_best_matches++;
+    if (enemy_ai_scores_are_close(evaluation.D.regret, 0)) enemy_ai_baseline_match.policy_d_best_matches++;
 }
 
 function enemy_ai_baseline_record_destroyed_card(_build_snapshot, _slot) {
@@ -387,6 +449,7 @@ function enemy_ai_baseline_finish_match(_enemy_won) {
     var totals = enemy_ai_baseline_totals;
     totals.matches++;
     if (_enemy_won) totals.enemy_wins++;
+    if (leader_hp > 0) totals.leader_survivals++;
     totals.leader_hp_remaining += leader_hp;
     totals.leader_damage += enemy_ai_baseline_match.leader_damage;
     totals.turns += turn_number;
@@ -400,8 +463,31 @@ function enemy_ai_baseline_finish_match(_enemy_won) {
     totals.comparison_differences += enemy_ai_baseline_match.comparison_differences;
     totals.fixed_conditional_regret += enemy_ai_baseline_match.fixed_conditional_regret;
     totals.learned_conditional_regret += enemy_ai_baseline_match.learned_conditional_regret;
+    totals.evaluation_states += enemy_ai_baseline_match.evaluation_states;
+    totals.policy_a_regret += enemy_ai_baseline_match.policy_a_regret;
+    totals.policy_b_regret += enemy_ai_baseline_match.policy_b_regret;
+    totals.policy_c_regret += enemy_ai_baseline_match.policy_c_regret;
+    totals.policy_d_regret += enemy_ai_baseline_match.policy_d_regret;
+    totals.policy_a_threat_removed += enemy_ai_baseline_match.policy_a_threat_removed;
+    totals.policy_b_threat_removed += enemy_ai_baseline_match.policy_b_threat_removed;
+    totals.policy_c_threat_removed += enemy_ai_baseline_match.policy_c_threat_removed;
+    totals.policy_d_threat_removed += enemy_ai_baseline_match.policy_d_threat_removed;
+    totals.policy_a_regret_squared += enemy_ai_baseline_match.policy_a_regret
+        * enemy_ai_baseline_match.policy_a_regret;
+    totals.policy_b_regret_squared += enemy_ai_baseline_match.policy_b_regret
+        * enemy_ai_baseline_match.policy_b_regret;
+    totals.policy_c_regret_squared += enemy_ai_baseline_match.policy_c_regret
+        * enemy_ai_baseline_match.policy_c_regret;
+    totals.policy_d_regret_squared += enemy_ai_baseline_match.policy_d_regret
+        * enemy_ai_baseline_match.policy_d_regret;
+    totals.policy_a_best_matches += enemy_ai_baseline_match.policy_a_best_matches;
+    totals.policy_b_best_matches += enemy_ai_baseline_match.policy_b_best_matches;
+    totals.policy_c_best_matches += enemy_ai_baseline_match.policy_c_best_matches;
+    totals.policy_d_best_matches += enemy_ai_baseline_match.policy_d_best_matches;
 
     var win_rate = totals.matches > 0 ? totals.enemy_wins / totals.matches : 0;
+    var survival_rate = totals.matches > 0 ? totals.leader_survivals / totals.matches : 0;
+    var average_leader_hp = totals.matches > 0 ? totals.leader_hp_remaining / totals.matches : 0;
     var damage_per_turn = totals.turns > 0 ? totals.leader_damage / totals.turns : 0;
     var cards_per_attack = totals.enemy_attacks > 0
         ? totals.cards_destroyed / totals.enemy_attacks : 0;
@@ -411,10 +497,19 @@ function enemy_ai_baseline_finish_match(_enemy_won) {
         ? totals.fixed_conditional_regret / totals.comparison_states : 0;
     var learned_conditional_regret = totals.comparison_states > 0
         ? totals.learned_conditional_regret / totals.comparison_states : 0;
+    var policy_a_variance = enemy_ai_evaluation_variance(totals.policy_a_regret,
+        totals.policy_a_regret_squared, totals.matches);
+    var policy_b_variance = enemy_ai_evaluation_variance(totals.policy_b_regret,
+        totals.policy_b_regret_squared, totals.matches);
+    var policy_c_variance = enemy_ai_evaluation_variance(totals.policy_c_regret,
+        totals.policy_c_regret_squared, totals.matches);
+    var policy_d_variance = enemy_ai_evaluation_variance(totals.policy_d_regret,
+        totals.policy_d_regret_squared, totals.matches);
     show_debug_message("ENEMY AI BASELINE | seed=" + string(gameplay_seed)
         + " | matches=" + string(totals.matches)
         + " | enemy_win_rate=" + string(win_rate)
-        + " | leader_hp=" + string(leader_hp)
+        + " | leader_survival_rate=" + string(survival_rate)
+        + " | average_leader_hp=" + string(average_leader_hp)
         + " | leader_damage_per_turn=" + string(damage_per_turn)
         + " | guaranteed_attack_removed=" + string(totals.guaranteed_attack_removed)
         + " | conditional_attack_removed=" + string(totals.conditional_attack_removed)
@@ -424,7 +519,33 @@ function enemy_ai_baseline_finish_match(_enemy_won) {
         + " | comparison_states=" + string(totals.comparison_states)
         + " | different_sequences=" + string(totals.comparison_differences)
         + " | fixed_W_C_regret=" + string(fixed_conditional_regret)
-        + " | learned_W_C_regret=" + string(learned_conditional_regret));
+        + " | learned_W_C_regret=" + string(learned_conditional_regret)
+        + " | evaluation_states=" + string(totals.evaluation_states)
+        + " | A_regret=" + string(totals.policy_a_regret)
+        + " | B_regret=" + string(totals.policy_b_regret)
+        + " | C_regret=" + string(totals.policy_c_regret)
+        + " | D_regret=" + string(totals.policy_d_regret)
+        + " | threat_removed_ABCD=" + string(totals.policy_a_threat_removed) + "/"
+        + string(totals.policy_b_threat_removed) + "/"
+        + string(totals.policy_c_threat_removed) + "/"
+        + string(totals.policy_d_threat_removed)
+        + " | best_matches_ABCD=" + string(totals.policy_a_best_matches) + "/"
+        + string(totals.policy_b_best_matches) + "/"
+        + string(totals.policy_c_best_matches) + "/"
+        + string(totals.policy_d_best_matches)
+        + " | regret_variance=" + string(policy_a_variance) + "/"
+        + string(policy_b_variance) + "/" + string(policy_c_variance)
+        + "/" + string(policy_d_variance)
+        + " | W_C_range=" + string(totals.wc_min) + ".." + string(totals.wc_max)
+        + " | W_H_range=" + string(totals.wh_min) + ".." + string(totals.wh_max)
+        + " | W_C=" + string(enemy_ai_baseline_match.wc_start)
+        + " | W_H=" + string(enemy_ai_baseline_match.wh_start)
+        + " | exploration_seed=" + string(enemy_ai_baseline_match.exploration_seed)
+        + " | content=" + enemy_ai_baseline_match.leader_id
+        + "/" + enemy_ai_baseline_match.scenario_id
+        + "/" + enemy_ai_baseline_match.minion_set_id
+        + " | events=" + string(enemy_ai_baseline_match.leader_strikes)
+        + "+" + string(enemy_ai_baseline_match.twists));
 }
 
 function enemy_ai_start_seeded_playtest(_seed) {
@@ -764,6 +885,100 @@ function enemy_ai_oracle_greedy_sequence(_build_snapshot, _attack_remaining) {
     var conditional_weight = enemy_ai_conditional_weight();
     return enemy_ai_oracle_greedy_sequence_with_weights(_build_snapshot, _attack_remaining,
         conditional_weight, enemy_ai_health_weight(), conditional_weight);
+}
+
+function enemy_ai_oracle_exploration_sequence_with_weights(
+_build_snapshot, _attack_remaining, _policy_conditional_weight,
+_policy_health_weight, _value_conditional_weight, _exploration_rng) {
+    var initial_evaluation = evaluate_build(_build_snapshot);
+    var simulated_build = copy_build_snapshot(_build_snapshot);
+    var simulated_attack = _attack_remaining;
+    var sequence = [];
+    while (true) {
+        var current_state = {
+            build_snapshot: simulated_build,
+            attack_remaining: simulated_attack
+        };
+        var ranked = enemy_ai_rank_build_with_weights(simulated_build,
+            _policy_conditional_weight, _policy_health_weight);
+        var near_equal = enemy_ai_near_equal_valid_targets(
+            current_state, ranked, ENEMY_AI_EXPLORATION_MARGIN);
+        if (array_length(near_equal) == 0) break;
+        var selected_index = 0;
+        if (array_length(near_equal) > 1
+        && vv_rng_random(_exploration_rng) < ENEMY_AI_EXPLORATION_RATE) {
+            selected_index = vv_rng_irandom(_exploration_rng, array_length(near_equal) - 1);
+        }
+        var selected_slot = near_equal[selected_index].slot;
+        simulated_attack -= simulated_build[selected_slot].hp;
+        simulated_build = copy_build_without_slot(simulated_build, selected_slot);
+        array_push(sequence, selected_slot);
+    }
+    return {
+        sequence: sequence,
+        sequence_value: enemy_ai_oracle_sequence_value_with_weight(
+            initial_evaluation, simulated_build, _value_conditional_weight),
+        final_snapshot: simulated_build,
+        attack_remaining: simulated_attack
+    };
+}
+
+function enemy_ai_evaluation_policy_result(_greedy, _best_value, _initial_evaluation) {
+    var final_evaluation = evaluate_build(_greedy.final_snapshot);
+    var guaranteed_removed = _initial_evaluation.guaranteed_attack
+        - final_evaluation.guaranteed_attack;
+    var conditional_removed = _initial_evaluation.conditional_attack
+        - final_evaluation.conditional_attack;
+    return {
+        sequence: _greedy.sequence,
+        value: _greedy.sequence_value,
+        regret: max(0, _best_value - _greedy.sequence_value),
+        matches_best: enemy_ai_scores_are_close(_best_value, _greedy.sequence_value),
+        guaranteed_threat_removed: guaranteed_removed,
+        conditional_threat_removed: conditional_removed,
+        threat_removed: guaranteed_removed + enemy_ai_conditional_weight() * conditional_removed,
+        cards_destroyed: array_length(_greedy.sequence)
+    };
+}
+
+function enemy_ai_evaluation_variance(_sum, _sum_squared, _count) {
+    if (_count <= 0) return 0;
+    var average_value = _sum / _count;
+    return max(0, _sum_squared / _count - average_value * average_value);
+}
+
+function enemy_ai_evaluate_policy_variants(
+_build_snapshot, _attack_remaining, _exploration_rng) {
+    var learned_wc = enemy_ai_conditional_weight();
+    var learned_wh = enemy_ai_health_weight();
+    var initial_evaluation = evaluate_build(_build_snapshot);
+    var exhaustive = enemy_ai_oracle_search_with_weight(initial_evaluation,
+        copy_build_snapshot(_build_snapshot), _attack_remaining, [], learned_wc);
+    var policy_a = enemy_ai_oracle_greedy_sequence_with_weights(
+        _build_snapshot, _attack_remaining, 0.5, 1.0, learned_wc);
+    var policy_b = enemy_ai_oracle_greedy_sequence_with_weights(
+        _build_snapshot, _attack_remaining, learned_wc, 1.0, learned_wc);
+    var policy_c = enemy_ai_oracle_greedy_sequence_with_weights(
+        _build_snapshot, _attack_remaining, learned_wc, learned_wh, learned_wc);
+    var policy_d = enemy_ai_oracle_exploration_sequence_with_weights(
+        _build_snapshot, _attack_remaining, learned_wc, learned_wh,
+        learned_wc, _exploration_rng);
+    return {
+        gameplay_seed: gameplay_seed,
+        exploration_seed: _exploration_rng.seed,
+        W_C: learned_wc,
+        W_H: learned_wh,
+        best_value: exhaustive.sequence_value,
+        best_sequence: exhaustive.sequence,
+        A: enemy_ai_evaluation_policy_result(
+            policy_a, exhaustive.sequence_value, initial_evaluation),
+        B: enemy_ai_evaluation_policy_result(
+            policy_b, exhaustive.sequence_value, initial_evaluation),
+        C: enemy_ai_evaluation_policy_result(
+            policy_c, exhaustive.sequence_value, initial_evaluation),
+        D: enemy_ai_evaluation_policy_result(
+            policy_d, exhaustive.sequence_value, initial_evaluation)
+    };
 }
 
 function enemy_ai_oracle_compare_with_health_weight(
@@ -1118,6 +1333,36 @@ function enemy_ai_run_exploration_self_checks() {
     if (observed_rate < 0.04 || observed_rate > 0.06) {
         return content_validation_result(false,
             "Enemy AI exploration frequency check failed.");
+    }
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_evaluation_self_checks(_hero_definitions) {
+    var goblin = find_hero_definition(_hero_definitions, "goblin");
+    var skeleton = find_hero_definition(_hero_definitions, "skeleton");
+    var orc = find_hero_definition(_hero_definitions, "orc");
+    if (is_undefined(goblin) || is_undefined(skeleton) || is_undefined(orc)) {
+        return content_validation_result(false,
+            "Enemy AI evaluation checks require the core Heroes.");
+    }
+    var snapshot = [goblin.ability, skeleton.special, orc.normal];
+    var live_exploration_state = ai_exploration_rng.state;
+    var first = enemy_ai_evaluate_policy_variants(
+        snapshot, 9, vv_rng_create(24681357));
+    var second = enemy_ai_evaluate_policy_variants(
+        snapshot, 9, vv_rng_create(24681357));
+    if (!enemy_ai_sequences_match(first.D.sequence, second.D.sequence)
+    || !enemy_ai_scores_are_close(first.D.value, second.D.value)
+    || !enemy_ai_scores_are_close(first.D.regret, second.D.regret)
+    || first.A.regret < 0 || first.B.regret < 0
+    || first.C.regret < 0 || first.D.regret < 0
+    || !enemy_ai_scores_are_close(first.W_C, enemy_ai_conditional_weight())
+    || !enemy_ai_scores_are_close(first.W_H, enemy_ai_health_weight())
+    || !enemy_ai_scores_are_close(enemy_ai_evaluation_variance(2, 4, 2), 1)
+    || ai_exploration_rng.state != live_exploration_state
+    || is_undefined(snapshot[0]) || is_undefined(snapshot[1]) || is_undefined(snapshot[2])) {
+        return content_validation_result(false,
+            "Enemy AI adaptive evaluation check failed.");
     }
     return content_validation_result(true, "");
 }

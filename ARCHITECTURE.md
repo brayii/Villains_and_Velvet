@@ -124,6 +124,8 @@ Gameplay randomness and AI exploration use separate deterministic random-number 
 
 Auto targeting uses bounded exploration on five percent of decisions that have multiple near-equal options. The exploration pool contains only currently legal, destroyable targets whose score is no more than one point below the best legal target. Manual targeting and forced single-target attacks never consume exploration randomness.
 
+Seeded development matches evaluate four policies against the same exhaustive attack-state oracle: fixed deterministic (`A`), learned conditional weight (`B`), learned conditional plus Health weights (`C`), and both learned weights with bounded exploration (`D`). Evaluation uses a cloned exploration stream, so it cannot change the live choice. Aggregates include regret, best-sequence matches, outcome and survival metrics, weight ranges, per-match regret variance, both controlled seeds, and the selected Leader, Scenario, Minion Set, and Event mix. This is instrumentation rather than a claim that adaptive play has passed cross-content validation; additional content automatically enters the same evaluator when registered.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior

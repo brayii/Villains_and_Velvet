@@ -301,6 +301,10 @@ function vv_rng_create(_seed) {
     return {seed: normalized_seed, state: normalized_seed};
 }
 
+function vv_rng_clone(_rng) {
+    return {seed: _rng.seed, state: _rng.state};
+}
+
 function vv_rng_set_seed(_rng, _seed) {
     var normalized_seed = vv_rng_normalize_seed(_seed);
     _rng.seed = normalized_seed;
