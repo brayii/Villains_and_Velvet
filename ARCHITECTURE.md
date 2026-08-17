@@ -114,6 +114,8 @@ The deterministic baseline harness records match results, Leader HP, Leader dama
 
 Seeded Auto playtests also evaluate fixed `W_C = 0.5` and learned `W_C` side by side against the same Build, Attack amount, and learned-value exhaustive oracle. The comparison simulates both complete greedy destruction sequences without modifying the match, records how often their sequences differ, and reports average regret for both policies. `W_H` remains fixed at `1.0` for production targeting and both comparison policies during this baseline phase.
 
+Auto reward measurement begins only after Enemy Steps 2 and 3, including all Escape, Enemy Event, entry-ability, and attack continuations, have finished. It compares that Leader HP with HP after the Player Build and Attack response, and uses the initial Enemy Deck length captured from the constructed match rather than a fixed deck-size constant. Non-terminal rewards use normalized Leader damage and remaining-deck context; final Enemy wins and losses override them with `+2` and `-2`. Measurements are development-log output only in this phase: they do not update `W_H` or the reward EMA. Manual turns, mode changes, and abandoned matches cancel pending Auto measurements.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior

@@ -361,6 +361,7 @@ function draw_next_enemy_card() {
     enemy_attack_notice = "";
     if (array_length(enemy_deck) == 0) {
         enemy_exhausted = true;
+        enemy_ai_reward_begin_player_response();
         step_number = 4;
         phase = "step4_ready";
         auto_timer = 45;

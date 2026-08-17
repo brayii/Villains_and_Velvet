@@ -27,6 +27,71 @@ function enemy_ai_baseline_init() {
     enemy_ai_baseline_attack_active = false;
 }
 
+function enemy_ai_calculate_turn_reward(
+_hp_before, _hp_end, _enemy_cards_remaining, _enemy_deck_initial_size, _terminal_result) {
+    var initial_size = max(1, _enemy_deck_initial_size);
+    var leader_damage = max(0, _hp_before - _hp_end);
+    var damage_fraction = leader_damage / max(1, _hp_before);
+    var deck_ratio = clamp(_enemy_cards_remaining / initial_size, 0, 1);
+    var reward = -damage_fraction * (1 + deck_ratio);
+    if (_terminal_result > 0) reward = 2;
+    else if (_terminal_result < 0) reward = -2;
+    return {
+        leader_damage: leader_damage,
+        damage_fraction: damage_fraction,
+        deck_ratio: deck_ratio,
+        reward: reward
+    };
+}
+
+function enemy_ai_reward_init_match(_enemy_deck_initial_size) {
+    enemy_ai_reward_initial_deck_size = max(1, floor(_enemy_deck_initial_size));
+    enemy_ai_reward_cancel_turn();
+    enemy_ai_last_turn_reward = 0;
+}
+
+function enemy_ai_reward_begin_player_response() {
+    enemy_ai_reward_turn_active = enemy_auto_play;
+    enemy_ai_reward_hp_before = leader_hp;
+    enemy_ai_reward_turn_number = turn_number;
+}
+
+function enemy_ai_reward_cancel_turn() {
+    enemy_ai_reward_turn_active = false;
+    enemy_ai_reward_hp_before = 0;
+    enemy_ai_reward_turn_number = -1;
+}
+
+function enemy_ai_reward_measurement_is_eligible(
+_turn_active, _auto_enabled, _snapshot_turn, _current_turn) {
+    return _turn_active && _auto_enabled && _snapshot_turn == _current_turn;
+}
+
+/// _terminal_result: +1 Enemy win, -1 Enemy loss, 0 non-terminal.
+function enemy_ai_reward_finish_player_response(_terminal_result) {
+    if (!enemy_ai_reward_measurement_is_eligible(enemy_ai_reward_turn_active,
+    enemy_auto_play, enemy_ai_reward_turn_number, turn_number)) {
+        enemy_ai_reward_cancel_turn();
+        return false;
+    }
+    var result = enemy_ai_calculate_turn_reward(
+        enemy_ai_reward_hp_before, leader_hp, array_length(enemy_deck),
+        enemy_ai_reward_initial_deck_size, _terminal_result);
+    enemy_ai_last_turn_reward = result.reward;
+    show_debug_message("ENEMY AI REWARD | turn=" + string(turn_number)
+        + " | hp_before=" + string(enemy_ai_reward_hp_before)
+        + " | hp_end=" + string(leader_hp)
+        + " | leader_damage=" + string(result.leader_damage)
+        + " | damage_fraction=" + string(result.damage_fraction)
+        + " | enemy_cards=" + string(array_length(enemy_deck))
+        + "/" + string(enemy_ai_reward_initial_deck_size)
+        + " | deck_ratio=" + string(result.deck_ratio)
+        + " | terminal=" + string(_terminal_result)
+        + " | reward=" + string(result.reward));
+    enemy_ai_reward_cancel_turn();
+    return true;
+}
+
 function enemy_ai_conditional_weight_from_counts(_exposures, _activations) {
     if (!vv_ai_data_is_counter(_exposures) || !vv_ai_data_is_counter(_activations)
     || _activations > _exposures) return 0.5;
@@ -129,6 +194,7 @@ function enemy_ai_baseline_begin_match() {
 
 function enemy_ai_baseline_note_mode_change() {
     if (enemy_ai_baseline_match_active) enemy_ai_baseline_match.mode_changed = true;
+    enemy_ai_reward_cancel_turn();
     if (!enemy_auto_play) enemy_ai_baseline_end_attack();
 }
 
@@ -780,6 +846,27 @@ function enemy_ai_run_conditional_learning_self_checks(_hero_definitions) {
     || comparison.learned_sequence[0] != 0 || comparison.learned_regret != 0
     || comparison.fixed_regret <= 0) {
         return content_validation_result(false, "Enemy AI fixed/learned baseline comparison check failed.");
+    }
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_reward_self_checks() {
+    var normal = enemy_ai_calculate_turn_reward(100, 80, 16, 32, 0);
+    var no_damage = enemy_ai_calculate_turn_reward(100, 110, 8, 32, 0);
+    var enemy_win = enemy_ai_calculate_turn_reward(100, 20, 0, 32, 1);
+    var enemy_loss = enemy_ai_calculate_turn_reward(100, 0, 20, 32, -1);
+    if (!enemy_ai_scores_are_close(normal.leader_damage, 20)
+    || !enemy_ai_scores_are_close(normal.damage_fraction, 0.2)
+    || !enemy_ai_scores_are_close(normal.deck_ratio, 0.5)
+    || !enemy_ai_scores_are_close(normal.reward, -0.3)
+    || !enemy_ai_scores_are_close(no_damage.reward, 0)
+    || !enemy_ai_scores_are_close(enemy_win.reward, 2)
+    || !enemy_ai_scores_are_close(enemy_loss.reward, -2)
+    || !enemy_ai_reward_measurement_is_eligible(true, true, 4, 4)
+    || enemy_ai_reward_measurement_is_eligible(true, false, 4, 4)
+    || enemy_ai_reward_measurement_is_eligible(false, true, 4, 4)
+    || enemy_ai_reward_measurement_is_eligible(true, true, 3, 4)) {
+        return content_validation_result(false, "Enemy AI reward calculation check failed.");
     }
     return content_validation_result(true, "");
 }

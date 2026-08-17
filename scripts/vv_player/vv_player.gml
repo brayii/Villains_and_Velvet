@@ -222,6 +222,7 @@ function command_attack_leader() {
     log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
     if (leader_hp == 0) {
         enemy_ai_conditional_learning_finish_attack();
+        enemy_ai_reward_finish_player_response(-1);
         game_over = true;
         victory = true;
         phase = "game_over";

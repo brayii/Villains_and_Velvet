@@ -29,6 +29,7 @@ function resume_after_prompts() {
         phase = "enemy_event_reveal_wait";
         auto_timer = ENEMY_EVENT_REVEAL_FRAMES;
     } else if (action == "finish_enemy") {
+        enemy_ai_reward_begin_player_response();
         step_number = 4;
         phase = "step4_ready";
         auto_timer = 45;
@@ -114,6 +115,7 @@ function show_attack_completion(_heading, _text) {
 
 function complete_attack_step() {
     enemy_ai_conditional_learning_finish_attack();
+    enemy_ai_reward_finish_player_response(enemy_exhausted && leader_hp > 0 ? 1 : 0);
     log_add("Step 5 complete. " + string(attack_left) + " unused Attack remains until End Turn.");
     attack_finish_confirm = false;
     step_number = 6;
