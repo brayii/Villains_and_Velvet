@@ -31,6 +31,14 @@ function enemy_has_legal_target(_amount) {
     return false;
 }
 
+function enemy_legal_build_target_count(_amount) {
+    var count = 0;
+    for (var target_i = 0; target_i < 3; target_i++) {
+        if (enemy_target_is_legal(target_i, _amount)) count++;
+    }
+    return count;
+}
+
 function enemy_hand_target_is_legal_in_hand(_hand, _index, _amount) {
     return _index >= 0 && _index < array_length(_hand) && !is_undefined(_hand[_index])
         && _amount >= card_enemy_destruction_cost(_hand[_index]);
@@ -45,6 +53,14 @@ function enemy_has_legal_hand_target(_amount) {
         if (enemy_hand_target_is_legal(hand_i, _amount)) return true;
     }
     return false;
+}
+
+function enemy_legal_hand_target_count(_amount) {
+    var count = 0;
+    for (var hand_i = 0; hand_i < array_length(hand); hand_i++) {
+        if (enemy_hand_target_is_legal(hand_i, _amount)) count++;
+    }
+    return count;
 }
 
 function draw_full_assault_hand() {
@@ -127,9 +143,16 @@ function start_queued_attack() {
         var next_attack = queued_attacks[0];
         queued_attacks = array_remove_index(queued_attacks, 0);
         current_enemy_attack_can_hit_hand = next_attack.can_hit_hand;
+        if (!build_has_cards() && current_enemy_attack_can_hit_hand
+        && count_occupied_hand() <= 0) draw_full_assault_hand();
+        var observation_zone = !build_has_cards() && current_enemy_attack_can_hit_hand
+            ? "hand" : "build";
+        var observation_candidates = observation_zone == "hand"
+            ? enemy_legal_hand_target_count(next_attack.amount)
+            : enemy_legal_build_target_count(next_attack.amount);
+        enemy_ai_record_attack_observation(observation_zone, observation_candidates);
         if (!build_has_cards()) {
             if (current_enemy_attack_can_hit_hand) {
-                if (count_occupied_hand() <= 0) draw_full_assault_hand();
                 if (enemy_has_legal_hand_target(next_attack.amount)) {
                     enemy_attack_notice = "";
                     enemy_attack_prompt_id++;

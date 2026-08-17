@@ -2,13 +2,17 @@
 
 function vv_ai_data_defaults() {
     return {
-        ai_data_version: 1,
+        ai_data_version: 2,
         W_H: 1.0,
         conditional_exposures: 0,
         conditional_activations: 0,
         reward_ema: 0,
         auto_turn_count: 0,
         meaningful_ai_choice_count: 0,
+        attack_observation_count: 0,
+        blocked_attack_count: 0,
+        forced_attack_count: 0,
+        hand_attack_count: 0,
         games_won_auto: 0,
         games_lost_auto: 0
     };
@@ -34,7 +38,7 @@ function vv_ai_data_decode(_text) {
         if (!is_struct(loaded)
         || !variable_struct_exists(loaded, "ai_data_version")
         || (loaded.ai_data_version != defaults.ai_data_version
-            && loaded.ai_data_version != 0)) {
+            && loaded.ai_data_version != 1 && loaded.ai_data_version != 0)) {
             return result;
         }
 
@@ -65,6 +69,10 @@ function vv_ai_data_decode(_text) {
         var counter_names = [
             "auto_turn_count",
             "meaningful_ai_choice_count",
+            "attack_observation_count",
+            "blocked_attack_count",
+            "forced_attack_count",
+            "hand_attack_count",
             "games_won_auto",
             "games_lost_auto"
         ];
@@ -76,6 +84,17 @@ function vv_ai_data_decode(_text) {
                     variable_struct_set(data, field, value);
                 } else repaired = true;
             } else repaired = true;
+        }
+
+        if (data.blocked_attack_count > data.attack_observation_count
+        || data.forced_attack_count > data.attack_observation_count
+        || data.hand_attack_count > data.attack_observation_count
+        || data.blocked_attack_count + data.forced_attack_count
+            > data.attack_observation_count) {
+            data.blocked_attack_count = 0;
+            data.forced_attack_count = 0;
+            data.hand_attack_count = 0;
+            repaired = true;
         }
 
         result.valid = !repaired;
@@ -93,6 +112,10 @@ function vv_ai_data_apply(_data) {
     ai_reward_ema = _data.reward_ema;
     ai_auto_turn_count = _data.auto_turn_count;
     ai_meaningful_choice_count = _data.meaningful_ai_choice_count;
+    ai_attack_observation_count = _data.attack_observation_count;
+    ai_blocked_attack_count = _data.blocked_attack_count;
+    ai_forced_attack_count = _data.forced_attack_count;
+    ai_hand_attack_count = _data.hand_attack_count;
     ai_games_won_auto = _data.games_won_auto;
     ai_games_lost_auto = _data.games_lost_auto;
 }
@@ -106,6 +129,10 @@ function vv_ai_data_current() {
         reward_ema: ai_reward_ema,
         auto_turn_count: ai_auto_turn_count,
         meaningful_ai_choice_count: ai_meaningful_choice_count,
+        attack_observation_count: ai_attack_observation_count,
+        blocked_attack_count: ai_blocked_attack_count,
+        forced_attack_count: ai_forced_attack_count,
+        hand_attack_count: ai_hand_attack_count,
         games_won_auto: ai_games_won_auto,
         games_lost_auto: ai_games_lost_auto
     };
@@ -113,7 +140,7 @@ function vv_ai_data_current() {
 
 function vv_ai_data_init() {
     ai_data_filename = "villains_and_velvet_ai_data.json";
-    ai_data_version = 1;
+    ai_data_version = 2;
     ai_data_dirty = true;
     ai_data_dirty_frames = 0;
     ai_data_write_count = 0;
@@ -193,9 +220,17 @@ function vv_ai_data_run_self_checks() {
     valid_data.conditional_activations = 4;
     valid_data.reward_ema = -1.5;
     valid_data.auto_turn_count = 7;
+    valid_data.attack_observation_count = 12;
+    valid_data.blocked_attack_count = 2;
+    valid_data.forced_attack_count = 3;
+    valid_data.hand_attack_count = 4;
     var decoded = vv_ai_data_decode(json_stringify(valid_data));
     if (!decoded.valid || decoded.data.W_H != 2.25
-    || decoded.data.conditional_activations != 4 || decoded.data.auto_turn_count != 7) {
+    || decoded.data.conditional_activations != 4 || decoded.data.auto_turn_count != 7
+    || decoded.data.attack_observation_count != 12
+    || decoded.data.blocked_attack_count != 2
+    || decoded.data.forced_attack_count != 3
+    || decoded.data.hand_attack_count != 4) {
         return {valid:false, message:"AI data valid-load check failed"};
     }
 
@@ -210,6 +245,17 @@ function vv_ai_data_run_self_checks() {
     || decoded.data.conditional_activations != 0
     || decoded.data.games_won_auto != 6) {
         return {valid:false, message:"AI data field-repair check failed"};
+    }
+
+    var inconsistent = vv_ai_data_defaults();
+    inconsistent.attack_observation_count = 2;
+    inconsistent.blocked_attack_count = 2;
+    inconsistent.forced_attack_count = 1;
+    decoded = vv_ai_data_decode(json_stringify(inconsistent));
+    if (decoded.valid || decoded.data.attack_observation_count != 2
+    || decoded.data.blocked_attack_count != 0
+    || decoded.data.forced_attack_count != 0) {
+        return {valid:false, message:"AI attack-count repair check failed"};
     }
 
     decoded = vv_ai_data_decode("{broken");
@@ -251,6 +297,10 @@ function vv_ai_data_run_stability_self_checks() {
     stable_data.reward_ema = simulated_ema;
     stable_data.auto_turn_count = 50000;
     stable_data.meaningful_ai_choice_count = 24000;
+    stable_data.attack_observation_count = 70000;
+    stable_data.blocked_attack_count = 9000;
+    stable_data.forced_attack_count = 18000;
+    stable_data.hand_attack_count = 5000;
     stable_data.games_won_auto = 1200;
     stable_data.games_lost_auto = 1100;
     var encoded = json_stringify(stable_data);
@@ -264,6 +314,10 @@ function vv_ai_data_run_stability_self_checks() {
     || round_trip.data.W_H != stable_data.W_H
     || round_trip.data.reward_ema != stable_data.reward_ema
     || round_trip.data.meaningful_ai_choice_count != 24000
+    || round_trip.data.attack_observation_count != 70000
+    || round_trip.data.blocked_attack_count != 9000
+    || round_trip.data.forced_attack_count != 18000
+    || round_trip.data.hand_attack_count != 5000
     || vv_ai_data_should_flush(false, 999, 120)
     || vv_ai_data_should_flush(true, 119, 120)
     || !vv_ai_data_should_flush(true, 120, 120)) {
