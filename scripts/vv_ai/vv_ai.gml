@@ -1,6 +1,7 @@
 /// Deterministic Enemy AI scoring. This module ranks Build slots but does not resolve attacks.
 
 #macro ENEMY_AI_HEALTH_WEIGHT 1.0
+#macro ENEMY_AI_REWARD_EMA_BETA 0.05
 #macro ENEMY_AI_TARGET_DELAY_FRAMES 45
 #macro ENEMY_AI_RESULT_DELAY_FRAMES 30
 
@@ -48,6 +49,7 @@ function enemy_ai_reward_init_match(_enemy_deck_initial_size) {
     enemy_ai_reward_initial_deck_size = max(1, floor(_enemy_deck_initial_size));
     enemy_ai_reward_cancel_turn();
     enemy_ai_last_turn_reward = 0;
+    enemy_ai_last_advantage = 0;
 }
 
 function enemy_ai_reward_begin_player_response() {
@@ -67,6 +69,15 @@ _turn_active, _auto_enabled, _snapshot_turn, _current_turn) {
     return _turn_active && _auto_enabled && _snapshot_turn == _current_turn;
 }
 
+function enemy_ai_reward_ema_transition(_old_ema, _reward) {
+    return {
+        old_ema: _old_ema,
+        advantage: _reward - _old_ema,
+        new_ema: (1 - ENEMY_AI_REWARD_EMA_BETA) * _old_ema
+            + ENEMY_AI_REWARD_EMA_BETA * _reward
+    };
+}
+
 /// _terminal_result: +1 Enemy win, -1 Enemy loss, 0 non-terminal.
 function enemy_ai_reward_finish_player_response(_terminal_result) {
     if (!enemy_ai_reward_measurement_is_eligible(enemy_ai_reward_turn_active,
@@ -77,7 +88,15 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
     var result = enemy_ai_calculate_turn_reward(
         enemy_ai_reward_hp_before, leader_hp, array_length(enemy_deck),
         enemy_ai_reward_initial_deck_size, _terminal_result);
+    var ema_update = enemy_ai_reward_ema_transition(ai_reward_ema, result.reward);
     enemy_ai_last_turn_reward = result.reward;
+    enemy_ai_last_advantage = ema_update.advantage;
+    ai_reward_ema = ema_update.new_ema;
+    ai_auto_turn_count++;
+    if (_terminal_result > 0) ai_games_won_auto++;
+    else if (_terminal_result < 0) ai_games_lost_auto++;
+    ai_data_dirty = true;
+    vv_ai_data_save_if_dirty();
     show_debug_message("ENEMY AI REWARD | turn=" + string(turn_number)
         + " | hp_before=" + string(enemy_ai_reward_hp_before)
         + " | hp_end=" + string(leader_hp)
@@ -87,7 +106,11 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
         + "/" + string(enemy_ai_reward_initial_deck_size)
         + " | deck_ratio=" + string(result.deck_ratio)
         + " | terminal=" + string(_terminal_result)
-        + " | reward=" + string(result.reward));
+        + " | reward=" + string(result.reward)
+        + " | ema_old=" + string(ema_update.old_ema)
+        + " | advantage=" + string(ema_update.advantage)
+        + " | ema_new=" + string(ema_update.new_ema)
+        + " | auto_turns=" + string(ai_auto_turn_count));
     enemy_ai_reward_cancel_turn();
     return true;
 }
@@ -855,6 +878,8 @@ function enemy_ai_run_reward_self_checks() {
     var no_damage = enemy_ai_calculate_turn_reward(100, 110, 8, 32, 0);
     var enemy_win = enemy_ai_calculate_turn_reward(100, 20, 0, 32, 1);
     var enemy_loss = enemy_ai_calculate_turn_reward(100, 0, 20, 32, -1);
+    var ema_update = enemy_ai_reward_ema_transition(0.4, -0.6);
+    var terminal_update = enemy_ai_reward_ema_transition(0, 2);
     if (!enemy_ai_scores_are_close(normal.leader_damage, 20)
     || !enemy_ai_scores_are_close(normal.damage_fraction, 0.2)
     || !enemy_ai_scores_are_close(normal.deck_ratio, 0.5)
@@ -862,6 +887,10 @@ function enemy_ai_run_reward_self_checks() {
     || !enemy_ai_scores_are_close(no_damage.reward, 0)
     || !enemy_ai_scores_are_close(enemy_win.reward, 2)
     || !enemy_ai_scores_are_close(enemy_loss.reward, -2)
+    || !enemy_ai_scores_are_close(ema_update.advantage, -1)
+    || !enemy_ai_scores_are_close(ema_update.new_ema, 0.35)
+    || !enemy_ai_scores_are_close(terminal_update.advantage, 2)
+    || !enemy_ai_scores_are_close(terminal_update.new_ema, 0.1)
     || !enemy_ai_reward_measurement_is_eligible(true, true, 4, 4)
     || enemy_ai_reward_measurement_is_eligible(true, false, 4, 4)
     || enemy_ai_reward_measurement_is_eligible(false, true, 4, 4)
