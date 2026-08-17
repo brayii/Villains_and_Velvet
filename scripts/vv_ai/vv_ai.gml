@@ -206,6 +206,8 @@ function enemy_ai_cancel_pending_targeting() {
     enemy_ai_pending_prompt_id = -1;
     enemy_ai_pending_attack = 0;
     enemy_ai_pending_source = "";
+    enemy_ai_result_heading = "";
+    enemy_ai_result_text = "";
 }
 
 function enemy_ai_pending_target_is_current() {
@@ -248,10 +250,18 @@ function enemy_ai_submit_current_target() {
         return false;
     }
     var selected_slot = enemy_ai_selected_slot;
+    var submitted_prompt_id = enemy_ai_pending_prompt_id;
     enemy_ai_cancel_pending_targeting();
     var submitted = command_prompt_build(selected_slot);
     enemy_ai_visual_stage = "result";
     enemy_ai_visual_timer = ENEMY_AI_RESULT_DELAY_FRAMES;
+    if (prompt_mode == "enemy_attack" && enemy_attack_prompt_id == submitted_prompt_id) {
+        enemy_ai_result_heading = "CARD DESTROYED";
+        enemy_ai_result_text = string(prompt_value) + " Attack remains.\nThe same attack continues.";
+    } else {
+        enemy_ai_result_heading = "ATTACK COMPLETE";
+        enemy_ai_result_text = "The attack has finished.";
+    }
     return submitted;
 }
 

@@ -281,13 +281,14 @@ function resolve_minion_entry(_minion) {
 }
 
 function resolve_leader_strike(_card) {
-    log_add("Enemy Draw: " + _card.name + ".");
+    var draw_source = "Enemy Draw #" + string(revealed_enemy_draw_number) + " — " + _card.name;
+    log_add(draw_source + ".");
     var resolved = true;
     for (var effect_i = 0; effect_i < array_length(_card.effects); effect_i++) {
         var effect = _card.effects[effect_i];
         switch (effect.id) {
             case EFFECT_LEADER_BASIC_ATTACK:
-                queue_enemy_attack(enemy_leader.attack, _card.name);
+                queue_enemy_attack(enemy_leader.attack, draw_source);
                 break;
             default:
                 resolved = false;
@@ -300,14 +301,15 @@ function resolve_leader_strike(_card) {
 }
 
 function resolve_twist(_card) {
-    log_add("Enemy Draw: " + _card.name + ".");
+    var draw_source = "Enemy Draw #" + string(revealed_enemy_draw_number) + " — " + _card.name;
+    log_add(draw_source + ".");
     var resolved = true;
     for (var effect_i = 0; effect_i < array_length(_card.effects); effect_i++) {
         var effect = _card.effects[effect_i];
         switch (effect.id) {
             case EFFECT_AREA_2_ATTACK:
                 if (!is_undefined(minions[0])) {
-                    queue_enemy_attack(minions[0].atk, _card.name + ": " + minions[0].name);
+                    queue_enemy_attack(minions[0].atk, draw_source + ": " + minions[0].name);
                 } else {
                     log_add("Area 2 is empty; " + _card.name + " has no effect.");
                 }
@@ -326,6 +328,7 @@ function draw_next_enemy_card() {
     step_number = 3;
     phase = "start_resolving";
     revealed_enemy_card = undefined;
+    revealed_enemy_draw_number = 0;
     enemy_attack_notice = "";
     if (array_length(enemy_deck) == 0) {
         enemy_exhausted = true;
@@ -336,21 +339,25 @@ function draw_next_enemy_card() {
         validate_state("Enemy Deck exhausted");
         return;
     }
+    enemy_draw_number++;
     var enemy_card = array_pop(enemy_deck);
     if (array_length(enemy_deck) == 0) enemy_exhausted = true;
     if (enemy_card.card_type == "strike") {
         revealed_enemy_card = enemy_card;
+        revealed_enemy_draw_number = enemy_draw_number;
         array_push(enemy_used, enemy_card);
         resolve_leader_strike(enemy_card);
         resume_action = "continue_enemy_draw";
         resume_after_prompts();
     } else if (enemy_card.card_type == "twist") {
         revealed_enemy_card = enemy_card;
+        revealed_enemy_draw_number = enemy_draw_number;
         array_push(enemy_used, enemy_card);
         resolve_twist(enemy_card);
         resume_action = "continue_enemy_draw";
         resume_after_prompts();
     } else {
+        log_add("Enemy Draw #" + string(enemy_draw_number) + " — " + enemy_card.name + ".");
         minions[1] = enemy_card;
         resolve_minion_entry(enemy_card);
     }

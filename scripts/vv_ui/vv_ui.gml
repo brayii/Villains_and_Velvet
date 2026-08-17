@@ -838,7 +838,8 @@ draw_roundrect(leader_rect.x, leader_rect.y, leader_rect.x + leader_rect.w, lead
 draw_center("AREA 2", 645, 17, COL_GOLD);
 draw_center("ESCAPES WHEN PUSHED", 645, 36, COL_MUTED);
 if (!is_undefined(revealed_enemy_card)) {
-    draw_center(revealed_enemy_card.card_type == "strike" ? "LEADER STRIKE" : "TWIST", 865, 17, COL_GOLD);
+    draw_center("ENEMY DRAW #" + string(revealed_enemy_draw_number) + " — "
+        + (revealed_enemy_card.card_type == "strike" ? "LEADER STRIKE" : "TWIST"), 865, 17, COL_GOLD);
     draw_center(revealed_enemy_card.name, 865, 36, COL_TEXT);
 } else {
     draw_center("AREA 1", 865, 17, COL_GOLD);
@@ -897,7 +898,7 @@ else if (phase == "step1_ready") instruction = turn_number == 1
     ? "Tap START TURN to draw three cards."
     : "Tap START NEXT TURN to draw three cards.";
 else if (phase == "step2_ready") instruction = "Minions advance and escape.";
-else if (phase == "step3_ready" || phase == "enemy_continue_wait") instruction = "Draw and resolve Enemy cards. New Minions attack the Build Area.";
+else if (phase == "step3_ready") instruction = "Draw and resolve Enemy cards. New Minions attack the Build Area.";
 else if (phase == "step4_ready") instruction = "Build phase is opening.";
 else if (phase == "start_resolving") instruction = step_number == 2
     ? "Resolving Minion movement and escapes..."
@@ -921,15 +922,17 @@ else if (phase == "attack_complete_wait") instruction = attack_notice_text;
 else if (phase == "step5_ready") instruction = "Calculating your Attack...";
 else if (phase == "step6_ready") instruction = "Discarding the cards left in your Hand...";
 else if (phase == "end_ready") instruction = "Ending your turn...";
+else if (phase == "enemy_event_reveal_wait") instruction = "Enemy Event resolved.\nAnother Enemy card must be drawn.";
+else if (phase == "enemy_event_gap_wait") instruction = "Drawing the next Enemy card...";
 if (prompt_mode == "enemy_attack") {
-    instruction = prompt_source + "\nAttack: " + string(prompt_value) + "\n"
+    instruction = prompt_source + "\nAttack remaining: " + string(prompt_value) + "\n"
         + (enemy_auto_play && enemy_ai_visual_stage == "targeting"
             ? "Target: " + build[enemy_ai_selected_slot].name
             : (enemy_auto_play ? "Enemy is choosing a target."
             : (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat.")));
 }
 if (enemy_auto_play && enemy_ai_visual_stage == "result") {
-    instruction = "ATTACK RESOLVED\nReview the Build Area.";
+    instruction = enemy_ai_result_heading + "\n" + enemy_ai_result_text;
 }
 if (prompt_mode != "") {
     instruction += enemy_auto_play && prompt_mode == "enemy_attack"

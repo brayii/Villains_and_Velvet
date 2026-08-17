@@ -635,6 +635,8 @@ function reset_game() {
     build = [undefined, undefined, undefined];
     minions = [undefined, undefined]; // 0 = Area 2, 1 = Area 1
     revealed_enemy_card = undefined;
+    enemy_draw_number = 0;
+    revealed_enemy_draw_number = 0;
     selected_hand = -1;
     selected_build = -1;
     attack_left = 0;

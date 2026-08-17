@@ -1,5 +1,8 @@
 /// Seven-step turn coordination and automatic phase timing.
 
+#macro ENEMY_EVENT_REVEAL_FRAMES 50
+#macro ENEMY_EVENT_GAP_FRAMES 20
+
 function resume_after_prompts() {
     if (prompt_mode != "") return;
     if (start_queued_attack()) return;
@@ -22,8 +25,8 @@ function resume_after_prompts() {
         auto_timer = 50;
         log_add("Next: Enemy Draw.");
     } else if (action == "continue_enemy_draw") {
-        phase = "enemy_continue_wait";
-        auto_timer = 50;
+        phase = "enemy_event_reveal_wait";
+        auto_timer = ENEMY_EVENT_REVEAL_FRAMES;
     } else if (action == "finish_enemy") {
         step_number = 4;
         phase = "step4_ready";
@@ -177,7 +180,12 @@ function vv_turn_update() {
     if (auto_timer > 0 && prompt_mode == "" && !game_over) {
         auto_timer--;
         if (auto_timer == 0) {
-            if (phase == "enemy_continue_wait") draw_next_enemy_card();
+            if (phase == "enemy_event_reveal_wait") {
+                revealed_enemy_card = undefined;
+                revealed_enemy_draw_number = 0;
+                phase = "enemy_event_gap_wait";
+                auto_timer = ENEMY_EVENT_GAP_FRAMES;
+            } else if (phase == "enemy_event_gap_wait") draw_next_enemy_card();
             else if (phase == "attack_complete_wait") complete_attack_step();
             else command_action();
         }
