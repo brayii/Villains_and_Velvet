@@ -122,6 +122,8 @@ Experimental Health-weight learning records a temporary decision only when Auto 
 
 Gameplay randomness and AI exploration use separate deterministic random-number states. Deck shuffling and discard recycling consume only `gameplay_rng`; future exploratory target selection consumes only `ai_exploration_rng`. Their seeds can be reset independently, so changing or consuming the exploration stream cannot alter deck order or any later gameplay random result.
 
+Auto targeting uses bounded exploration on five percent of decisions that have multiple near-equal options. The exploration pool contains only currently legal, destroyable targets whose score is no more than one point below the best legal target. Manual targeting and forced single-target attacks never consume exploration randomness.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior

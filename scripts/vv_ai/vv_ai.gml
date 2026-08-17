@@ -3,6 +3,8 @@
 #macro ENEMY_AI_HEALTH_WEIGHT 1.0
 #macro ENEMY_AI_HEALTH_LEARNING_RATE 0.02
 #macro ENEMY_AI_REWARD_EMA_BETA 0.05
+#macro ENEMY_AI_EXPLORATION_RATE 0.05
+#macro ENEMY_AI_EXPLORATION_MARGIN 1.0
 #macro ENEMY_AI_TARGET_DELAY_FRAMES 45
 #macro ENEMY_AI_RESULT_DELAY_FRAMES 30
 
@@ -11,6 +13,8 @@ function enemy_ai_baseline_init() {
     gameplay_rng = vv_rng_create(irandom(2147483645));
     ai_exploration_seed = 104729;
     ai_exploration_rng = vv_rng_create(ai_exploration_seed);
+    enemy_ai_exploration_opportunities = 0;
+    enemy_ai_exploration_triggers = 0;
     enemy_ai_baseline_totals = {
         matches: 0,
         enemy_wins: 0,
@@ -527,9 +531,40 @@ function enemy_ai_choose_target_with_weights(_current_state, _conditional_weight
     return -1;
 }
 
+function enemy_ai_near_equal_valid_targets(_current_state, _ranked, _margin) {
+    var result = [];
+    var top_score = undefined;
+    for (var rank_i = 0; rank_i < array_length(_ranked); rank_i++) {
+        var candidate = _ranked[rank_i];
+        if (!enemy_target_is_legal_in_build(_current_state.build_snapshot,
+        candidate.slot, _current_state.attack_remaining)) continue;
+        if (is_undefined(top_score)) top_score = candidate.score;
+        if (candidate.score >= top_score - _margin) array_push(result, candidate);
+    }
+    return result;
+}
+
 function enemy_ai_choose_target(_current_state) {
-    return enemy_ai_choose_target_with_weights(_current_state,
+    if (!is_struct(_current_state)
+    || !variable_struct_exists(_current_state, "build_snapshot")
+    || !is_array(_current_state.build_snapshot)
+    || !variable_struct_exists(_current_state, "attack_remaining")
+    || !is_real(_current_state.attack_remaining)
+    || _current_state.attack_remaining < 0) return -1;
+
+    var ranked = enemy_ai_rank_build_with_weights(_current_state.build_snapshot,
         enemy_ai_conditional_weight(), enemy_ai_health_weight());
+    var near_equal = enemy_ai_near_equal_valid_targets(
+        _current_state, ranked, ENEMY_AI_EXPLORATION_MARGIN);
+    if (array_length(near_equal) == 0) return -1;
+    if (!enemy_auto_play || array_length(near_equal) == 1) return near_equal[0].slot;
+
+    enemy_ai_exploration_opportunities++;
+    if (enemy_ai_exploration_random() >= ENEMY_AI_EXPLORATION_RATE) {
+        return near_equal[0].slot;
+    }
+    enemy_ai_exploration_triggers++;
+    return near_equal[enemy_ai_exploration_irandom(array_length(near_equal) - 1)].slot;
 }
 
 function enemy_ai_cancel_pending_targeting() {
@@ -1029,6 +1064,60 @@ function enemy_ai_run_rng_self_checks() {
     || vv_rng_irandom(vv_rng_create(42), 0) != 0) {
         return content_validation_result(false,
             "Enemy AI independent RNG state check failed.");
+    }
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_exploration_self_checks() {
+    if (!enemy_ai_scores_are_close(ENEMY_AI_EXPLORATION_RATE, 0.05)
+    || !enemy_ai_scores_are_close(ENEMY_AI_EXPLORATION_MARGIN, 1.0)) {
+        return content_validation_result(false,
+            "Enemy AI exploration constants are invalid.");
+    }
+
+    var best = card_player("explore_best", "Best", "Normal", 1, 2, [], "", "", 0);
+    var boundary = card_player("explore_boundary", "Boundary", "Normal", 1, 3, [], "", "", 0);
+    var undestroyable = card_player("explore_wall", "Wall", "Normal", 1, 6, [], "", "", 0);
+    var inferior = card_player("explore_inferior", "Inferior", "Normal", 1, 4, [], "", "", 0);
+    var state = {
+        build_snapshot: [best, boundary, undestroyable, inferior],
+        attack_remaining: 5
+    };
+    var ranked = [
+        {slot:0, score:10},
+        {slot:2, score:9.8},
+        {slot:1, score:9},
+        {slot:3, score:8.99}
+    ];
+    var near_equal = enemy_ai_near_equal_valid_targets(
+        state, ranked, ENEMY_AI_EXPLORATION_MARGIN);
+    if (array_length(near_equal) != 2
+    || near_equal[0].slot != 0 || near_equal[1].slot != 1) {
+        return content_validation_result(false,
+            "Enemy AI bounded exploration pool check failed.");
+    }
+
+    var guard = card_player("explore_guard", "Guard", "Ability", 1, 4,
+        [ability_entry(ABILITY_GUARD, "Guard", "", {})], "", "", 0);
+    state.build_snapshot = [best, boundary, guard];
+    ranked = [{slot:0, score:10}, {slot:1, score:9.5}, {slot:2, score:8}];
+    near_equal = enemy_ai_near_equal_valid_targets(
+        state, ranked, ENEMY_AI_EXPLORATION_MARGIN);
+    if (array_length(near_equal) != 1 || near_equal[0].slot != 2) {
+        return content_validation_result(false,
+            "Enemy AI exploration priority-target check failed.");
+    }
+
+    var trial_rng = vv_rng_create(1618033);
+    var trials = 20000;
+    var triggered = 0;
+    for (var trial_i = 0; trial_i < trials; trial_i++) {
+        if (vv_rng_random(trial_rng) < ENEMY_AI_EXPLORATION_RATE) triggered++;
+    }
+    var observed_rate = triggered / trials;
+    if (observed_rate < 0.04 || observed_rate > 0.06) {
+        return content_validation_result(false,
+            "Enemy AI exploration frequency check failed.");
     }
     return content_validation_result(true, "");
 }
