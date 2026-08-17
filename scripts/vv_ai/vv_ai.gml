@@ -17,7 +17,11 @@ function enemy_ai_baseline_init() {
         conditional_attack_removed: 0,
         cards_destroyed: 0,
         greedy_regret: 0,
-        oracle_checks: 0
+        oracle_checks: 0,
+        comparison_states: 0,
+        comparison_differences: 0,
+        fixed_conditional_regret: 0,
+        learned_conditional_regret: 0
     };
     enemy_ai_baseline_match_active = false;
     enemy_ai_baseline_attack_active = false;
@@ -115,7 +119,11 @@ function enemy_ai_baseline_begin_match() {
         conditional_attack_removed: 0,
         cards_destroyed: 0,
         greedy_regret: 0,
-        oracle_checks: 0
+        oracle_checks: 0,
+        comparison_states: 0,
+        comparison_differences: 0,
+        fixed_conditional_regret: 0,
+        learned_conditional_regret: 0
     };
 }
 
@@ -128,10 +136,18 @@ function enemy_ai_baseline_begin_attack(_build_snapshot, _attack_amount) {
     enemy_ai_baseline_attack_active = false;
     if (!enemy_ai_baseline_match_active || !enemy_auto_play) return;
     var comparison = enemy_ai_oracle_compare(_build_snapshot, _attack_amount);
+    var conditional_comparison = enemy_ai_compare_conditional_policies(
+        _build_snapshot, _attack_amount);
     enemy_ai_baseline_attack_active = true;
     enemy_ai_baseline_match.enemy_attacks++;
     enemy_ai_baseline_match.greedy_regret += comparison.greedy_regret;
     enemy_ai_baseline_match.oracle_checks++;
+    enemy_ai_baseline_match.comparison_states++;
+    if (conditional_comparison.sequences_differ) {
+        enemy_ai_baseline_match.comparison_differences++;
+    }
+    enemy_ai_baseline_match.fixed_conditional_regret += conditional_comparison.fixed_regret;
+    enemy_ai_baseline_match.learned_conditional_regret += conditional_comparison.learned_regret;
 }
 
 function enemy_ai_baseline_record_destroyed_card(_build_snapshot, _slot) {
@@ -176,6 +192,10 @@ function enemy_ai_baseline_finish_match(_enemy_won) {
     totals.cards_destroyed += enemy_ai_baseline_match.cards_destroyed;
     totals.greedy_regret += enemy_ai_baseline_match.greedy_regret;
     totals.oracle_checks += enemy_ai_baseline_match.oracle_checks;
+    totals.comparison_states += enemy_ai_baseline_match.comparison_states;
+    totals.comparison_differences += enemy_ai_baseline_match.comparison_differences;
+    totals.fixed_conditional_regret += enemy_ai_baseline_match.fixed_conditional_regret;
+    totals.learned_conditional_regret += enemy_ai_baseline_match.learned_conditional_regret;
 
     var win_rate = totals.matches > 0 ? totals.enemy_wins / totals.matches : 0;
     var damage_per_turn = totals.turns > 0 ? totals.leader_damage / totals.turns : 0;
@@ -183,6 +203,10 @@ function enemy_ai_baseline_finish_match(_enemy_won) {
         ? totals.cards_destroyed / totals.enemy_attacks : 0;
     var average_regret = totals.oracle_checks > 0
         ? totals.greedy_regret / totals.oracle_checks : 0;
+    var fixed_conditional_regret = totals.comparison_states > 0
+        ? totals.fixed_conditional_regret / totals.comparison_states : 0;
+    var learned_conditional_regret = totals.comparison_states > 0
+        ? totals.learned_conditional_regret / totals.comparison_states : 0;
     show_debug_message("ENEMY AI BASELINE | seed=" + string(gameplay_seed)
         + " | matches=" + string(totals.matches)
         + " | enemy_win_rate=" + string(win_rate)
@@ -191,7 +215,12 @@ function enemy_ai_baseline_finish_match(_enemy_won) {
         + " | guaranteed_attack_removed=" + string(totals.guaranteed_attack_removed)
         + " | conditional_attack_removed=" + string(totals.conditional_attack_removed)
         + " | cards_per_attack=" + string(cards_per_attack)
-        + " | average_greedy_regret=" + string(average_regret));
+        + " | average_greedy_regret=" + string(average_regret)
+        + " | learned_W_C=" + string(enemy_ai_conditional_weight())
+        + " | comparison_states=" + string(totals.comparison_states)
+        + " | different_sequences=" + string(totals.comparison_differences)
+        + " | fixed_W_C_regret=" + string(fixed_conditional_regret)
+        + " | learned_W_C_regret=" + string(learned_conditional_regret));
 }
 
 function enemy_ai_start_seeded_playtest(_seed) {
@@ -239,13 +268,13 @@ function enemy_ai_candidate_ranks_before(_left, _right) {
     return _left.slot < _right.slot;
 }
 
-function enemy_ai_rank_build(_build_snapshot) {
+function enemy_ai_rank_build_with_weights(_build_snapshot, _conditional_weight, _health_weight) {
     var evaluation_before = evaluate_build(_build_snapshot);
     var ranked = [];
     for (var slot_i = 0; slot_i < array_length(_build_snapshot); slot_i++) {
         if (is_undefined(_build_snapshot[slot_i])) continue;
         var candidate = enemy_ai_score_candidate(evaluation_before, _build_snapshot, slot_i,
-            enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+            _conditional_weight, _health_weight);
         var inserted = false;
         for (var rank_i = 0; rank_i < array_length(ranked); rank_i++) {
             if (enemy_ai_candidate_ranks_before(candidate, ranked[rank_i])) {
@@ -259,7 +288,12 @@ function enemy_ai_rank_build(_build_snapshot) {
     return ranked;
 }
 
-function enemy_ai_choose_target(_current_state) {
+function enemy_ai_rank_build(_build_snapshot) {
+    return enemy_ai_rank_build_with_weights(_build_snapshot,
+        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
+}
+
+function enemy_ai_choose_target_with_weights(_current_state, _conditional_weight, _health_weight) {
     if (!is_struct(_current_state)
     || !variable_struct_exists(_current_state, "build_snapshot")
     || !is_array(_current_state.build_snapshot)
@@ -267,13 +301,19 @@ function enemy_ai_choose_target(_current_state) {
     || !is_real(_current_state.attack_remaining)
     || _current_state.attack_remaining < 0) return -1;
 
-    var ranked = enemy_ai_rank_build(_current_state.build_snapshot);
+    var ranked = enemy_ai_rank_build_with_weights(_current_state.build_snapshot,
+        _conditional_weight, _health_weight);
     for (var rank_i = 0; rank_i < array_length(ranked); rank_i++) {
         var slot = ranked[rank_i].slot;
         if (enemy_target_is_legal_in_build(_current_state.build_snapshot, slot,
         _current_state.attack_remaining)) return slot;
     }
     return -1;
+}
+
+function enemy_ai_choose_target(_current_state) {
+    return enemy_ai_choose_target_with_weights(_current_state,
+        enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
 }
 
 function enemy_ai_cancel_pending_targeting() {
@@ -370,13 +410,19 @@ function enemy_ai_update_auto_targeting() {
 }
 
 // Development-only oracle helpers. Production Auto targeting never calls these functions.
-function enemy_ai_oracle_sequence_value(_initial_evaluation, _final_snapshot) {
+function enemy_ai_oracle_sequence_value_with_weight(
+_initial_evaluation, _final_snapshot, _conditional_weight) {
     var final_evaluation = evaluate_build(_final_snapshot);
     var guaranteed_removed = _initial_evaluation.guaranteed_attack
         - final_evaluation.guaranteed_attack;
     var conditional_removed = _initial_evaluation.conditional_attack
         - final_evaluation.conditional_attack;
-    return guaranteed_removed + enemy_ai_conditional_weight() * conditional_removed;
+    return guaranteed_removed + _conditional_weight * conditional_removed;
+}
+
+function enemy_ai_oracle_sequence_value(_initial_evaluation, _final_snapshot) {
+    return enemy_ai_oracle_sequence_value_with_weight(
+        _initial_evaluation, _final_snapshot, enemy_ai_conditional_weight());
 }
 
 function enemy_ai_copy_sequence(_source_sequence) {
@@ -395,7 +441,8 @@ function enemy_ai_oracle_sequence_ranks_before(_left, _right) {
     return array_length(_left) < array_length(_right);
 }
 
-function enemy_ai_oracle_search(_initial_evaluation, _build_snapshot, _attack_remaining, _sequence) {
+function enemy_ai_oracle_search_with_weight(
+_initial_evaluation, _build_snapshot, _attack_remaining, _sequence, _conditional_weight) {
     var best_result = undefined;
     for (var slot_i = 0; slot_i < array_length(_build_snapshot); slot_i++) {
         if (!enemy_target_is_legal_in_build(_build_snapshot, slot_i, _attack_remaining)) continue;
@@ -403,8 +450,8 @@ function enemy_ai_oracle_search(_initial_evaluation, _build_snapshot, _attack_re
         var next_snapshot = copy_build_without_slot(_build_snapshot, slot_i);
         var next_sequence = enemy_ai_copy_sequence(_sequence);
         array_push(next_sequence, slot_i);
-        var candidate = enemy_ai_oracle_search(_initial_evaluation, next_snapshot,
-            next_attack, next_sequence);
+        var candidate = enemy_ai_oracle_search_with_weight(_initial_evaluation, next_snapshot,
+            next_attack, next_sequence, _conditional_weight);
         if (is_undefined(best_result)
         || candidate.sequence_value > best_result.sequence_value
         || (enemy_ai_scores_are_close(candidate.sequence_value, best_result.sequence_value)
@@ -415,22 +462,29 @@ function enemy_ai_oracle_search(_initial_evaluation, _build_snapshot, _attack_re
     if (!is_undefined(best_result)) return best_result;
     return {
         sequence: enemy_ai_copy_sequence(_sequence),
-        sequence_value: enemy_ai_oracle_sequence_value(_initial_evaluation, _build_snapshot),
+        sequence_value: enemy_ai_oracle_sequence_value_with_weight(
+            _initial_evaluation, _build_snapshot, _conditional_weight),
         final_snapshot: copy_build_snapshot(_build_snapshot),
         attack_remaining: _attack_remaining
     };
 }
 
-function enemy_ai_oracle_greedy_sequence(_build_snapshot, _attack_remaining) {
+function enemy_ai_oracle_search(_initial_evaluation, _build_snapshot, _attack_remaining, _sequence) {
+    return enemy_ai_oracle_search_with_weight(_initial_evaluation, _build_snapshot,
+        _attack_remaining, _sequence, enemy_ai_conditional_weight());
+}
+
+function enemy_ai_oracle_greedy_sequence_with_weights(
+_build_snapshot, _attack_remaining, _policy_conditional_weight, _value_conditional_weight) {
     var initial_evaluation = evaluate_build(_build_snapshot);
     var simulated_build = copy_build_snapshot(_build_snapshot);
     var simulated_attack = _attack_remaining;
     var sequence = [];
     while (true) {
-        var selected_slot = enemy_ai_choose_target({
+        var selected_slot = enemy_ai_choose_target_with_weights({
             build_snapshot: simulated_build,
             attack_remaining: simulated_attack
-        });
+        }, _policy_conditional_weight, ENEMY_AI_HEALTH_WEIGHT);
         if (selected_slot < 0) break;
         simulated_attack -= simulated_build[selected_slot].hp;
         simulated_build = copy_build_without_slot(simulated_build, selected_slot);
@@ -438,10 +492,17 @@ function enemy_ai_oracle_greedy_sequence(_build_snapshot, _attack_remaining) {
     }
     return {
         sequence: sequence,
-        sequence_value: enemy_ai_oracle_sequence_value(initial_evaluation, simulated_build),
+        sequence_value: enemy_ai_oracle_sequence_value_with_weight(
+            initial_evaluation, simulated_build, _value_conditional_weight),
         final_snapshot: simulated_build,
         attack_remaining: simulated_attack
     };
+}
+
+function enemy_ai_oracle_greedy_sequence(_build_snapshot, _attack_remaining) {
+    var conditional_weight = enemy_ai_conditional_weight();
+    return enemy_ai_oracle_greedy_sequence_with_weights(_build_snapshot, _attack_remaining,
+        conditional_weight, conditional_weight);
 }
 
 function enemy_ai_oracle_compare(_build_snapshot, _attack_remaining) {
@@ -457,6 +518,42 @@ function enemy_ai_oracle_compare(_build_snapshot, _attack_remaining) {
         best_exhaustive_sequence_value: exhaustive_result.sequence_value,
         greedy_regret: exhaustive_result.sequence_value - greedy_result.sequence_value
     };
+}
+
+function enemy_ai_sequences_match(_left, _right) {
+    if (array_length(_left) != array_length(_right)) return false;
+    for (var sequence_i = 0; sequence_i < array_length(_left); sequence_i++) {
+        if (_left[sequence_i] != _right[sequence_i]) return false;
+    }
+    return true;
+}
+
+function enemy_ai_compare_conditional_policies_with_weight(
+_build_snapshot, _attack_remaining, _learned_weight) {
+    var learned_weight = clamp(_learned_weight, 0, 1);
+    var initial_evaluation = evaluate_build(_build_snapshot);
+    var exhaustive = enemy_ai_oracle_search_with_weight(initial_evaluation,
+        copy_build_snapshot(_build_snapshot), _attack_remaining, [], learned_weight);
+    var fixed = enemy_ai_oracle_greedy_sequence_with_weights(_build_snapshot,
+        _attack_remaining, 0.5, learned_weight);
+    var learned = enemy_ai_oracle_greedy_sequence_with_weights(_build_snapshot,
+        _attack_remaining, learned_weight, learned_weight);
+    return {
+        learned_weight: learned_weight,
+        fixed_sequence: fixed.sequence,
+        learned_sequence: learned.sequence,
+        sequences_differ: !enemy_ai_sequences_match(fixed.sequence, learned.sequence),
+        fixed_value: fixed.sequence_value,
+        learned_value: learned.sequence_value,
+        best_value: exhaustive.sequence_value,
+        fixed_regret: max(0, exhaustive.sequence_value - fixed.sequence_value),
+        learned_regret: max(0, exhaustive.sequence_value - learned.sequence_value)
+    };
+}
+
+function enemy_ai_compare_conditional_policies(_build_snapshot, _attack_remaining) {
+    return enemy_ai_compare_conditional_policies_with_weight(
+        _build_snapshot, _attack_remaining, enemy_ai_conditional_weight());
 }
 
 function enemy_ai_scores_are_close(_left, _right) {
@@ -671,6 +768,18 @@ function enemy_ai_run_conditional_learning_self_checks(_hero_definitions) {
     if (activated.exposures != 7 || activated.activations != 4
     || not_activated.exposures != 7 || not_activated.activations != 2) {
         return content_validation_result(false, "Enemy AI conditional observation check failed.");
+    }
+    var immediate_card = card_player("baseline_immediate", "Immediate", "Normal",
+        6, 3, [], "", "", 0);
+    var conditional_card = card_player("baseline_conditional", "Conditional", "Ability",
+        4, 2, [ability_entry(ABILITY_RELENTLESS, "Conditional Test", "", {amount:3})],
+        "", "", 0);
+    var comparison = enemy_ai_compare_conditional_policies_with_weight(
+        [immediate_card, conditional_card, undefined], 3, 0.1);
+    if (!comparison.sequences_differ || comparison.fixed_sequence[0] != 1
+    || comparison.learned_sequence[0] != 0 || comparison.learned_regret != 0
+    || comparison.fixed_regret <= 0) {
+        return content_validation_result(false, "Enemy AI fixed/learned baseline comparison check failed.");
     }
     return content_validation_result(true, "");
 }
