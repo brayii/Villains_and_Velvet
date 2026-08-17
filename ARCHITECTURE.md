@@ -102,6 +102,8 @@ The normal setup view shows a short event summary. The settings gear opens the p
 
 Rules that need a player choice set `prompt_mode`, `prompt_value`, and `prompt_source`, then return. The UI highlights only legal targets. After a valid command clears the prompt, `resume_after_prompts()` continues queued Enemy attacks or the suspended turn action. New prompt-producing rules must preserve this pause-and-resume pattern.
 
+Advance/Escape captures the Area 1 Minion before resolving the displaced Area 2 Minion's Escape effects. Immediate effects, player-choice effects, and queued Overflow Attacks all return to the same single continuation, which moves that captured Area 1 Minion into Area 2 exactly once. An Area 2 Minion remains in place when Area 1 is empty.
+
 Auto enemy targeting uses a short presentation state machine. It captures the prompt identity, Attack amount, source, selected slot, and selected card before displaying the choice. Submission occurs only if all captured values still match the live prompt and the target remains legal. Pausing, quitting, restarting, ending the match, changing targeting mode, or replacing the prompt cancels the pending selection. A separate result delay keeps consecutive attacks visually distinct.
 
 Enemy draws have a match-local sequence number. Leader Strikes and Twists include that number in their board heading, attack source, and event log. After an event finishes, its card clears for a short visible gap before the next Enemy draw. When one attack destroys multiple Build cards, Auto explicitly reports that Attack remains and that the same attack is continuing; a new numbered draw or separately labelled attack is therefore visually distinct.

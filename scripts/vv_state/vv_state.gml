@@ -652,6 +652,8 @@ function reset_game() {
     enemy_ai_cancel_pending_targeting();
     enemy_attack_notice = "";
     resume_action = "";
+    advance_incoming_minion = undefined;
+    advance_escape_pending = false;
     queued_attacks = [];
     entry_minion = undefined;
     entry_ability_index = 0;

@@ -9,21 +9,22 @@ function resume_after_prompts() {
     var action = resume_action;
     resume_action = "";
     if (action == "finish_advance") {
-        if (!is_undefined(minions[0]) && !is_undefined(minions[1])) {
-            retire_minion(0, "finishes escaping");
-            minions[0] = minions[1];
-            minions[1] = undefined;
-            log_add(minions[0].name + " advances to Area 2.");
-        } else if (is_undefined(minions[0]) && !is_undefined(minions[1])) {
-            minions[0] = minions[1];
+        if (!is_undefined(advance_incoming_minion)) {
+            if (advance_escape_pending && !is_undefined(minions[0])) {
+                retire_minion(0, "finishes escaping");
+            }
+            minions[0] = advance_incoming_minion;
             minions[1] = undefined;
             log_add(minions[0].name + " advances to Area 2.");
         }
+        advance_incoming_minion = undefined;
+        advance_escape_pending = false;
         log_add("Step 2 — Advance/Escape complete.");
         step_number = 3;
         phase = "step3_ready";
         auto_timer = 50;
         log_add("Next: Enemy Draw.");
+        validate_state("Advance/Escape complete");
     } else if (action == "continue_enemy_draw") {
         phase = "enemy_event_reveal_wait";
         auto_timer = ENEMY_EVENT_REVEAL_FRAMES;

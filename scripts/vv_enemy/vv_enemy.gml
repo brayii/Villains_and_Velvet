@@ -205,16 +205,45 @@ function resolve_minion_escape(_minion) {
     continue_minion_escape();
 }
 
+function minion_advance_plan(_area_2, _area_1) {
+    var has_area_2 = !is_undefined(_area_2);
+    var has_area_1 = !is_undefined(_area_1);
+    return {
+        escaping: has_area_2 && has_area_1 ? _area_2 : undefined,
+        incoming: has_area_1 ? _area_1 : undefined,
+        area_2_after: has_area_1 ? _area_1 : _area_2,
+        area_1_after: undefined
+    };
+}
+
+function run_minion_advance_self_checks() {
+    var area_2_card = {id:"area_2_test"};
+    var area_1_card = {id:"area_1_test"};
+    var pushed = minion_advance_plan(area_2_card, area_1_card);
+    var moved = minion_advance_plan(undefined, area_1_card);
+    var stayed = minion_advance_plan(area_2_card, undefined);
+    if (pushed.escaping != area_2_card || pushed.area_2_after != area_1_card
+    || !is_undefined(pushed.area_1_after)
+    || !is_undefined(moved.escaping) || moved.area_2_after != area_1_card
+    || stayed.area_2_after != area_2_card || !is_undefined(stayed.incoming)) {
+        return content_validation_result(false, "Minion Advance/Escape movement check failed.");
+    }
+    return content_validation_result(true, "");
+}
+
 function begin_advance_phase() {
     step_number = 2;
     resume_action = "finish_advance";
     log_add("Step 2 — Advance/Escape.");
+    var advance_plan = minion_advance_plan(minions[0], minions[1]);
+    advance_incoming_minion = advance_plan.incoming;
+    advance_escape_pending = !is_undefined(advance_plan.escaping);
     // A Minion escapes only when the Minion in Area 1 pushes it out.
-    if (!is_undefined(minions[0]) && !is_undefined(minions[1])) {
-        var escaping = minions[0];
-        log_add(minions[1].name + " pushes " + escaping.name + " out of Area 2.");
-        log_add(escaping.name + " begins its Escape effect.");
-        resolve_minion_escape(escaping);
+    if (advance_escape_pending) {
+        log_add(advance_incoming_minion.name + " pushes " + advance_plan.escaping.name + " out of Area 2.");
+        log_add(advance_plan.escaping.name + " begins its Escape effect.");
+        resolve_minion_escape(advance_plan.escaping);
+        return;
     } else if (!is_undefined(minions[0])) {
         log_add(minions[0].name + " remains in Area 2 because Area 1 is empty.");
     }
