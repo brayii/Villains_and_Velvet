@@ -36,6 +36,10 @@ if (content_registry_validation.valid) {
     var ai_data_self_checks = vv_ai_data_run_self_checks();
     if (!ai_data_self_checks.valid) content_registry_validation = ai_data_self_checks;
 }
+if (content_registry_validation.valid) {
+    var ai_learning_self_checks = enemy_ai_run_conditional_learning_self_checks(available_heroes);
+    if (!ai_learning_self_checks.valid) content_registry_validation = ai_learning_self_checks;
+}
 if (!content_registry_validation.valid) {
     show_debug_message("STARTUP VALIDATION FAILED: " + content_registry_validation.message);
 }

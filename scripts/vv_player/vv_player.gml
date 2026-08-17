@@ -184,6 +184,7 @@ function command_attack_minion(_index) {
     if (attack_left >= minions[_index].hp) {
         attack_left -= minions[_index].hp;
         var defeated_name = minions[_index].name;
+        enemy_ai_conditional_learning_note_minion_defeated();
         retire_minion(_index, "is defeated");
         if (kill_bonus > 0) {
             attack_left += kill_bonus;
@@ -220,6 +221,7 @@ function command_attack_leader() {
     attack_left = 0;
     log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
     if (leader_hp == 0) {
+        enemy_ai_conditional_learning_finish_attack();
         game_over = true;
         victory = true;
         phase = "game_over";

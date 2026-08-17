@@ -95,6 +95,8 @@ function begin_attack() {
     var summary = compute_attack_summary();
     attack_left = summary.total;
     kill_bonus = summary.kill_bonus;
+    enemy_ai_conditional_learning_begin_attack(
+        copy_build_snapshot(build), attack_left, minions);
     attack_finish_confirm = false;
     phase = "attack";
     log_add("Step 5 — Player Attack: " + string(attack_left) + ".");
@@ -110,6 +112,7 @@ function show_attack_completion(_heading, _text) {
 }
 
 function complete_attack_step() {
+    enemy_ai_conditional_learning_finish_attack();
     log_add("Step 5 complete. " + string(attack_left) + " unused Attack remains until End Turn.");
     attack_finish_confirm = false;
     step_number = 6;

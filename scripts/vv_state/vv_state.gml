@@ -641,6 +641,7 @@ function reset_game() {
     selected_build = -1;
     attack_left = 0;
     kill_bonus = 0;
+    enemy_ai_conditional_learning_reset_attack();
     turn_number = 1;
     step_number = 1;
     phase = "step1_ready";

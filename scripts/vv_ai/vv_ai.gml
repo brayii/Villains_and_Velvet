@@ -1,6 +1,5 @@
 /// Deterministic Enemy AI scoring. This module ranks Build slots but does not resolve attacks.
 
-#macro ENEMY_AI_CONDITIONAL_WEIGHT 0.5
 #macro ENEMY_AI_HEALTH_WEIGHT 1.0
 #macro ENEMY_AI_TARGET_DELAY_FRAMES 45
 #macro ENEMY_AI_RESULT_DELAY_FRAMES 30
@@ -22,6 +21,85 @@ function enemy_ai_baseline_init() {
     };
     enemy_ai_baseline_match_active = false;
     enemy_ai_baseline_attack_active = false;
+}
+
+function enemy_ai_conditional_weight_from_counts(_exposures, _activations) {
+    if (!vv_ai_data_is_counter(_exposures) || !vv_ai_data_is_counter(_activations)
+    || _activations > _exposures) return 0.5;
+    return clamp((_activations + 1) / (_exposures + 2), 0, 1);
+}
+
+function enemy_ai_conditional_weight() {
+    return enemy_ai_conditional_weight_from_counts(
+        ai_conditional_exposures, ai_conditional_activations);
+}
+
+function enemy_ai_count_exposed_conditional_abilities(_build_snapshot, _attack_amount, _minion_snapshot) {
+    var can_trigger = false;
+    for (var minion_i = 0; minion_i < array_length(_minion_snapshot); minion_i++) {
+        if (!is_undefined(_minion_snapshot[minion_i])
+        && _attack_amount >= _minion_snapshot[minion_i].hp) {
+            can_trigger = true;
+            break;
+        }
+    }
+    if (!can_trigger) return 0;
+
+    var exposed = 0;
+    for (var card_i = 0; card_i < array_length(_build_snapshot); card_i++) {
+        if (is_undefined(_build_snapshot[card_i])) continue;
+        if (card_has_ability(_build_snapshot[card_i], ABILITY_OVERPOWER)) exposed++;
+        if (card_has_ability(_build_snapshot[card_i], ABILITY_RELENTLESS)) exposed++;
+    }
+    return exposed;
+}
+
+function enemy_ai_conditional_learning_begin_attack(_build_snapshot, _attack_amount, _minion_snapshot) {
+    conditional_learning_exposed_count = enemy_ai_count_exposed_conditional_abilities(
+        _build_snapshot, _attack_amount, _minion_snapshot);
+    conditional_learning_activated = false;
+    conditional_learning_attack_active = true;
+}
+
+function enemy_ai_conditional_learning_note_minion_defeated() {
+    if (conditional_learning_attack_active && conditional_learning_exposed_count > 0) {
+        conditional_learning_activated = true;
+    }
+}
+
+function enemy_ai_conditional_learning_apply_observation(
+_exposures, _activations, _exposed_count, _activated) {
+    var next_exposures = _exposures + max(0, floor(_exposed_count));
+    var next_activations = _activations;
+    if (_activated && _exposed_count > 0) {
+        next_activations += max(0, floor(_exposed_count));
+    }
+    return {
+        exposures: next_exposures,
+        activations: min(next_activations, next_exposures)
+    };
+}
+
+function enemy_ai_conditional_learning_finish_attack() {
+    if (!conditional_learning_attack_active) return false;
+    conditional_learning_attack_active = false;
+    if (conditional_learning_exposed_count <= 0) return false;
+    var learned = enemy_ai_conditional_learning_apply_observation(
+        ai_conditional_exposures, ai_conditional_activations,
+        conditional_learning_exposed_count, conditional_learning_activated);
+    ai_conditional_exposures = learned.exposures;
+    ai_conditional_activations = learned.activations;
+    conditional_learning_exposed_count = 0;
+    conditional_learning_activated = false;
+    ai_data_dirty = true;
+    vv_ai_data_save_if_dirty();
+    return true;
+}
+
+function enemy_ai_conditional_learning_reset_attack() {
+    conditional_learning_attack_active = false;
+    conditional_learning_exposed_count = 0;
+    conditional_learning_activated = false;
 }
 
 function enemy_ai_baseline_begin_match() {
@@ -167,7 +245,7 @@ function enemy_ai_rank_build(_build_snapshot) {
     for (var slot_i = 0; slot_i < array_length(_build_snapshot); slot_i++) {
         if (is_undefined(_build_snapshot[slot_i])) continue;
         var candidate = enemy_ai_score_candidate(evaluation_before, _build_snapshot, slot_i,
-            ENEMY_AI_CONDITIONAL_WEIGHT, ENEMY_AI_HEALTH_WEIGHT);
+            enemy_ai_conditional_weight(), ENEMY_AI_HEALTH_WEIGHT);
         var inserted = false;
         for (var rank_i = 0; rank_i < array_length(ranked); rank_i++) {
             if (enemy_ai_candidate_ranks_before(candidate, ranked[rank_i])) {
@@ -298,7 +376,7 @@ function enemy_ai_oracle_sequence_value(_initial_evaluation, _final_snapshot) {
         - final_evaluation.guaranteed_attack;
     var conditional_removed = _initial_evaluation.conditional_attack
         - final_evaluation.conditional_attack;
-    return guaranteed_removed + ENEMY_AI_CONDITIONAL_WEIGHT * conditional_removed;
+    return guaranteed_removed + enemy_ai_conditional_weight() * conditional_removed;
 }
 
 function enemy_ai_copy_sequence(_source_sequence) {
@@ -403,7 +481,8 @@ function enemy_ai_run_scoring_self_checks(_hero_definitions) {
     if (array_length(ranked) != 2 || ranked[0].slot != 0
     || !enemy_ai_scores_are_close(ranked[0].guaranteed_threat, 4)
     || !enemy_ai_scores_are_close(ranked[0].conditional_threat, 2)
-    || !enemy_ai_scores_are_close(ranked[0].score, 3)) {
+    || !enemy_ai_scores_are_close(ranked[0].score,
+        2 + 2 * enemy_ai_conditional_weight())) {
         return content_validation_result(false, "Enemy AI conditional scoring check failed.");
     }
 
@@ -518,8 +597,9 @@ function enemy_ai_run_oracle_self_checks(_hero_definitions) {
     }
 
     result = enemy_ai_oracle_compare([goblin.ability, undefined, undefined], 2);
-    if (!enemy_ai_scores_are_close(result.greedy_sequence_value, 5)
-    || !enemy_ai_scores_are_close(result.best_exhaustive_sequence_value, 5)) {
+    var conditional_sequence_value = 4 + 2 * enemy_ai_conditional_weight();
+    if (!enemy_ai_scores_are_close(result.greedy_sequence_value, conditional_sequence_value)
+    || !enemy_ai_scores_are_close(result.best_exhaustive_sequence_value, conditional_sequence_value)) {
         return content_validation_result(false, "Enemy AI oracle conditional-value check failed.");
     }
 
@@ -534,7 +614,10 @@ function enemy_ai_run_oracle_self_checks(_hero_definitions) {
 }
 
 function enemy_ai_run_release_self_checks() {
-    if (!enemy_ai_scores_are_close(ENEMY_AI_CONDITIONAL_WEIGHT, 0.5)
+    if (!enemy_ai_scores_are_close(enemy_ai_conditional_weight_from_counts(0, 0), 0.5)
+    || !enemy_ai_scores_are_close(enemy_ai_conditional_weight_from_counts(3, 0), 0.2)
+    || !enemy_ai_scores_are_close(enemy_ai_conditional_weight_from_counts(3, 3), 0.8)
+    || enemy_ai_conditional_weight() < 0 || enemy_ai_conditional_weight() > 1
     || !enemy_ai_scores_are_close(ENEMY_AI_HEALTH_WEIGHT, 1.0)
     || ENEMY_AI_TARGET_DELAY_FRAMES <= 0 || ENEMY_AI_RESULT_DELAY_FRAMES <= 0) {
         return content_validation_result(false, "Enemy AI deterministic release constants are invalid.");
@@ -558,6 +641,36 @@ function enemy_ai_run_release_self_checks() {
         if (first_shuffle[shuffle_i] != second_shuffle[shuffle_i]) {
             return content_validation_result(false, "Enemy AI seeded-playtest release check failed.");
         }
+    }
+    return content_validation_result(true, "");
+}
+
+function enemy_ai_run_conditional_learning_self_checks(_hero_definitions) {
+    var goblin = find_hero_definition(_hero_definitions, "goblin");
+    if (is_undefined(goblin)) {
+        return content_validation_result(false, "Enemy AI learning checks require Goblin.");
+    }
+    var affordable_minion = card_minion("learning_target", "Learning Target", "Normal",
+        1, 4, [], "", [], "");
+    var expensive_minion = card_minion("learning_wall", "Learning Wall", "Normal",
+        1, 20, [], "", [], "");
+    var exposed = enemy_ai_count_exposed_conditional_abilities(
+        [goblin.ability, goblin.special, undefined], 8,
+        [affordable_minion, undefined]);
+    var blocked = enemy_ai_count_exposed_conditional_abilities(
+        [goblin.ability, goblin.special, undefined], 8,
+        [expensive_minion, undefined]);
+    var absent = enemy_ai_count_exposed_conditional_abilities(
+        [goblin.normal, undefined, undefined], 8,
+        [affordable_minion, undefined]);
+    if (exposed != 2 || blocked != 0 || absent != 0) {
+        return content_validation_result(false, "Enemy AI conditional exposure check failed.");
+    }
+    var activated = enemy_ai_conditional_learning_apply_observation(5, 2, 2, true);
+    var not_activated = enemy_ai_conditional_learning_apply_observation(5, 2, 2, false);
+    if (activated.exposures != 7 || activated.activations != 4
+    || not_activated.exposures != 7 || not_activated.activations != 2) {
+        return content_validation_result(false, "Enemy AI conditional observation check failed.");
     }
     return content_validation_result(true, "");
 }
