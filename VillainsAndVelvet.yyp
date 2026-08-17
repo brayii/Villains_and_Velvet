@@ -13,7 +13,7 @@
   "ForcedPrefabProjectReferences":[],
   "IncludedFiles":[
     {"$GMIncludedFile":"","%Name":"battlefield.png","CopyToMask":-1,"filePath":"datafiles/card_art/backgrounds","name":"battlefield.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"leader_strike_direct_assault.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"leader_strike_direct_assault.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"enemy_event_leader_strike.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"enemy_event_leader_strike.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"leader_velvet_queen.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"leader_velvet_queen.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"minion_aa_otter.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"minion_aa_otter.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"minion_ab_highland_cow.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"minion_ab_highland_cow.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
@@ -23,7 +23,7 @@
     {"$GMIncludedFile":"","%Name":"minion_sa_capybara.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"minion_sa_capybara.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"minion_sb_raccoon.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"minion_sb_raccoon.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"minion_sc_harp_seal.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"minion_sc_harp_seal.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"twist_reinforcements.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"twist_reinforcements.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"enemy_event_twist.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"enemy_event_twist.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"hero_a_ability_goblin.png","CopyToMask":-1,"filePath":"datafiles/card_art/heroes","name":"hero_a_ability_goblin.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"hero_a_normal_goblin.png","CopyToMask":-1,"filePath":"datafiles/card_art/heroes","name":"hero_a_normal_goblin.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"hero_a_special_goblin.png","CopyToMask":-1,"filePath":"datafiles/card_art/heroes","name":"hero_a_special_goblin.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},

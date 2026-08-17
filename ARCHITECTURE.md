@@ -56,7 +56,9 @@ The Velvet Queen currently owns Direct Assault with a default selection of three
 
 Scenario definitions live in `vv_data.gml`. A Scenario has a stable ID, display name, setup-rule array, and its available Twist definitions. Scenarios do not choose the enemy cast.
 
-Minion Sets are registered independently. Each complete set supplies one card for every structural Minion slot. `make_minion_set_velvet_menagerie()` owns the current eight Minion definitions, while `make_scenario_the_assault()` owns Reinforcements. `core_minion_slot_copies()` permanently owns the NA/NB/NC/AA/AB/SA/SB/SC distribution. Setup rejects a Minion Set with missing, duplicated, or unknown slots.
+Minion Sets are registered independently. Each complete set supplies one card for every structural Minion slot. `make_minion_set_velvet_menagerie()` owns the current eight Minion definitions. `make_scenario_the_assault()` owns Reinforcements, while `make_scenario_the_queens_wrath()` owns Full Assault. `core_minion_slot_copies()` permanently owns the NA/NB/NC/AA/AB/SA/SB/SC distribution. Setup rejects a Minion Set with missing, duplicated, or unknown slots.
+
+Full Assault snapshots the Minions currently in play, then resolves the Leader and each captured Minion in order. Its queued attacks may continue from an empty Build Area into the Hand. If the Hand empties during the assault, three cards are drawn and resolution continues. Remaining Hand cards are preserved when the assault finishes.
 
 Hero identities use stable lowercase content IDs: `goblin`, `skeleton`, and `orc`. Minions likewise use character IDs such as `bunny` and `red_panda`, while `minion_slot` separately records the structural NA/NB/NC/AA/AB/SA/SB/SC deck position. Minion Set validation requires every structural slot exactly once and rejects missing or duplicate character IDs. Player-facing messages continue to use display names rather than IDs or slot codes.
 

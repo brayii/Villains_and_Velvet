@@ -18,13 +18,15 @@ This project is an in-development prototype. Gameplay rules and content may chan
 2. Open `VillainsAndVelvet.yyp` in GameMaker.
 3. Select an available target and run the project from the GameMaker IDE.
 
-The game opens on a battle setup screen. The current build displays The Velvet Queen, The Assault, and the three current Heroes. Use the plus and minus controls to adjust Leader Strike and Twist counts. Exactly eight Enemy Events are required before **Start Game** is enabled.
+The game opens on a battle setup screen. Choose The Assault or The Queen's Wrath, then select the Leader, Minion Set, and Hero team. Use the plus and minus controls to adjust Leader Strike and Twist counts. Exactly eight Enemy Events are required before **Start Game** is enabled.
 
 Installable Windows and Android builds are published on the repository's GitHub Releases page. Packaged builds are not stored with the source project; the GameMaker project is the source of truth for development.
 
 ## Documentation
 
 - [Core Game Rules](CORE_GAME_RULES.md) — the basic gameplay rules shared by current and future content.
+- [Scenarios](docs/SCENARIOS.md) — the Enemy Events and rules for each playable Scenario.
+- [Enemy Targeting](docs/ENEMY_TARGETING.md) — Manual and Auto targeting behavior, including Full Assault.
 - [Architecture](ARCHITECTURE.md) — code organization and guidance about where changes belong.
 - [Adding Content](docs/ADDING_CONTENT.md) — the tested workflow for extending cards, Leaders, Scenarios, effects, and artwork.
 

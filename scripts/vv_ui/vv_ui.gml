@@ -192,8 +192,10 @@ function ui_card_at_point(_pointer_x, _pointer_y) {
 }
 
 function ui_run_card_tap(_type, _index) {
-    if (prompt_mode == "destroy_hand" && _type == "hand") return command_prompt_hand(_index);
-    if (enemy_auto_play && prompt_mode == "enemy_attack") return false;
+    if (enemy_auto_play && (prompt_mode == "enemy_attack"
+    || prompt_mode == "enemy_attack_hand")) return false;
+    if ((prompt_mode == "destroy_hand" || prompt_mode == "enemy_attack_hand")
+    && _type == "hand") return command_prompt_hand(_index);
     if (prompt_mode != "" && _type == "build") return command_prompt_build(_index);
     if (prompt_mode != "") return false;
     if (phase == "build") {
@@ -524,7 +526,21 @@ function draw_enemy_reveal(_card, _rect) {
     var reveal_edge = _card.card_type == "strike" ? COL_DANGER : COL_GOLD;
     draw_panel(_rect, reveal_fill, reveal_edge);
     var reveal_sprite = get_art_sprite(_card.art_file);
-    if (reveal_sprite >= 0) draw_art_contained(reveal_sprite, _rect, 4);
+    if (reveal_sprite >= 0) {
+        draw_art_contained(reveal_sprite, _rect, 4);
+    } else {
+        draw_center(_card.card_type == "strike" ? "LEADER STRIKE" : "TWIST",
+            _rect.x + _rect.w / 2, _rect.y + 28, reveal_edge);
+        draw_center(string_upper(_card.name), _rect.x + _rect.w / 2,
+            _rect.y + 68, COL_TEXT);
+        draw_set_halign(fa_center);
+        draw_set_valign(fa_top);
+        draw_set_color(COL_TEXT);
+        draw_text_ext(_rect.x + _rect.w / 2, _rect.y + 108,
+            _card.effect, 18, _rect.w - 28);
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_top);
+    }
     draw_set_color(reveal_edge);
     draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, true);
 }
@@ -697,6 +713,14 @@ function setup_event_default_total(_definitions) {
     return total;
 }
 
+function setup_event_selection_group_total(_selections) {
+    var total = 0;
+    for (var selection_i = 0; selection_i < array_length(_selections); selection_i++) {
+        total += _selections[selection_i].copies;
+    }
+    return total;
+}
+
 function vv_ui_draw_setup() {
     draw_center("VILLAINS & VELVET", 640, 40, COL_GOLD);
     draw_center(setup_advanced_events ? "BATTLE SETTINGS" : "CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
@@ -748,13 +772,13 @@ function vv_ui_draw_setup() {
         draw_set_halign(fa_left);
         draw_set_valign(fa_top);
         draw_set_color(COL_MUTED);
-        draw_text(55, 208, "HEALTH  " + string(enemy_leader.starting_hp));
-        draw_text(165, 208, "ATTACK  " + string(enemy_leader.attack));
-        draw_text(55, 236, "DEFAULT STRIKES  " + string(setup_event_default_total(enemy_leader.leader_strikes)));
-        draw_text(355, 208, "DEFAULT TWISTS  " + string(setup_event_default_total(enemy_scenario.twists)));
-        draw_text(355, 236, "RULES  " + string(array_length(enemy_scenario.setup_rules)));
-        draw_text(655, 208, "MINION CARDS  " + string(CORE_MINION_TOTAL));
-        draw_text(655, 236, "NORMAL / ABILITY / SPECIAL");
+        draw_text(55, 208, string(enemy_leader.starting_hp) + " HEALTH   "
+            + string(enemy_leader.attack) + " ATTACK");
+        draw_text(55, 236, string(setup_event_selection_group_total(enemy_event_selection.leader_strikes))
+            + " LEADER STRIKES");
+        draw_text(355, 208, string(setup_event_selection_group_total(enemy_event_selection.twists)) + " TWISTS");
+        draw_text_ext(355, 234, enemy_scenario.description, 16, 245);
+        draw_text(655, 208, string(CORE_MINION_TOTAL) + " MINIONS");
 
         for (var setup_hero_i = 0; setup_hero_i < array_length(selected_hero_ids); setup_hero_i++) {
             var setup_hero = find_hero_definition(available_heroes, selected_hero_ids[setup_hero_i]);
@@ -762,16 +786,16 @@ function vv_ui_draw_setup() {
         }
 
         draw_setup_event_category("strike", "LEADER STRIKES");
-        draw_setup_event_category("twist", "TWISTS");
+        draw_setup_event_category("twist", "SCENARIO TWISTS");
         var restore_rect = setup_restore_defaults_rect();
         draw_panel(restore_rect, setup_event_defaults_restored ? COL_ACCENT : COL_PANEL,
             setup_event_defaults_restored ? COL_TEXT : COL_EDGE);
-        var default_strikes = setup_event_default_total(enemy_leader.leader_strikes);
+        var default_strikes = enemy_scenario.recommended_strikes;
         var default_twists = setup_event_default_total(enemy_scenario.twists);
-        draw_center(setup_event_defaults_restored ? "DEFAULT MIX RESTORED" : "RESTORE DEFAULT MIX",
+        draw_center(setup_event_defaults_restored ? "EVENT MIX RESET" : "RESET EVENT MIX",
             restore_rect.x + restore_rect.w / 2, restore_rect.y + 14,
             setup_event_defaults_restored ? COL_BG : COL_TEXT);
-        draw_center(string(default_strikes) + " STRIKES  /  " + string(default_twists) + " TWISTS",
+        draw_center(string(default_strikes) + " STRIKES  +  " + string(default_twists) + " TWISTS",
             restore_rect.x + restore_rect.w / 2, restore_rect.y + 31,
             setup_event_defaults_restored ? COL_BG : COL_MUTED);
     } else {
@@ -871,6 +895,7 @@ for (var build_i = 0; build_i < 3; build_i++) {
         || ui_drag_target_is_legal("build", build_i);
     var visible_build_card = ui_drag_hides_card("build", build_i) ? undefined : build[build_i];
     var auto_selected = enemy_auto_play && enemy_ai_visual_stage == "targeting"
+        && enemy_ai_pending_zone == "build"
         && enemy_ai_selected_slot == build_i;
     draw_card(visible_build_card, build_rects[build_i], selected_build == build_i || auto_selected, legal_build);
 }
@@ -878,11 +903,14 @@ for (var build_i = 0; build_i < 3; build_i++) {
 draw_center("HAND", 640, 512, COL_MUTED);
 for (var hand_i = 0; hand_i < 3; hand_i++) {
     var hand_card = hand_i < array_length(hand) ? hand[hand_i] : undefined;
-    var legal_hand = prompt_mode == "destroy_hand" && hand_i < array_length(hand)
-        && !is_undefined(hand_card);
+    var legal_hand = ((prompt_mode == "destroy_hand" && hand_i < array_length(hand)
+        && !is_undefined(hand_card))
+        || (prompt_mode == "enemy_attack_hand" && enemy_hand_target_is_legal(hand_i, prompt_value)));
     legal_hand = legal_hand || ui_drag_target_is_legal("hand", hand_i);
     if (ui_drag_hides_card("hand", hand_i)) hand_card = undefined;
-    draw_card(hand_card, hand_rects[hand_i], selected_hand == hand_i, legal_hand);
+    var auto_hand_selected = enemy_auto_play && enemy_ai_visual_stage == "targeting"
+        && enemy_ai_pending_zone == "hand" && enemy_ai_selected_slot == hand_i;
+    draw_card(hand_card, hand_rects[hand_i], selected_hand == hand_i || auto_hand_selected, legal_hand);
 }
 
 // Event log.
@@ -903,8 +931,11 @@ var instruction = "";
 var build_confirm_heading = "";
 if (prompt_mode == "" && enemy_attack_notice != "") instruction = enemy_attack_notice;
 else if (prompt_mode == "enemy_attack") instruction = "Choose a highlighted Build card.";
+else if (prompt_mode == "enemy_attack_hand") instruction = "The Build is empty. Choose a highlighted Hand card.";
 else if (prompt_mode == "disrupt") instruction = "Choose a highlighted Build card.";
 else if (prompt_mode == "shatter") instruction = "Choose a highlighted card with the lowest HP.";
+else if (prompt_mode == "full_assault_disrupt") instruction = "Disrupt: choose a highlighted Build card.";
+else if (prompt_mode == "full_assault_shatter") instruction = "Shatter: choose a highlighted lowest-HP card.";
 else if (prompt_mode == "destroy_hand") instruction = prompt_source + "\nChoose a highlighted Hand card.\n"
     + string(escape_cards_remaining) + " remaining.";
 else if (phase == "step1_ready") instruction = turn_number == 1
@@ -944,11 +975,19 @@ if (prompt_mode == "enemy_attack") {
             : (enemy_auto_play ? "Enemy is choosing a target."
             : (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat.")));
 }
+if (prompt_mode == "enemy_attack_hand") {
+    instruction = prompt_source + "\nAttack remaining: " + string(prompt_value) + "\n"
+        + (enemy_auto_play && enemy_ai_visual_stage == "targeting"
+            ? "Target: " + hand[enemy_ai_selected_slot].name
+            : (enemy_auto_play ? "Enemy is choosing a Hand target."
+            : "Choose a Hand card this Attack can defeat."));
+}
 if (enemy_auto_play && enemy_ai_visual_stage == "result") {
     instruction = enemy_ai_result_heading + "\n" + enemy_ai_result_text;
 }
 if (prompt_mode != "") {
-    instruction += enemy_auto_play && prompt_mode == "enemy_attack"
+    instruction += enemy_auto_play && (prompt_mode == "enemy_attack"
+        || prompt_mode == "enemy_attack_hand")
         ? "\nHold to inspect."
         : "\nTap to choose. Hold to inspect.";
 }

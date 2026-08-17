@@ -276,7 +276,7 @@ function validate_enemy_event_definitions(_definitions, _card_type, _owner_label
         }
         var allowed_effects = _card_type == "strike"
             ? [EFFECT_LEADER_BASIC_ATTACK]
-            : [EFFECT_AREA_2_ATTACK];
+            : [EFFECT_AREA_2_ATTACK, EFFECT_FULL_ASSAULT];
         var effect_result = validate_effect_entries(definition.card.effects, allowed_effects,
             _owner_label + " event '" + definition.card.id + "'");
         if (!effect_result.valid) return effect_result;
@@ -319,18 +319,42 @@ function validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes
     }
     for (var scenario_i = 0; scenario_i < array_length(_scenarios); scenario_i++) {
         var scenario = _scenarios[scenario_i];
-        if (!variable_struct_exists(scenario, "name") || !variable_struct_exists(scenario, "setup_rules")
+        if (!variable_struct_exists(scenario, "name") || !variable_struct_exists(scenario, "description")
+        || !variable_struct_exists(scenario, "recommended_strikes")
+        || !variable_struct_exists(scenario, "setup_rules")
         || !is_array(scenario.setup_rules) || !variable_struct_exists(scenario, "twists")) {
             return content_validation_result(false, "Scenario '" + scenario.id + "' is missing required fields.");
         }
-        if (!is_string(scenario.name)) {
-            return content_validation_result(false, "Scenario '" + scenario.id + "' needs a text display name.");
+        if (!is_string(scenario.name) || !is_string(scenario.description) || scenario.description == ""
+        || !content_number_is_valid(scenario.recommended_strikes, 0, true)
+        || scenario.recommended_strikes > CORE_ENEMY_EVENT_SLOTS) {
+            return content_validation_result(false, "Scenario '" + scenario.id + "' needs a name and short description.");
         }
         if (array_length(scenario.setup_rules) > 0) {
             return content_validation_result(false, "Scenario '" + scenario.id + "' defines setup rules, but that extension point does not have a resolver yet.");
         }
         result = validate_enemy_event_definitions(scenario.twists, "twist", "Scenario '" + scenario.id + "'");
         if (!result.valid) return result;
+        var scenario_twist_total = 0;
+        for (var scenario_twist_i = 0; scenario_twist_i < array_length(scenario.twists); scenario_twist_i++) {
+            scenario_twist_total += scenario.twists[scenario_twist_i].default_copies;
+        }
+        if (scenario.recommended_strikes + scenario_twist_total != CORE_ENEMY_EVENT_SLOTS) {
+            return content_validation_result(false, "Scenario '" + scenario.id
+                + "' recommended Strike and Twist mix must total "
+                + string(CORE_ENEMY_EVENT_SLOTS) + ".");
+        }
+        for (var compatible_leader_i = 0; compatible_leader_i < array_length(_leaders);
+        compatible_leader_i++) {
+            var compatible_selection = make_default_enemy_event_selection(
+                _leaders[compatible_leader_i], scenario);
+            if (enemy_event_selection_total(compatible_selection) != CORE_ENEMY_EVENT_SLOTS) {
+                return content_validation_result(false, "Leader '"
+                    + _leaders[compatible_leader_i].id + "' cannot supply the "
+                    + string(scenario.recommended_strikes) + " Leader Strikes recommended by Scenario '"
+                    + scenario.id + "'.");
+            }
+        }
     }
     for (var minion_set_i = 0; minion_set_i < array_length(_minion_sets); minion_set_i++) {
         var minion_set = _minion_sets[minion_set_i];
@@ -396,6 +420,25 @@ function validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes
 function run_content_validation_self_checks(_leaders, _scenarios, _minion_sets, _heroes) {
     var baseline = validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes);
     if (!baseline.valid) return baseline;
+
+    var assault_defaults = undefined;
+    var wrath_defaults = undefined;
+    for (var default_scenario_i = 0; default_scenario_i < array_length(_scenarios); default_scenario_i++) {
+        var default_scenario = _scenarios[default_scenario_i];
+        if (default_scenario.id == "the_assault") {
+            assault_defaults = make_default_enemy_event_selection(_leaders[0], default_scenario);
+        } else if (default_scenario.id == "the_queens_wrath") {
+            wrath_defaults = make_default_enemy_event_selection(_leaders[0], default_scenario);
+        }
+    }
+    if (is_undefined(assault_defaults) || is_undefined(wrath_defaults)
+    || enemy_event_selection_total(assault_defaults) != CORE_ENEMY_EVENT_SLOTS
+    || enemy_event_selection_total(wrath_defaults) != CORE_ENEMY_EVENT_SLOTS
+    || assault_defaults.leader_strikes[0].copies != 3 || assault_defaults.twists[0].copies != 5
+    || wrath_defaults.leader_strikes[0].copies != 6 || wrath_defaults.twists[0].copies != 2) {
+        return content_validation_result(false,
+            "Scenario recommended event-mix check failed.");
+    }
 
     var leaders = variable_clone(_leaders);
     leaders[0].starting_hp = "invalid";
@@ -659,6 +702,11 @@ function reset_game() {
     advance_incoming_minion = undefined;
     advance_escape_pending = false;
     queued_attacks = [];
+    current_enemy_attack_can_hit_hand = false;
+    full_assault_source = "";
+    full_assault_minions = [];
+    full_assault_index = -1;
+    full_assault_current_minion = undefined;
     entry_minion = undefined;
     entry_ability_index = 0;
     entry_has_attack_pattern = false;

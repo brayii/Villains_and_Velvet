@@ -32,8 +32,8 @@ ENEMY_CROPS = {
     "minion_sb_raccoon.png": (297, 496, 547, 870),
     "minion_sc_harp_seal.png": (559, 496, 810, 870),
     "leader_velvet_queen.png": (30, 876, 810, 1024),
-    "twist_reinforcements.png": (821, 773, 1121, 1018),
-    "leader_strike_direct_assault.png": (1130, 773, 1442, 1018),
+    "enemy_event_twist.png": (821, 773, 1121, 1018),
+    "enemy_event_leader_strike.png": (1130, 773, 1442, 1018),
 }
 
 

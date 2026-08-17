@@ -706,41 +706,72 @@ function enemy_ai_cancel_pending_targeting() {
     enemy_ai_pending_prompt_id = -1;
     enemy_ai_pending_attack = 0;
     enemy_ai_pending_source = "";
+    enemy_ai_pending_zone = "";
     enemy_ai_pending_decision_record = undefined;
     enemy_ai_result_heading = "";
     enemy_ai_result_text = "";
 }
 
 function enemy_ai_pending_target_is_current() {
+    var targets_hand = enemy_ai_pending_zone == "hand";
+    var pending_cards = targets_hand ? hand : build;
     return enemy_auto_play && !setup_active && !game_over && !match_menu_active
         && enemy_ai_visual_stage == "targeting"
-        && prompt_mode == "enemy_attack"
+        && prompt_mode == (targets_hand ? "enemy_attack_hand" : "enemy_attack")
         && enemy_attack_prompt_id == enemy_ai_pending_prompt_id
         && prompt_value == enemy_ai_pending_attack
         && prompt_source == enemy_ai_pending_source
         && enemy_ai_selected_slot >= 0
-        && enemy_ai_selected_slot < array_length(build)
-        && !is_undefined(build[enemy_ai_selected_slot])
-        && build[enemy_ai_selected_slot] == enemy_ai_pending_card
-        && enemy_target_is_legal(enemy_ai_selected_slot, prompt_value);
+        && enemy_ai_selected_slot < array_length(pending_cards)
+        && !is_undefined(pending_cards[enemy_ai_selected_slot])
+        && pending_cards[enemy_ai_selected_slot] == enemy_ai_pending_card
+        && (targets_hand ? enemy_hand_target_is_legal(enemy_ai_selected_slot, prompt_value)
+            : enemy_target_is_legal(enemy_ai_selected_slot, prompt_value));
+}
+
+function enemy_ai_choose_hand_target_in_hand(_hand, _attack_remaining) {
+    var selected = -1;
+    var lowest_health = 999999;
+    for (var hand_i = 0; hand_i < array_length(_hand); hand_i++) {
+        if (enemy_hand_target_is_legal_in_hand(_hand, hand_i, _attack_remaining)
+        && _hand[hand_i].hp < lowest_health) {
+            lowest_health = _hand[hand_i].hp;
+            selected = hand_i;
+        }
+    }
+    return selected;
+}
+
+function enemy_ai_choose_hand_target(_attack_remaining) {
+    return enemy_ai_choose_hand_target_in_hand(hand, _attack_remaining);
 }
 
 function enemy_ai_schedule_current_target() {
-    if (!enemy_auto_play || prompt_mode != "enemy_attack" || setup_active
+    var targets_hand = prompt_mode == "enemy_attack_hand";
+    if (!enemy_auto_play || (prompt_mode != "enemy_attack" && !targets_hand) || setup_active
     || game_over || match_menu_active || enemy_ai_visual_stage != "") return false;
 
     var current_state = {
         build_snapshot: copy_build_snapshot(build),
         attack_remaining: prompt_value
     };
-    var selected_slot = enemy_ai_choose_target(current_state);
-    if (selected_slot < 0) return command_end_enemy_attack_if_blocked();
-    enemy_ai_pending_decision_record = enemy_ai_make_decision_record(
-        current_state, selected_slot);
+    var selected_slot = targets_hand
+        ? enemy_ai_choose_hand_target(prompt_value) : enemy_ai_choose_target(current_state);
+    if (selected_slot < 0) {
+        if (!targets_hand) return command_end_enemy_attack_if_blocked();
+        prompt_mode = "";
+        prompt_value = 0;
+        prompt_source = "";
+        resume_after_prompts();
+        return true;
+    }
+    enemy_ai_pending_decision_record = targets_hand ? undefined
+        : enemy_ai_make_decision_record(current_state, selected_slot);
     enemy_ai_visual_stage = "targeting";
     enemy_ai_visual_timer = ENEMY_AI_TARGET_DELAY_FRAMES;
     enemy_ai_selected_slot = selected_slot;
-    enemy_ai_pending_card = build[selected_slot];
+    enemy_ai_pending_zone = targets_hand ? "hand" : "build";
+    enemy_ai_pending_card = targets_hand ? hand[selected_slot] : build[selected_slot];
     enemy_ai_pending_prompt_id = enemy_attack_prompt_id;
     enemy_ai_pending_attack = prompt_value;
     enemy_ai_pending_source = prompt_source;
@@ -755,8 +786,10 @@ function enemy_ai_submit_current_target() {
     var selected_slot = enemy_ai_selected_slot;
     var submitted_prompt_id = enemy_ai_pending_prompt_id;
     var decision_record = enemy_ai_pending_decision_record;
+    var pending_zone = enemy_ai_pending_zone;
     enemy_ai_cancel_pending_targeting();
-    var submitted = command_prompt_build(selected_slot);
+    var submitted = pending_zone == "hand"
+        ? command_prompt_hand(selected_slot) : command_prompt_build(selected_slot);
     if (submitted && !is_undefined(decision_record)
     && enemy_ai_policy_turn_auto_eligible
     && decision_record.turn_id == enemy_ai_policy_turn_number) {
@@ -764,9 +797,15 @@ function enemy_ai_submit_current_target() {
     }
     enemy_ai_visual_stage = "result";
     enemy_ai_visual_timer = ENEMY_AI_RESULT_DELAY_FRAMES;
-    if (prompt_mode == "enemy_attack" && enemy_attack_prompt_id == submitted_prompt_id) {
+    var attack_prompt_active = prompt_mode == "enemy_attack"
+        || prompt_mode == "enemy_attack_hand";
+    if (attack_prompt_active && enemy_attack_prompt_id == submitted_prompt_id) {
         enemy_ai_result_heading = "CARD DESTROYED";
         enemy_ai_result_text = string(prompt_value) + " Attack remains.\nThe same attack continues.";
+    } else if (attack_prompt_active || array_length(full_assault_minions) > 0
+    || resume_action == "continue_full_assault") {
+        enemy_ai_result_heading = "CARD DESTROYED";
+        enemy_ai_result_text = "Full Assault continues.";
     } else {
         enemy_ai_result_heading = "ATTACK COMPLETE";
         enemy_ai_result_text = "The attack has finished.";
@@ -793,7 +832,7 @@ function enemy_ai_update_auto_targeting() {
         if (enemy_ai_visual_timer <= 0) enemy_ai_cancel_pending_targeting();
         return true;
     }
-    if (enemy_auto_play && prompt_mode == "enemy_attack") {
+    if (enemy_auto_play && (prompt_mode == "enemy_attack" || prompt_mode == "enemy_attack_hand")) {
         enemy_ai_schedule_current_target();
         return true;
     }

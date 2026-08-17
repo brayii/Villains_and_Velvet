@@ -37,6 +37,8 @@ function resume_after_prompts() {
         selected_build = -1;
         log_add("Step 3 complete: a Minion is in Area 1. Build your attack.");
         validate_state("Enemy Draw complete");
+    } else if (action == "continue_full_assault") {
+        continue_full_assault();
     }
 }
 

@@ -83,6 +83,7 @@ function core_minion_slots_are_valid(_minion_set) {
 // Stable Enemy Event effect IDs. Display names do not determine behavior.
 #macro EFFECT_LEADER_BASIC_ATTACK "leader_basic_attack"
 #macro EFFECT_AREA_2_ATTACK "area_2_attack"
+#macro EFFECT_FULL_ASSAULT "full_assault"
 #macro EFFECT_HEAL_LEADER "heal_leader"
 #macro EFFECT_DESTROY_HAND_CARD "destroy_hand_card"
 
@@ -157,7 +158,7 @@ function make_enemy_leader() {
                     "Direct Assault",
                     [effect_entry(EFFECT_LEADER_BASIC_ATTACK, {})],
                     "The Enemy Leader attacks for " + string(leader_attack) + ".",
-                    "card_art/enemies/leader_strike_direct_assault.png"
+                    "card_art/enemies/enemy_event_leader_strike.png"
                 ),
                 default_copies: 3,
                 max_copies: CORE_ENEMY_EVENT_SLOTS
@@ -258,6 +259,8 @@ function make_scenario_the_assault() {
     return {
         id: "the_assault",
         name: "The Assault",
+        description: "Reinforcements call on the Minion in Area 2.",
+        recommended_strikes: 3,
         setup_rules: [],
         twists: [
             {
@@ -267,9 +270,33 @@ function make_scenario_the_assault() {
                     "Reinforcements",
                     [effect_entry(EFFECT_AREA_2_ATTACK, {})],
                     "The Minion in Area 2 attacks.",
-                    "card_art/enemies/twist_reinforcements.png"
+                    "card_art/enemies/enemy_event_twist.png"
                 ),
                 default_copies: 5,
+                max_copies: CORE_ENEMY_EVENT_SLOTS
+            }
+        ]
+    };
+}
+
+function make_scenario_the_queens_wrath() {
+    return {
+        id: "the_queens_wrath",
+        name: "The Queen's Wrath",
+        description: "Full Assault sends the Queen and every Minion into battle.",
+        recommended_strikes: 6,
+        setup_rules: [],
+        twists: [
+            {
+                card: card_enemy(
+                    "twist",
+                    "full_assault",
+                    "Full Assault",
+                    [effect_entry(EFFECT_FULL_ASSAULT, {})],
+                    "The Queen and every Minion in play attack.",
+                    "card_art/enemies/enemy_event_twist.png"
+                ),
+                default_copies: 2,
                 max_copies: CORE_ENEMY_EVENT_SLOTS
             }
         ]
@@ -294,7 +321,7 @@ function make_minion_set_velvet_menagerie() {
 }
 
 function make_scenario_registry() {
-    return [make_scenario_the_assault()];
+    return [make_scenario_the_assault(), make_scenario_the_queens_wrath()];
 }
 
 function make_minion_set_registry() {
@@ -372,9 +399,28 @@ function find_enemy_event_definition(_definitions, _id) {
 
 function make_default_enemy_event_selection(_leader, _scenario) {
     var selected_strikes = [];
+    var strike_total = 0;
     for (var strike_i = 0; strike_i < array_length(_leader.leader_strikes); strike_i++) {
         var strike_definition = _leader.leader_strikes[strike_i];
         array_push(selected_strikes, {id:strike_definition.card.id, copies:strike_definition.default_copies});
+        strike_total += strike_definition.default_copies;
+    }
+    var strike_change = _scenario.recommended_strikes - strike_total;
+    if (strike_change > 0) {
+        for (var add_i = 0; add_i < array_length(selected_strikes) && strike_change > 0; add_i++) {
+            var add_definition = _leader.leader_strikes[add_i];
+            var add_count = min(strike_change,
+                add_definition.max_copies - selected_strikes[add_i].copies);
+            selected_strikes[add_i].copies += add_count;
+            strike_change -= add_count;
+        }
+    } else if (strike_change < 0) {
+        for (var remove_i = array_length(selected_strikes) - 1;
+        remove_i >= 0 && strike_change < 0; remove_i--) {
+            var remove_count = min(-strike_change, selected_strikes[remove_i].copies);
+            selected_strikes[remove_i].copies -= remove_count;
+            strike_change += remove_count;
+        }
     }
     var selected_twists = [];
     for (var twist_i = 0; twist_i < array_length(_scenario.twists); twist_i++) {

@@ -45,6 +45,11 @@ if (content_registry_validation.valid) {
     if (!advance_self_checks.valid) content_registry_validation = advance_self_checks;
 }
 if (content_registry_validation.valid) {
+    var full_assault_self_checks = run_full_assault_self_checks(
+        available_scenarios, available_minion_sets);
+    if (!full_assault_self_checks.valid) content_registry_validation = full_assault_self_checks;
+}
+if (content_registry_validation.valid) {
     var reward_self_checks = enemy_ai_run_reward_self_checks();
     if (!reward_self_checks.valid) content_registry_validation = reward_self_checks;
 }
