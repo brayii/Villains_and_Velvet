@@ -37,27 +37,58 @@ function count_unique_other_heroes(_cards, _source_index) {
     return array_length(hero_ids);
 }
 
-function compute_attack_summary() {
-    var total = 0;
+function copy_build_snapshot(_source_build) {
+    var snapshot = [];
+    for (var slot_i = 0; slot_i < array_length(_source_build); slot_i++) {
+        array_push(snapshot, _source_build[slot_i]);
+    }
+    return snapshot;
+}
+
+function copy_build_without_slot(_build_snapshot, _removed_slot) {
+    var candidate_snapshot = copy_build_snapshot(_build_snapshot);
+    if (_removed_slot >= 0 && _removed_slot < array_length(candidate_snapshot)) {
+        candidate_snapshot[_removed_slot] = undefined;
+    }
+    return candidate_snapshot;
+}
+
+function evaluate_build(_build_snapshot) {
+    var guaranteed_attack = 0;
     var rally_power = 0;
-    var gained_after_kill = 0;
-    for (var card_i = 0; card_i < 3; card_i++) if (!is_undefined(build[card_i])) {
-        total += build[card_i].atk;
-        var rally = find_card_ability(build[card_i], ABILITY_RALLY);
-        var overpower = find_card_ability(build[card_i], ABILITY_OVERPOWER);
-        var relentless = find_card_ability(build[card_i], ABILITY_RELENTLESS);
+    var conditional_attack = 0;
+    for (var card_i = 0; card_i < array_length(_build_snapshot); card_i++) {
+        if (is_undefined(_build_snapshot[card_i])) continue;
+        var card = _build_snapshot[card_i];
+        guaranteed_attack += card.atk;
+        var rally = find_card_ability(card, ABILITY_RALLY);
+        var overpower = find_card_ability(card, ABILITY_OVERPOWER);
+        var relentless = find_card_ability(card, ABILITY_RELENTLESS);
         rally_power += ability_param_value(rally, "amount", 0);
-        gained_after_kill += ability_param_value(overpower, "amount", 0);
-        gained_after_kill += ability_param_value(relentless, "amount", 0);
+        conditional_attack += ability_param_value(overpower, "amount", 0);
+        conditional_attack += ability_param_value(relentless, "amount", 0);
     }
-    for (var card_i = 0; card_i < 3; card_i++) if (!is_undefined(build[card_i])) {
-        var own_rally = find_card_ability(build[card_i], ABILITY_RALLY);
-        total += max(0, rally_power - ability_param_value(own_rally, "amount", 0));
-        var unity = find_card_ability(build[card_i], ABILITY_UNITY);
-        total += ability_param_value(unity, "amount_per_hero", 0)
-            * count_unique_other_heroes(build, card_i);
+    for (var card_i = 0; card_i < array_length(_build_snapshot); card_i++) {
+        if (is_undefined(_build_snapshot[card_i])) continue;
+        var card = _build_snapshot[card_i];
+        var own_rally = find_card_ability(card, ABILITY_RALLY);
+        guaranteed_attack += max(0, rally_power - ability_param_value(own_rally, "amount", 0));
+        var unity = find_card_ability(card, ABILITY_UNITY);
+        guaranteed_attack += ability_param_value(unity, "amount_per_hero", 0)
+            * count_unique_other_heroes(_build_snapshot, card_i);
     }
-    return {total:total, kill_bonus:gained_after_kill};
+    return {
+        guaranteed_attack: guaranteed_attack,
+        conditional_attack: conditional_attack
+    };
+}
+
+function compute_attack_summary() {
+    var evaluation = evaluate_build(copy_build_snapshot(build));
+    return {
+        total: evaluation.guaranteed_attack,
+        kill_bonus: evaluation.conditional_attack
+    };
 }
 
 function command_select_hand(_index) {
