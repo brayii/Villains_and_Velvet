@@ -5,6 +5,8 @@
 #macro ENEMY_AI_REWARD_EMA_BETA 0.05
 #macro ENEMY_AI_EXPLORATION_RATE 0.05
 #macro ENEMY_AI_EXPLORATION_MARGIN 1.0
+#macro ENEMY_AI_PRODUCTION_HEALTH_LEARNING false
+#macro ENEMY_AI_PRODUCTION_EXPLORATION false
 #macro ENEMY_AI_TARGET_DELAY_FRAMES 45
 #macro ENEMY_AI_RESULT_DELAY_FRAMES 30
 
@@ -51,8 +53,8 @@ function enemy_ai_baseline_init() {
         policy_d_best_matches: 0,
         wc_min: enemy_ai_conditional_weight(),
         wc_max: enemy_ai_conditional_weight(),
-        wh_min: enemy_ai_health_weight(),
-        wh_max: enemy_ai_health_weight()
+        wh_min: enemy_ai_learned_health_weight(),
+        wh_max: enemy_ai_learned_health_weight()
     };
     enemy_ai_baseline_match_active = false;
     enemy_ai_baseline_attack_active = false;
@@ -108,6 +110,11 @@ function enemy_ai_policy_cancel_turn() {
 }
 
 function enemy_ai_health_weight() {
+    return ENEMY_AI_PRODUCTION_HEALTH_LEARNING
+        ? enemy_ai_learned_health_weight() : ENEMY_AI_HEALTH_WEIGHT;
+}
+
+function enemy_ai_learned_health_weight() {
     return clamp(ai_health_weight, 0.25, 3.0);
 }
 
@@ -136,6 +143,7 @@ function enemy_ai_normalized_health_delta(_candidate_healths, _chosen_index) {
 }
 
 function enemy_ai_make_decision_record(_current_state, _selected_slot) {
+    if (!ENEMY_AI_PRODUCTION_HEALTH_LEARNING) return undefined;
     if (!enemy_ai_policy_choice_is_eligible(enemy_auto_play,
     enemy_ai_policy_turn_auto_eligible, enemy_ai_policy_turn_number, turn_number, 2)) {
         return undefined;
@@ -219,9 +227,11 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
     enemy_ai_last_turn_reward = result.reward;
     enemy_ai_last_advantage = ema_update.advantage;
     var meaningful_choice_count = array_length(enemy_ai_policy_decisions);
-    var old_health_weight = enemy_ai_health_weight();
-    ai_health_weight = enemy_ai_apply_health_learning(
-        old_health_weight, ema_update.advantage, enemy_ai_policy_decisions);
+    var old_health_weight = enemy_ai_learned_health_weight();
+    if (ENEMY_AI_PRODUCTION_HEALTH_LEARNING) {
+        ai_health_weight = enemy_ai_apply_health_learning(
+            old_health_weight, ema_update.advantage, enemy_ai_policy_decisions);
+    }
     ai_meaningful_choice_count += meaningful_choice_count;
     ai_reward_ema = ema_update.new_ema;
     ai_auto_turn_count++;
@@ -361,7 +371,7 @@ function enemy_ai_baseline_begin_match() {
         policy_c_best_matches: 0,
         policy_d_best_matches: 0,
         wc_start: enemy_ai_conditional_weight(),
-        wh_start: enemy_ai_health_weight(),
+        wh_start: enemy_ai_learned_health_weight(),
         exploration_seed: ai_exploration_seed,
         leader_id: enemy_leader.id,
         scenario_id: enemy_scenario.id,
@@ -677,7 +687,8 @@ function enemy_ai_choose_target(_current_state) {
     var near_equal = enemy_ai_near_equal_valid_targets(
         _current_state, ranked, ENEMY_AI_EXPLORATION_MARGIN);
     if (array_length(near_equal) == 0) return -1;
-    if (!enemy_auto_play || array_length(near_equal) == 1) return near_equal[0].slot;
+    if (!enemy_auto_play || !ENEMY_AI_PRODUCTION_EXPLORATION
+    || array_length(near_equal) == 1) return near_equal[0].slot;
 
     enemy_ai_exploration_opportunities++;
     if (enemy_ai_exploration_random() >= ENEMY_AI_EXPLORATION_RATE) {
@@ -949,7 +960,7 @@ function enemy_ai_evaluation_variance(_sum, _sum_squared, _count) {
 function enemy_ai_evaluate_policy_variants(
 _build_snapshot, _attack_remaining, _exploration_rng) {
     var learned_wc = enemy_ai_conditional_weight();
-    var learned_wh = enemy_ai_health_weight();
+    var learned_wh = enemy_ai_learned_health_weight();
     var initial_evaluation = evaluate_build(_build_snapshot);
     var exhaustive = enemy_ai_oracle_search_with_weight(initial_evaluation,
         copy_build_snapshot(_build_snapshot), _attack_remaining, [], learned_wc);
@@ -1220,6 +1231,8 @@ function enemy_ai_run_release_self_checks() {
     || !enemy_ai_scores_are_close(ENEMY_AI_HEALTH_WEIGHT, 1.0)
     || !enemy_ai_scores_are_close(ENEMY_AI_HEALTH_LEARNING_RATE, 0.02)
     || enemy_ai_health_weight() < 0.25 || enemy_ai_health_weight() > 3.0
+    || ENEMY_AI_PRODUCTION_HEALTH_LEARNING
+    || ENEMY_AI_PRODUCTION_EXPLORATION
     || ENEMY_AI_TARGET_DELAY_FRAMES <= 0 || ENEMY_AI_RESULT_DELAY_FRAMES <= 0) {
         return content_validation_result(false, "Enemy AI deterministic release constants are invalid.");
     }
@@ -1228,7 +1241,7 @@ function enemy_ai_run_release_self_checks() {
     var corrupt_settings = vv_settings_decode("not valid json");
     if (!manual_settings.valid || manual_settings.enemy_auto_play
     || !auto_settings.valid || !auto_settings.enemy_auto_play
-    || corrupt_settings.valid || corrupt_settings.enemy_auto_play) {
+    || corrupt_settings.valid || !corrupt_settings.enemy_auto_play) {
         return content_validation_result(false, "Enemy AI settings recovery release check failed.");
     }
 
@@ -1356,7 +1369,7 @@ function enemy_ai_run_evaluation_self_checks(_hero_definitions) {
     || first.A.regret < 0 || first.B.regret < 0
     || first.C.regret < 0 || first.D.regret < 0
     || !enemy_ai_scores_are_close(first.W_C, enemy_ai_conditional_weight())
-    || !enemy_ai_scores_are_close(first.W_H, enemy_ai_health_weight())
+    || !enemy_ai_scores_are_close(first.W_H, enemy_ai_learned_health_weight())
     || !enemy_ai_scores_are_close(enemy_ai_evaluation_variance(2, 4, 2), 1)
     || ai_exploration_rng.state != live_exploration_state
     || is_undefined(snapshot[0]) || is_undefined(snapshot[1]) || is_undefined(snapshot[2])) {

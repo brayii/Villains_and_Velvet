@@ -37,6 +37,7 @@ Installable Windows and Android builds are published on the repository's GitHub 
 - During an Enemy effect, tap one of the highlighted legal cards. Cards that cannot be defeated or targeted are not highlighted.
 - The turn-step list in the upper-right corner always shows the full seven-step sequence and highlights the current step.
 - Use the small gear on the battlefield to pause, resume, return to Game Options, or exit the game. Leaving an active match requires confirmation.
+- The checked **AUTO** box beside the gear lets the Enemy choose legal attack targets. Clear it at any time to choose Enemy targets manually; Auto is enabled by default on a clean install.
 - After a victory or defeat, choose **Play Again**, **Game Options**, or **Exit Game**.
 
 ## Repository Layout

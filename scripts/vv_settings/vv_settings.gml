@@ -3,7 +3,7 @@
 function vv_settings_defaults() {
     return {
         settings_version: 1,
-        enemy_targeting_mode: "manual"
+        enemy_targeting_mode: "auto"
     };
 }
 
@@ -16,15 +16,15 @@ function vv_settings_decode(_text) {
         || loaded.settings_version != defaults.settings_version
         || !variable_struct_exists(loaded, "enemy_targeting_mode")
         || !is_string(loaded.enemy_targeting_mode)) {
-            return {valid:false, enemy_auto_play:false};
+            return {valid:false, enemy_auto_play:true};
         }
         var mode = string_lower(loaded.enemy_targeting_mode);
         if (mode != "manual" && mode != "auto") {
-            return {valid:false, enemy_auto_play:false};
+            return {valid:false, enemy_auto_play:true};
         }
         return {valid:true, enemy_auto_play:mode == "auto"};
     } catch (_error) {
-        return {valid:false, enemy_auto_play:false};
+        return {valid:false, enemy_auto_play:true};
     }
 }
 
@@ -32,13 +32,13 @@ function vv_settings_init() {
     settings_filename = "villains_and_velvet_settings.json";
     settings_version = 1;
     settings_dirty = true;
-    enemy_auto_play = false;
+    enemy_auto_play = true;
     vv_settings_load();
     vv_settings_save_if_dirty();
 }
 
 function vv_settings_load() {
-    enemy_auto_play = false;
+    enemy_auto_play = true;
     settings_dirty = true;
     if (!file_exists(settings_filename)) return false;
 

@@ -130,6 +130,8 @@ AI learning storage is a small versioned JSON record. Observations mark it dirty
 
 Future card abilities can expose shared evaluation metadata through ability parameters: `guaranteed_attack_self`, `guaranteed_attack_others`, `conditional_attack_self`, and `conditional_attack_others`. Targeting mechanics use `enemy_target_priority` and `enemy_destruction_cost_delta` through authoritative rules helpers shared by Manual resolution, Auto selection, and oracle simulation. These interfaces depend on stable effect data rather than display names, allowing supported mechanics to extend card data and shared rules without card-specific AI branches.
 
+The production AI configuration uses Auto targeting by default with deterministic selection and passive conditional-weight learning. Experimental Health-weight learning and bounded exploration remain compiled for controlled evaluation but are disabled in live production targeting until multi-content and physical-device evidence demonstrates a reliable improvement. The battlefield exposes the persistent Auto checkbox beside the game-menu gear so players can switch to Manual targeting without leaving the match.
+
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
 ## Adding New Behavior
