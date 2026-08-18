@@ -339,7 +339,7 @@ function draw_card_popup() {
     if (is_undefined(card_popup)) return;
     draw_set_alpha(0.88);
     draw_set_color(COL_BG);
-    draw_rectangle(0, 0, 1280, 720, false);
+    draw_rectangle(0, 0, 1280, ui_canvas_height, false);
     draw_set_alpha(1);
 
     if (card_popup_type == "leader") {
@@ -398,13 +398,10 @@ function draw_auto_checkbox(_rect) {
 function vv_ui_draw_game() {
 vv_ui_set_font(UI_FONT_BODY);
 draw_clear(COL_BG);
-// A light global veil preserves the artwork; local glass and shadows carry text contrast.
-var background_rect = {x:0, y:0, w:1280, h:720};
+var background_top = -(ui_canvas_height - 720) / 2;
+var background_rect = {x:0, y:background_top, w:1280,
+    h:ui_canvas_height - background_top * 2};
 draw_art_cover(background_art_sprite, background_rect);
-draw_set_alpha(setup_active ? 0.30 : 0.34);
-draw_set_color(COL_BG);
-draw_rectangle(0, 0, 1280, 720, false);
-draw_set_alpha(1);
 
 if (setup_active) {
     vv_ui_draw_setup();
@@ -682,7 +679,7 @@ draw_card_popup();
 if (game_over) {
     draw_set_alpha(0.9);
     draw_set_color(COL_BG);
-    draw_rectangle(0, 0, 1280, 720, false);
+    draw_rectangle(0, 0, 1280, ui_canvas_height, false);
     draw_set_alpha(1);
     vv_ui_set_font(UI_FONT_TITLE);
     draw_center(victory ? "VICTORY" : "DEFEAT", 640, 270, victory ? COL_ACCENT : COL_DANGER);
@@ -700,7 +697,7 @@ if (game_over) {
 if (match_menu_active) {
     draw_set_alpha(0.88);
     draw_set_color(COL_BG);
-    draw_rectangle(0, 0, 1280, 720, false);
+    draw_rectangle(0, 0, 1280, ui_canvas_height, false);
     draw_set_alpha(1);
     vv_ui_set_font(UI_FONT_TITLE);
     if (quit_match_confirm) {

@@ -148,7 +148,9 @@ function draw_art_cover(_sprite, _rect) {
     var source_h = sprite_get_height(_sprite);
     var scale = max(_rect.w / source_w, _rect.h / source_h);
     var draw_x = _rect.x + (_rect.w - source_w * scale) / 2;
-    var draw_y = _rect.y + (_rect.h - source_h * scale) / 2;
+    // The castle and its flags are the background's focal point. Crop excess
+    // ground at the bottom instead of cutting artwork from the top.
+    var draw_y = _rect.y;
     draw_sprite_ext(_sprite, 0, draw_x, draw_y, scale, scale, 0, c_white, 1);
 }
 

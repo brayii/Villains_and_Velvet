@@ -164,9 +164,10 @@ function setup_event_selection_group_total(_selections) {
 
 function vv_ui_draw_setup() {
     vv_ui_set_font(UI_FONT_TITLE);
-    draw_center("VILLAINS & VELVET", 640, 40, COL_GOLD);
+    draw_center_shadow("VILLAINS & VELVET", 640, 40, COL_GOLD);
     vv_ui_set_font(UI_FONT_BODY);
-    draw_center(setup_advanced_events ? "BATTLE SETTINGS" : "CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
+    draw_center_shadow(setup_advanced_events ? "BATTLE SETTINGS" : "CHOOSE YOUR BATTLE",
+        640, 70, COL_TEXT);
     var battle_settings = setup_battle_settings_rect();
     draw_glass_panel(battle_settings, make_color_rgb(24, 33, 46), COL_EDGE, 0.72);
     draw_center(setup_advanced_events ? "BACK TO BATTLE" : "BATTLE SETTINGS",
@@ -263,9 +264,9 @@ function vv_ui_draw_setup() {
                 hero_summary += summary_hero.name;
             }
         }
-        draw_center(enemy_leader.name + "   |   " + enemy_scenario.name + "   |   " + enemy_minion_set.name,
+        draw_center_shadow(enemy_leader.name + "   |   " + enemy_scenario.name + "   |   " + enemy_minion_set.name,
             640, 126, COL_TEXT);
-        draw_center(hero_summary, 640, 158, COL_MUTED);
+        draw_center_shadow(hero_summary, 640, 158, COL_MUTED);
         if (!enemy_event_validation.valid) draw_center("Enemy Events must total 8.", 640, 535, COL_DANGER);
     }
 
@@ -278,7 +279,7 @@ function vv_ui_draw_setup() {
     } else if (!setup_validation.valid) {
         setup_status = "CHECK SELECTION";
     }
-    draw_center("ENEMY EVENTS  " + string(enemy_event_validation.total)
+    draw_center_shadow("ENEMY EVENTS  " + string(enemy_event_validation.total)
         + " / " + string(CORE_ENEMY_EVENT_SLOTS) + "    " + setup_status,
         640, 612, setup_validation.valid ? COL_LEGAL : COL_DANGER);
 

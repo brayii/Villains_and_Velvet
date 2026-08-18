@@ -1,4 +1,7 @@
-display_set_gui_size(1280, 720);
+ui_canvas_height = os_type == os_android
+    ? clamp(round(1280 * display_get_height() / display_get_width()), 720, 800)
+    : 720;
+display_set_gui_size(1280, ui_canvas_height);
 randomize();
 gpu_set_texfilter(true);
 vv_ui_init();
