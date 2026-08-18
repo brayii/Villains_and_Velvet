@@ -43,11 +43,18 @@ function vv_ui_init() {
     result_play_rect = {x:490, y:400, w:300, h:54};
     result_options_rect = {x:490, y:466, w:300, h:54};
     result_exit_rect = {x:490, y:532, w:300, h:54};
+    tutorial_real_match_rect = {x:470, y:530, w:340, h:62};
     setup_strike_page = 0;
     setup_twist_page = 0;
     setup_advanced_events = false;
     setup_event_defaults_restored = false;
     debug_event_log = false;
+    tutorial_mode = false;
+    tutorial_escape_seen = false;
+    tutorial_minion_defeated = false;
+    tutorial_leader_attacked = false;
+    tutorial_complete_prompt = false;
+    tutorial_escape_notice_timer = 0;
 
     drag_threshold = 8;
     tap_move_limit = 6;
@@ -215,7 +222,6 @@ function vv_feedback_snapshot() {
 
 function vv_feedback_update() {
     vv_feedback_update_music_context();
-    if (!setup_active && turn_number > 2) vv_settings_complete_guided_tutorial();
     if (setup_active) {
         feedback_ready = false;
         return;

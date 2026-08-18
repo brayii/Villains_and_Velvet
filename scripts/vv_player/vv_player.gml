@@ -190,12 +190,17 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
 
 function command_attack_minion(_index) {
     if (phase != "attack" || _index < 0 || _index > 1 || is_undefined(minions[_index])) return false;
+    if (tutorial_mode && tutorial_minion_defeated) {
+        log_add("Training: now use your remaining Attack on the highlighted Leader.");
+        return false;
+    }
     attack_finish_confirm = false;
     if (attack_left >= minions[_index].hp) {
         attack_left -= minions[_index].hp;
         var defeated_name = minions[_index].name;
         enemy_ai_conditional_learning_note_minion_defeated();
         retire_minion(_index, "is defeated");
+        if (tutorial_mode) tutorial_minion_defeated = true;
         if (kill_bonus > 0) {
             attack_left += kill_bonus;
             log_add("Defeating " + defeated_name + " activates your card abilities: +"
@@ -213,6 +218,10 @@ function command_attack_minion(_index) {
 
 function command_attack_leader() {
     if (phase != "attack") return false;
+    if (tutorial_mode && !tutorial_minion_defeated) {
+        log_add("Training: defeat a highlighted Minion before attacking the Leader.");
+        return false;
+    }
     attack_finish_confirm = false;
     var protector = find_leader_protector();
     if (!is_undefined(protector)) {
@@ -227,6 +236,7 @@ function command_attack_leader() {
     var damage = attack_left;
     var actual_damage = min(damage, leader_hp);
     leader_hp = max(0, leader_hp - damage);
+    if (tutorial_mode) tutorial_leader_attacked = true;
     enemy_ai_baseline_record_leader_damage(actual_damage);
     attack_left = 0;
     log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
@@ -241,5 +251,7 @@ function command_attack_leader() {
     }
     if (attack_left <= 0 && !game_over) show_attack_completion("ALL ATTACK USED", "Attack step complete.");
     validate_state("Player attacks Leader");
+    if (tutorial_mode && tutorial_escape_seen && tutorial_minion_defeated
+    && tutorial_leader_attacked) tutorial_complete_prompt = true;
     return true;
 }

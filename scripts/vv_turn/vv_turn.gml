@@ -11,6 +11,10 @@ function resume_after_prompts() {
     if (action == "finish_advance") {
         if (!is_undefined(advance_incoming_minion)) {
             if (advance_escape_pending && !is_undefined(minions[0])) {
+                if (tutorial_mode) {
+                    tutorial_escape_seen = true;
+                    tutorial_escape_notice_timer = 120;
+                }
                 retire_minion(0, "finishes escaping");
             }
             minions[0] = advance_incoming_minion;
@@ -22,7 +26,7 @@ function resume_after_prompts() {
         log_add("Step 2 — Advance/Escape complete.");
         step_number = 3;
         phase = "step3_ready";
-        auto_timer = 50;
+        auto_timer = tutorial_mode && tutorial_escape_seen ? 120 : 50;
         log_add("Next: Enemy Draw.");
         validate_state("Advance/Escape complete");
     } else if (action == "continue_enemy_draw") {
@@ -185,6 +189,7 @@ function command_action() {
 }
 
 function vv_turn_update() {
+    if (tutorial_escape_notice_timer > 0) tutorial_escape_notice_timer--;
     if (interaction_feedback_timer > 0) interaction_feedback_timer--;
     if (action_press_timer > 0) action_press_timer--;
     vv_feedback_update();

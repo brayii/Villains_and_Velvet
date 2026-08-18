@@ -295,7 +295,8 @@ function vv_ui_draw_setup() {
 
     draw_panel(setup_start_rect, setup_validation.valid ? COL_ACCENT : COL_PANEL,
         setup_validation.valid ? COL_TEXT : COL_EDGE);
-    draw_center("START GAME", setup_start_rect.x + setup_start_rect.w / 2,
+    draw_center(guided_tutorial_complete ? "START GAME" : "START TRAINING",
+        setup_start_rect.x + setup_start_rect.w / 2,
         setup_start_rect.y + setup_start_rect.h / 2,
         setup_validation.valid ? COL_BG : COL_MUTED);
     draw_glass_panel(setup_exit_rect, make_color_rgb(24, 33, 46), COL_EDGE, 0.38);

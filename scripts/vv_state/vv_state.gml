@@ -604,6 +604,64 @@ function command_cycle_hero_slot(_slot, _change) {
 function command_start_game_from_setup() {
     refresh_setup_validation();
     if (!setup_validation.valid) return false;
+    tutorial_mode = !guided_tutorial_complete;
+    if (!reset_game()) return false;
+    setup_active = false;
+    return true;
+}
+
+function tutorial_take_player_normal(_deck, _hero_id) {
+    for (var card_i = 0; card_i < array_length(_deck); card_i++) {
+        var candidate = _deck[card_i];
+        if (candidate.hero == _hero_id && candidate.kind == "Normal") {
+            var card = _deck[card_i];
+            array_delete(_deck, card_i, 1);
+            return card;
+        }
+    }
+    return undefined;
+}
+
+function tutorial_take_easy_minion(_deck) {
+    for (var card_i = 0; card_i < array_length(_deck); card_i++) {
+        var candidate = _deck[card_i];
+        if (candidate.card_type == "minion" && candidate.minion_slot == "NA") {
+            var card = _deck[card_i];
+            array_delete(_deck, card_i, 1);
+            return card;
+        }
+    }
+    return undefined;
+}
+
+function configure_tutorial_match() {
+    var opening_hand = [];
+    for (var hero_i = 0; hero_i < array_length(selected_hero_ids); hero_i++) {
+        var hero_card = tutorial_take_player_normal(player_deck, selected_hero_ids[hero_i]);
+        if (!is_undefined(hero_card)) array_push(opening_hand, hero_card);
+    }
+    // draw_player_hand pops from the end, so reverse the desired visible order.
+    for (var opening_i = array_length(opening_hand) - 1; opening_i >= 0; opening_i--) {
+        array_push(player_deck, opening_hand[opening_i]);
+    }
+
+    var area_2_card = tutorial_take_easy_minion(enemy_deck);
+    var area_1_card = tutorial_take_easy_minion(enemy_deck);
+    var next_enemy_card = tutorial_take_easy_minion(enemy_deck);
+    minions = [area_2_card, area_1_card];
+    if (!is_undefined(next_enemy_card)) array_push(enemy_deck, next_enemy_card);
+    tutorial_escape_seen = false;
+    tutorial_minion_defeated = false;
+    tutorial_leader_attacked = false;
+    tutorial_complete_prompt = false;
+    tutorial_escape_notice_timer = 0;
+}
+
+function command_complete_tutorial() {
+    if (!tutorial_complete_prompt) return false;
+    vv_settings_complete_guided_tutorial();
+    tutorial_mode = false;
+    tutorial_complete_prompt = false;
     if (!reset_game()) return false;
     setup_active = false;
     return true;
@@ -724,10 +782,21 @@ function reset_game() {
     game_over = false;
     victory = false;
     enemy_exhausted = false;
+    if (!variable_instance_exists(id, "tutorial_mode")) tutorial_mode = false;
+    if (tutorial_mode) configure_tutorial_match();
+    else {
+        tutorial_escape_seen = false;
+        tutorial_minion_defeated = false;
+        tutorial_leader_attacked = false;
+        tutorial_complete_prompt = false;
+        tutorial_escape_notice_timer = 0;
+    }
     vv_ui_reset_match_interaction();
     enemy_ai_baseline_begin_match();
     log_lines = [];
-    log_add("The battle begins with both Minion Areas empty.");
+    log_add(tutorial_mode
+        ? "Training battle: follow the highlighted actions."
+        : "The battle begins with both Minion Areas empty.");
     log_add("Tap START TURN when you are ready.");
     validate_state("Reset");
     return true;

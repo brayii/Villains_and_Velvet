@@ -104,11 +104,15 @@ function ui_draw_guided_target(_rect) {
 }
 
 function ui_draw_guided_coach() {
-    if (guided_tutorial_complete || turn_number > 2) return;
+    if (!tutorial_mode || tutorial_complete_prompt) return;
     var target_rects = [];
     var show_leader_target = false;
+    var watch_escape = tutorial_escape_notice_timer > 0;
 
-    if (phase == "step1_ready") {
+    if (watch_escape) {
+        array_push(target_rects, minion_rects[0]);
+        array_push(target_rects, minion_rects[1]);
+    } else if (phase == "step1_ready") {
         array_push(target_rects, action_rect);
     } else if (phase == "build") {
         array_push(target_rects, action_rect);
@@ -124,13 +128,15 @@ function ui_draw_guided_coach() {
     } else if (phase == "attack") {
         array_push(target_rects, action_rect);
         var has_target = false;
-        for (var minion_i = 0; minion_i < 2; minion_i++) {
-            if (!is_undefined(minions[minion_i]) && attack_left >= minions[minion_i].hp) {
-                array_push(target_rects, minion_rects[minion_i]);
-                has_target = true;
+        if (!tutorial_minion_defeated) {
+            for (var minion_i = 0; minion_i < 2; minion_i++) {
+                if (!is_undefined(minions[minion_i]) && attack_left >= minions[minion_i].hp) {
+                    array_push(target_rects, minion_rects[minion_i]);
+                    has_target = true;
+                }
             }
         }
-        if (!leader_is_protected() && attack_left > 0) {
+        if (tutorial_minion_defeated && !leader_is_protected() && attack_left > 0) {
             array_push(target_rects, leader_rect);
             has_target = true;
             show_leader_target = true;
@@ -147,6 +153,11 @@ function ui_draw_guided_coach() {
         vv_ui_set_font(UI_FONT_SMALL);
         draw_center_shadow("ATTACK LEADER", leader_rect.x + leader_rect.w - 78,
             leader_rect.y + leader_rect.h + 13, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
+    }
+    if (watch_escape) {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_center_shadow("AREA 1 MOVED  ·  AREA 2 ESCAPED", 755, 316, COL_GOLD);
         vv_ui_set_font(UI_FONT_BODY);
     }
 }
@@ -168,6 +179,14 @@ function vv_ui_handle_input() {
         if (pointer_pressed) {
             card_popup = undefined;
             card_popup_type = "";
+        }
+        return;
+    }
+
+    if (tutorial_complete_prompt) {
+        if (pointer_pressed && point_in_rect(pointer_x, pointer_y, tutorial_real_match_rect)) {
+            vv_feedback_play(feedback_sound_button);
+            command_complete_tutorial();
         }
         return;
     }
@@ -377,6 +396,12 @@ function vv_ui_handle_input() {
         action_press_timer = 5;
         var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
         var action_phase_before = phase;
+        var tutorial_build_blocked = tutorial_mode && phase == "build"
+            && count_occupied_build() < 3;
+        if (tutorial_build_blocked) {
+            ui_set_interaction_feedback(action_rect, "invalid", 18);
+            return;
+        }
         if (player_action_phase && action_cooldown <= 0 && command_action()) {
             if (action_phase_before == "step1_ready") vv_settings_mark_hint("turn_steps");
             if (action_phase_before == "build" && hint_build) vv_settings_mark_hint("drag");
@@ -626,11 +651,18 @@ else if (phase == "build") {
         else if (!build_changed) build_confirm_heading = "NO BUILD CHANGES";
         else build_confirm_heading = "EMPTY BUILD SPACES";
         instruction = "Confirm your Build or move a card.";
-    } else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.\nHold to inspect.";
+    } else if (tutorial_mode) instruction = selected_hand >= 0
+        ? "Place this Hero in a highlighted Build space."
+        : "Build all three Heroes for 12 Attack.";
+    else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.\nHold to inspect.";
     else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.\nHold to inspect.";
     else instruction = "Build your attack.\nTap or drag cards. Hold to inspect.";
-} else if (phase == "attack") instruction = "ATTACK " + string(attack_left)
-    + "\nTap a Minion or the Leader.\nToo little Attack is not spent.";
+} else if (phase == "attack") instruction = tutorial_mode
+    ? (tutorial_minion_defeated
+        ? "ATTACK " + string(attack_left) + "\nNow attack the highlighted Leader."
+        : "ATTACK " + string(attack_left) + "\nFirst defeat a highlighted Minion.")
+    : "ATTACK " + string(attack_left)
+        + "\nTap a Minion or the Leader.\nToo little Attack is not spent.";
 else if (phase == "attack_complete_wait") instruction = attack_notice_text;
 else if (phase == "step5_ready") instruction = "Calculating your Attack...";
 else if (phase == "step6_ready") instruction = "Discarding the cards left in your Hand...";
@@ -782,6 +814,29 @@ if (pointer_card_down && drag_active && !is_undefined(pointer_card_value)) {
 }
 
 draw_card_popup();
+
+if (tutorial_complete_prompt) {
+    draw_set_alpha(0.82);
+    draw_set_color(COL_BG);
+    draw_rectangle(0, 0, 1280, ui_canvas_height, false);
+    draw_set_alpha(1);
+    var tutorial_panel = {x:360, y:165, w:560, h:455};
+    draw_glass_panel(tutorial_panel, make_color_rgb(24, 33, 46), COL_GOLD, 0.96);
+    vv_ui_set_font(UI_FONT_TITLE);
+    draw_center("TRAINING COMPLETE", 640, 215, COL_GOLD);
+    vv_ui_set_font(UI_FONT_BODY);
+    draw_center("You are ready for a real battle.", 640, 260, COL_TEXT);
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_middle);
+    draw_set_color(COL_LEGAL);
+    draw_text(445, 325, "✓  Watched a Minion move and escape");
+    draw_text(445, 375, "✓  Built a three-Hero attack");
+    draw_text(445, 425, "✓  Defeated a Minion");
+    draw_text(445, 475, "✓  Attacked the Enemy Leader");
+    draw_panel(tutorial_real_match_rect, COL_ACCENT, COL_TEXT);
+    draw_center("START REAL BATTLE", 640,
+        tutorial_real_match_rect.y + tutorial_real_match_rect.h / 2, COL_BG);
+}
 
 if (game_over) {
     draw_set_alpha(0.9);
