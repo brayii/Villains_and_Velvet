@@ -27,7 +27,8 @@ function resume_after_prompts() {
         validate_state("Advance/Escape complete");
     } else if (action == "continue_enemy_draw") {
         phase = "enemy_event_reveal_wait";
-        auto_timer = ENEMY_EVENT_REVEAL_FRAMES;
+        // The first event stays up long enough to read its one-time instruction.
+        auto_timer = hint_enemy_event ? ENEMY_EVENT_REVEAL_FRAMES : 150;
     } else if (action == "finish_enemy") {
         enemy_ai_reward_begin_player_response();
         step_number = 4;

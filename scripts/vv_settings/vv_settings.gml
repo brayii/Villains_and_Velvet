@@ -2,8 +2,14 @@
 
 function vv_settings_defaults() {
     return {
-        settings_version: 1,
-        enemy_targeting_mode: "auto"
+        settings_version: 2,
+        enemy_targeting_mode: "auto",
+        hint_turn_steps: false,
+        hint_enemy_event: false,
+        hint_build: false,
+        hint_drag: false,
+        hint_inspect: false,
+        hint_attack: false
     };
 }
 
@@ -13,7 +19,7 @@ function vv_settings_decode(_text) {
         var loaded = json_parse(_text);
         if (!is_struct(loaded)
         || !variable_struct_exists(loaded, "settings_version")
-        || loaded.settings_version != defaults.settings_version
+        || loaded.settings_version < 1 || loaded.settings_version > defaults.settings_version
         || !variable_struct_exists(loaded, "enemy_targeting_mode")
         || !is_string(loaded.enemy_targeting_mode)) {
             return {valid:false, enemy_auto_play:true};
@@ -22,7 +28,18 @@ function vv_settings_decode(_text) {
         if (mode != "manual" && mode != "auto") {
             return {valid:false, enemy_auto_play:true};
         }
-        return {valid:true, enemy_auto_play:mode == "auto"};
+        var version = loaded.settings_version;
+        return {
+            valid:true,
+            upgraded:version != defaults.settings_version,
+            enemy_auto_play:mode == "auto",
+            hint_turn_steps:version >= 2 && variable_struct_exists(loaded, "hint_turn_steps") ? loaded.hint_turn_steps : false,
+            hint_enemy_event:version >= 2 && variable_struct_exists(loaded, "hint_enemy_event") ? loaded.hint_enemy_event : false,
+            hint_build:version >= 2 && variable_struct_exists(loaded, "hint_build") ? loaded.hint_build : false,
+            hint_drag:version >= 2 && variable_struct_exists(loaded, "hint_drag") ? loaded.hint_drag : false,
+            hint_inspect:version >= 2 && variable_struct_exists(loaded, "hint_inspect") ? loaded.hint_inspect : false,
+            hint_attack:version >= 2 && variable_struct_exists(loaded, "hint_attack") ? loaded.hint_attack : false
+        };
     } catch (_error) {
         return {valid:false, enemy_auto_play:true};
     }
@@ -30,15 +47,27 @@ function vv_settings_decode(_text) {
 
 function vv_settings_init() {
     settings_filename = "villains_and_velvet_settings.json";
-    settings_version = 1;
+    settings_version = 2;
     settings_dirty = true;
     enemy_auto_play = true;
+    hint_turn_steps = false;
+    hint_enemy_event = false;
+    hint_build = false;
+    hint_drag = false;
+    hint_inspect = false;
+    hint_attack = false;
     vv_settings_load();
     vv_settings_save_if_dirty();
 }
 
 function vv_settings_load() {
     enemy_auto_play = true;
+    hint_turn_steps = false;
+    hint_enemy_event = false;
+    hint_build = false;
+    hint_drag = false;
+    hint_inspect = false;
+    hint_attack = false;
     settings_dirty = true;
     if (!file_exists(settings_filename)) return false;
 
@@ -56,7 +85,15 @@ function vv_settings_load() {
 
     var decoded = vv_settings_decode(settings_text);
     enemy_auto_play = decoded.enemy_auto_play;
-    settings_dirty = !decoded.valid;
+    if (decoded.valid) {
+        hint_turn_steps = decoded.hint_turn_steps;
+        hint_enemy_event = decoded.hint_enemy_event;
+        hint_build = decoded.hint_build;
+        hint_drag = decoded.hint_drag;
+        hint_inspect = decoded.hint_inspect;
+        hint_attack = decoded.hint_attack;
+    }
+    settings_dirty = !decoded.valid || (decoded.valid && decoded.upgraded);
     return decoded.valid;
 }
 
@@ -64,7 +101,13 @@ function vv_settings_save_if_dirty() {
     if (!settings_dirty) return true;
     var settings_data = {
         settings_version: settings_version,
-        enemy_targeting_mode: enemy_auto_play ? "auto" : "manual"
+        enemy_targeting_mode: enemy_auto_play ? "auto" : "manual",
+        hint_turn_steps: hint_turn_steps,
+        hint_enemy_event: hint_enemy_event,
+        hint_build: hint_build,
+        hint_drag: hint_drag,
+        hint_inspect: hint_inspect,
+        hint_attack: hint_attack
     };
     try {
         var settings_file = file_text_open_write(settings_filename);
@@ -76,6 +119,21 @@ function vv_settings_save_if_dirty() {
         settings_dirty = true;
         return false;
     }
+}
+
+function vv_settings_mark_hint(_hint) {
+    var changed = false;
+    if (_hint == "turn_steps" && !hint_turn_steps) { hint_turn_steps = true; changed = true; }
+    else if (_hint == "enemy_event" && !hint_enemy_event) { hint_enemy_event = true; changed = true; }
+    else if (_hint == "build" && !hint_build) { hint_build = true; changed = true; }
+    else if (_hint == "drag" && !hint_drag) { hint_drag = true; changed = true; }
+    else if (_hint == "inspect" && !hint_inspect) { hint_inspect = true; changed = true; }
+    else if (_hint == "attack" && !hint_attack) { hint_attack = true; changed = true; }
+    if (changed) {
+        settings_dirty = true;
+        vv_settings_save_if_dirty();
+    }
+    return changed;
 }
 
 function vv_settings_set_enemy_auto(_enabled) {

@@ -197,6 +197,10 @@ function vv_feedback_update() {
             timer:20, duration:20});
         vv_feedback_play(feedback_sound_event);
     }
+    if (!is_undefined(feedback_revealed_card) && is_undefined(revealed_enemy_card)) {
+        vv_settings_mark_hint("enemy_event");
+    }
+    if (build_changed) vv_settings_mark_hint("build");
     if (feedback_leader_hp != leader_hp) {
         var hp_change = leader_hp - feedback_leader_hp;
         array_push(feedback_fx, {card:undefined, rect:leader_rect, kind:hp_change > 0 ? "heal" : "damage",

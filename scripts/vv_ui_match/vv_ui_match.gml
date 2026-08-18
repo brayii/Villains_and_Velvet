@@ -46,8 +46,16 @@ function ui_run_card_tap(_type, _index) {
             return command_select_build(_index);
         }
     }
-    if (phase == "attack" && _type == "minion") return command_attack_minion(_index);
-    if (phase == "attack" && _type == "leader") return command_attack_leader();
+    if (phase == "attack" && _type == "minion") {
+        var minion_attack_success = command_attack_minion(_index);
+        if (minion_attack_success) vv_settings_mark_hint("attack");
+        return minion_attack_success;
+    }
+    if (phase == "attack" && _type == "leader") {
+        var leader_attack_success = command_attack_leader();
+        if (leader_attack_success) vv_settings_mark_hint("attack");
+        return leader_attack_success;
+    }
     if (_type == "leader") detail_card_selected = enemy_leader;
     else if (_type == "reveal") detail_card_selected = revealed_enemy_card;
     else if (_type == "minion") detail_card_selected = minions[_index];
@@ -172,6 +180,7 @@ function vv_ui_handle_input() {
                 pointer_card_index = -1;
                 pointer_card_value = undefined;
                 pointer_hold_frames = 0;
+                vv_settings_mark_hint("inspect");
                 return;
             }
         }
@@ -191,6 +200,10 @@ function vv_ui_handle_input() {
                     ui_set_interaction_feedback(ui_card_rect(drag_target.type, drag_target.index),
                         drop_success ? "drop" : "invalid", drop_success ? 14 : 18);
                     if (drop_success) vv_feedback_play(feedback_sound_drop);
+                    if (drop_success) {
+                        vv_settings_mark_hint("build");
+                        vv_settings_mark_hint("drag");
+                    }
                 } else {
                     ui_set_interaction_feedback(ui_card_rect(pointer_card_type, pointer_card_index),
                         "invalid", 18);
@@ -281,7 +294,10 @@ function vv_ui_handle_input() {
     if (point_in_rect(pointer_x, pointer_y, action_rect)) {
         action_press_timer = 5;
         var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
+        var action_phase_before = phase;
         if (player_action_phase && action_cooldown <= 0 && command_action()) {
+            if (action_phase_before == "step1_ready") vv_settings_mark_hint("turn_steps");
+            if (action_phase_before == "build" && hint_build) vv_settings_mark_hint("drag");
             detail_card_selected = undefined;
             action_cooldown = 24;
             vv_feedback_play(feedback_sound_button);
@@ -560,6 +576,27 @@ var phase_names = [
     "DRAW CARDS", "ADVANCE / ESCAPE", "ENEMY DRAW / ATTACK", "BUILD",
     "PLAYER ATTACK", "DISCARD", "END TURN"
 ];
+var onboarding_heading = "";
+var onboarding_text = "";
+if (!hint_turn_steps && phase == "step1_ready") {
+    onboarding_heading = "FIRST TURN · TURN STEPS";
+    onboarding_text = "The gold line shows where you are. Start by drawing cards.";
+} else if (!hint_enemy_event && !is_undefined(revealed_enemy_card)) {
+    onboarding_heading = "FIRST ENEMY EVENT";
+    onboarding_text = "This card resolves before play continues. Hold it to inspect.";
+} else if (!hint_build && phase == "build") {
+    onboarding_heading = "FIRST BUILD";
+    onboarding_text = "Tap a Hand card, then a Build space.";
+} else if (!hint_drag && phase == "build") {
+    onboarding_heading = "QUICK MOVE";
+    onboarding_text = "You can also drag cards between Hand and Build.";
+} else if (!hint_attack && phase == "attack") {
+    onboarding_heading = "FIRST ATTACK";
+    onboarding_text = "Tap a Minion or the Leader. Unspent Attack stays until End Turn.";
+} else if (!hint_inspect && (phase == "build" || phase == "attack")) {
+    onboarding_heading = "READ ANY CARD";
+    onboarding_text = "Press and hold a card for a larger view.";
+}
 var context_panel = {x:985, y:16, w:280, h:174};
 draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.70);
 draw_set_halign(fa_left);
@@ -602,8 +639,17 @@ if (build_finish_confirm && phase == "build") {
 } else {
     var instruction_panel = {x:985, y:199, w:280, h:116};
     draw_glass_panel(instruction_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.52);
-    draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
-    draw_text_ext(1000, 211, instruction, 18, 250);
+    if (onboarding_heading != "") {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_set_color(COL_GOLD);
+        draw_text(1000, 211, onboarding_heading);
+        vv_ui_set_font(UI_FONT_BODY);
+        draw_set_color(COL_TEXT);
+        draw_text_ext(1000, 236, onboarding_text, 18, 250);
+    } else {
+        draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
+        draw_text_ext(1000, 211, instruction, 18, 250);
+    }
 }
 
 // A selected card gets a readable description without covering the board.
@@ -694,6 +740,10 @@ if (game_over) {
     vv_ui_set_font(UI_FONT_BODY);
     draw_center(victory ? "The Enemy Leader has been defeated." : "The Enemy Deck ran out before the Leader fell.",
         640, 325, COL_TEXT);
+    vv_ui_set_font(UI_FONT_SMALL);
+    draw_center("TURNS " + string(turn_number) + "   ·   LEADER HP " + string(leader_hp)
+        + " / " + string(enemy_leader.max_hp), 640, 356, COL_MUTED);
+    vv_ui_set_font(UI_FONT_BODY);
     draw_panel(result_play_rect, COL_ACCENT, COL_TEXT);
     draw_center("PLAY AGAIN", 640, result_play_rect.y + result_play_rect.h / 2, COL_BG);
     draw_panel(result_options_rect, COL_PANEL, COL_EDGE);
