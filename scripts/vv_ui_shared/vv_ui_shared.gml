@@ -237,6 +237,13 @@ function vv_feedback_has_card_fx(_card, _kind) {
     return false;
 }
 
+function vv_feedback_has_fx_kind(_kind) {
+    for (var fx_i = 0; fx_i < array_length(feedback_fx); fx_i++) {
+        if (feedback_fx[fx_i].kind == _kind) return true;
+    }
+    return false;
+}
+
 function vv_feedback_snapshot() {
     feedback_minions = [minions[0], minions[1]];
     feedback_build = [build[0], build[1], build[2]];
