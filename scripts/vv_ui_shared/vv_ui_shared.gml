@@ -51,6 +51,7 @@ function vv_ui_init() {
     drag_threshold = 8;
     tap_move_limit = 6;
     inspect_hold_frames = 30;
+    vv_feedback_audio_init();
     vv_ui_reset_match_interaction();
 }
 
@@ -62,6 +63,7 @@ function vv_ui_cleanup() {
     UI_FONT_SMALL = -1;
     UI_FONT_BODY = -1;
     UI_FONT_TITLE = -1;
+    vv_feedback_audio_cleanup();
 }
 
 function vv_ui_set_font(_font) {
@@ -93,6 +95,189 @@ function vv_ui_reset_match_interaction() {
     attack_notice_text = "";
     match_menu_active = false;
     quit_match_confirm = false;
+    feedback_ready = false;
+    feedback_fx = [];
+    feedback_phase_timer = 0;
+    feedback_phase_text = "";
+}
+
+function vv_feedback_make_tone(_frequency, _milliseconds) {
+    var sample_rate = 11025;
+    var sample_count = max(1, round(sample_rate * _milliseconds / 1000));
+    var sound_buffer = buffer_create(sample_count * 2, buffer_fixed, 1);
+    for (var sample_i = 0; sample_i < sample_count; sample_i++) {
+        var fade = 1 - sample_i / sample_count;
+        var sample_value = round(sin(sample_i * _frequency * 2 * pi / sample_rate) * 5200 * fade);
+        buffer_write(sound_buffer, buffer_s16, sample_value);
+    }
+    var sound_id = audio_create_buffer_sound(sound_buffer, buffer_s16, sample_rate, 0,
+        sample_count * 2, audio_mono);
+    array_push(feedback_audio_buffers, sound_buffer);
+    array_push(feedback_audio_sounds, sound_id);
+    return sound_id;
+}
+
+function vv_feedback_audio_init() {
+    feedback_audio_buffers = [];
+    feedback_audio_sounds = [];
+    feedback_sound_soft = vv_feedback_make_tone(520, 55);
+    feedback_sound_move = vv_feedback_make_tone(300, 90);
+    feedback_sound_event = vv_feedback_make_tone(680, 120);
+    feedback_sound_hit = vv_feedback_make_tone(150, 90);
+    feedback_sound_heal = vv_feedback_make_tone(820, 150);
+    feedback_sound_result = vv_feedback_make_tone(440, 240);
+}
+
+function vv_feedback_audio_cleanup() {
+    if (!variable_instance_exists(id, "feedback_audio_sounds")) return;
+    for (var sound_i = 0; sound_i < array_length(feedback_audio_sounds); sound_i++) {
+        if (feedback_audio_sounds[sound_i] >= 0) audio_free_buffer_sound(feedback_audio_sounds[sound_i]);
+    }
+    for (var buffer_i = 0; buffer_i < array_length(feedback_audio_buffers); buffer_i++) {
+        if (buffer_exists(feedback_audio_buffers[buffer_i])) buffer_delete(feedback_audio_buffers[buffer_i]);
+    }
+    feedback_audio_sounds = [];
+    feedback_audio_buffers = [];
+}
+
+function vv_feedback_play(_sound) {
+    if (_sound >= 0) audio_play_sound(_sound, 0, false);
+}
+
+function vv_feedback_card_present(_card) {
+    if (is_undefined(_card)) return false;
+    for (var present_i = 0; present_i < 3; present_i++) {
+        if (build[present_i] == _card) return true;
+        if (present_i < array_length(hand) && hand[present_i] == _card) return true;
+    }
+    return minions[0] == _card || minions[1] == _card;
+}
+
+function vv_feedback_add_card_fx(_card, _rect, _kind) {
+    if (is_undefined(_card)) return;
+    array_push(feedback_fx, {card:_card, rect:_rect, kind:_kind, timer:18, duration:18});
+}
+
+function vv_feedback_snapshot() {
+    feedback_minions = [minions[0], minions[1]];
+    feedback_build = [build[0], build[1], build[2]];
+    feedback_hand = [hand[0], hand[1], hand[2]];
+    feedback_leader_hp = leader_hp;
+    feedback_revealed_card = revealed_enemy_card;
+    feedback_step = step_number;
+    feedback_game_over = game_over;
+}
+
+function vv_feedback_update() {
+    if (setup_active) {
+        feedback_ready = false;
+        return;
+    }
+    if (!feedback_ready) {
+        vv_feedback_snapshot();
+        feedback_ready = true;
+        return;
+    }
+
+    if (feedback_step != step_number) {
+        feedback_phase_text = "STEP " + string(step_number) + "  ·  " + vv_step_name(step_number);
+        feedback_phase_timer = 28;
+        vv_feedback_play(feedback_sound_soft);
+    }
+    if (feedback_minions[1] == minions[0] && !is_undefined(minions[0])) {
+        array_push(feedback_fx, {card:minions[0], rect:minion_rects[1], end_rect:minion_rects[0],
+            kind:"move", timer:22, duration:22});
+        vv_feedback_play(feedback_sound_move);
+    }
+    if (is_undefined(feedback_revealed_card) && !is_undefined(revealed_enemy_card)) {
+        array_push(feedback_fx, {card:revealed_enemy_card, rect:minion_rects[1], kind:"reveal",
+            timer:20, duration:20});
+        vv_feedback_play(feedback_sound_event);
+    }
+    if (feedback_leader_hp != leader_hp) {
+        var hp_change = leader_hp - feedback_leader_hp;
+        array_push(feedback_fx, {card:undefined, rect:leader_rect, kind:hp_change > 0 ? "heal" : "damage",
+            amount:abs(hp_change), timer:24, duration:24});
+        vv_feedback_play(hp_change > 0 ? feedback_sound_heal : feedback_sound_hit);
+    }
+    for (var old_build_i = 0; old_build_i < 3; old_build_i++) {
+        if (!is_undefined(feedback_build[old_build_i]) && !vv_feedback_card_present(feedback_build[old_build_i])) {
+            vv_feedback_add_card_fx(feedback_build[old_build_i], build_rects[old_build_i], "destroy");
+            vv_feedback_play(feedback_sound_hit);
+        }
+    }
+    for (var old_minion_i = 0; old_minion_i < 2; old_minion_i++) {
+        if (!is_undefined(feedback_minions[old_minion_i]) && !vv_feedback_card_present(feedback_minions[old_minion_i])) {
+            vv_feedback_add_card_fx(feedback_minions[old_minion_i], minion_rects[old_minion_i], "destroy");
+            vv_feedback_play(feedback_sound_hit);
+        }
+    }
+    if (!feedback_game_over && game_over) vv_feedback_play(feedback_sound_result);
+
+    for (var fx_i = array_length(feedback_fx) - 1; fx_i >= 0; fx_i--) {
+        feedback_fx[fx_i].timer--;
+        if (feedback_fx[fx_i].timer <= 0) array_delete(feedback_fx, fx_i, 1);
+    }
+    if (feedback_phase_timer > 0) feedback_phase_timer--;
+    vv_feedback_snapshot();
+}
+
+function vv_feedback_draw() {
+    for (var fx_i = 0; fx_i < array_length(feedback_fx); fx_i++) {
+        var fx = feedback_fx[fx_i];
+        var progress = 1 - fx.timer / fx.duration;
+        if (fx.kind == "move") {
+            var move_rect = {x:lerp(fx.rect.x, fx.end_rect.x, progress),
+                y:lerp(fx.rect.y, fx.end_rect.y, progress), w:fx.rect.w, h:fx.rect.h};
+            draw_card(fx.card, move_rect, true, false);
+        } else if (fx.kind == "reveal") {
+            var reveal_scale = 0.82 + 0.18 * min(1, progress * 1.6);
+            var reveal_rect = {x:fx.rect.x + fx.rect.w * (1 - reveal_scale) / 2,
+                y:fx.rect.y + fx.rect.h * (1 - reveal_scale) / 2,
+                w:fx.rect.w * reveal_scale, h:fx.rect.h * reveal_scale};
+            draw_set_alpha(min(1, progress * 2));
+            draw_enemy_reveal(fx.card, reveal_rect);
+            draw_set_alpha(1);
+        } else if (fx.kind == "destroy") {
+            draw_set_alpha(max(0, 1 - progress));
+            draw_card(fx.card, fx.rect, false, false);
+            draw_set_alpha(1);
+        } else {
+            var effect_color = fx.kind == "heal" ? COL_LEGAL : COL_DANGER;
+            draw_set_alpha(max(0, 1 - progress));
+            draw_set_color(effect_color);
+            draw_rectangle(fx.rect.x, fx.rect.y, fx.rect.x + fx.rect.w, fx.rect.y + fx.rect.h, true);
+            vv_ui_set_font(UI_FONT_TITLE);
+            draw_center((fx.kind == "heal" ? "+" : "−") + string(fx.amount),
+                fx.rect.x + fx.rect.w / 2, fx.rect.y + fx.rect.h / 2 - progress * 18, effect_color);
+            draw_set_alpha(1);
+            vv_ui_set_font(UI_FONT_BODY);
+        }
+    }
+    if (feedback_phase_timer > 0) {
+        var phase_alpha = min(1, feedback_phase_timer / 8);
+        draw_set_alpha(phase_alpha);
+        draw_glass_panel({x:1030, y:252, w:225, h:34}, COL_PANEL, COL_GOLD, 0.84);
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_center(feedback_phase_text, 1142, 269, COL_GOLD);
+        draw_set_alpha(1);
+        vv_ui_set_font(UI_FONT_BODY);
+    }
+}
+
+function vv_feedback_hides_minion(_index) {
+    for (var hide_i = 0; hide_i < array_length(feedback_fx); hide_i++) {
+        var hide_fx = feedback_fx[hide_i];
+        if (_index == 0 && hide_fx.kind == "move") return true;
+        if (_index == 1 && hide_fx.kind == "reveal") return true;
+    }
+    return false;
+}
+
+function vv_step_name(_step) {
+    var names = ["", "DRAW", "ADVANCE / ESCAPE", "ENEMY DRAW / ATTACK", "BUILD",
+        "PLAYER ATTACK", "DISCARD", "END TURN"];
+    return names[clamp(_step, 1, 7)];
 }
 
 function point_in_rect(_px, _py, _rect) {

@@ -142,6 +142,7 @@ function vv_ui_handle_input() {
     if (!setup_active && !game_over && pointer_pressed) {
         var pressed_card = ui_card_at_point(pointer_x, pointer_y);
         if (!is_undefined(pressed_card)) {
+            vv_feedback_play(feedback_sound_soft);
             pointer_card_down = true;
             pointer_card_type = pressed_card.type;
             pointer_card_index = pressed_card.index;
@@ -189,6 +190,7 @@ function vv_ui_handle_input() {
                         drag_target.type, drag_target.index);
                     ui_set_interaction_feedback(ui_card_rect(drag_target.type, drag_target.index),
                         drop_success ? "drop" : "invalid", drop_success ? 14 : 18);
+                    if (drop_success) vv_feedback_play(feedback_sound_soft);
                 } else {
                     ui_set_interaction_feedback(ui_card_rect(pointer_card_type, pointer_card_index),
                         "invalid", 18);
@@ -282,6 +284,7 @@ function vv_ui_handle_input() {
         if (player_action_phase && action_cooldown <= 0 && command_action()) {
             detail_card_selected = undefined;
             action_cooldown = 24;
+            vv_feedback_play(feedback_sound_soft);
         } else if (!player_action_phase || action_cooldown > 0 || prompt_mode != "") {
             ui_set_interaction_feedback(action_rect, "invalid", 18);
         }
@@ -442,9 +445,11 @@ if (!is_undefined(revealed_enemy_card)) {
     draw_center_shadow("MINIONS ENTER HERE", 865, 36, COL_MUTED);
     vv_ui_set_font(UI_FONT_BODY);
 }
-draw_card(minions[0], ui_card_visual_rect("minion", 0, minion_rects[0]), false, false);
+draw_card(vv_feedback_hides_minion(0) ? undefined : minions[0],
+    ui_card_visual_rect("minion", 0, minion_rects[0]), false, false);
 if (!is_undefined(revealed_enemy_card)) {
-    draw_enemy_reveal(revealed_enemy_card, ui_card_visual_rect("reveal", 0, minion_rects[1]));
+    if (!vv_feedback_hides_minion(1)) draw_enemy_reveal(revealed_enemy_card,
+        ui_card_visual_rect("reveal", 0, minion_rects[1]));
 } else draw_card(minions[1], ui_card_visual_rect("minion", 1, minion_rects[1]), false, false);
 draw_center_shadow("←", 755, 186, COL_ACCENT);
 
@@ -475,6 +480,9 @@ for (var hand_i = 0; hand_i < 3; hand_i++) {
     draw_card(hand_card, ui_card_visual_rect("hand", hand_i, hand_rects[hand_i]),
         selected_hand == hand_i || auto_hand_selected, legal_hand);
 }
+
+// Presentation-only feedback is drawn after the stable board, so rules and hit targets never move.
+vv_feedback_draw();
 
 // Event log.
 if (debug_event_log) {

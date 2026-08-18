@@ -186,6 +186,7 @@ function command_action() {
 function vv_turn_update() {
     if (interaction_feedback_timer > 0) interaction_feedback_timer--;
     if (action_press_timer > 0) action_press_timer--;
+    vv_feedback_update();
     if (setup_active) return;
     if (action_cooldown > 0) action_cooldown--;
     if (enemy_ai_update_auto_targeting()) return;
