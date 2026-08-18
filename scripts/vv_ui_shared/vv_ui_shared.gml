@@ -82,6 +82,10 @@ function vv_ui_reset_match_interaction() {
     card_popup = undefined;
     card_popup_type = "";
     detail_card_selected = undefined;
+    interaction_feedback_rect = undefined;
+    interaction_feedback_kind = "";
+    interaction_feedback_timer = 0;
+    action_press_timer = 0;
     build_changed = false;
     build_finish_confirm = false;
     attack_finish_confirm = false;
@@ -160,6 +164,9 @@ function card_abilities_text(_card) {
 }
 
 function draw_card(_card, _rect, _selected, _legal) {
+    var card_rect = _selected && !is_undefined(_card)
+        ? {x:_rect.x, y:_rect.y - 4, w:_rect.w, h:_rect.h}
+        : _rect;
     var fill = COL_PANEL;
     if (!is_undefined(_card)) {
         if (variable_struct_exists(_card, "theme_color")) fill = _card.theme_color;
@@ -171,36 +178,45 @@ function draw_card(_card, _rect, _selected, _legal) {
     if (is_undefined(_card)) {
         draw_set_alpha(_legal ? 0.26 : 0.12);
         draw_set_color(fill);
-        draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, false);
+        draw_roundrect(card_rect.x, card_rect.y, card_rect.x + card_rect.w, card_rect.y + card_rect.h, false);
         draw_set_alpha(1);
     } else {
-        draw_panel(_rect, fill, outline);
+        draw_set_alpha(_selected ? 0.34 : 0.22);
+        draw_set_color(COL_BG);
+        draw_roundrect(card_rect.x + 5, card_rect.y + 7,
+            card_rect.x + card_rect.w + 5, card_rect.y + card_rect.h + 7, false);
+        draw_set_alpha(1);
+        draw_panel(card_rect, fill, outline);
     }
     if (!is_undefined(_card)) {
         var art_sprite = variable_struct_exists(_card, "art_file") ? get_art_sprite(_card.art_file) : -1;
         if (art_sprite >= 0) {
-            draw_art_contained(art_sprite, _rect, 4);
+            draw_art_contained(art_sprite, card_rect, 4);
         } else {
             draw_set_halign(fa_left);
             draw_set_valign(fa_top);
             draw_set_color(COL_TEXT);
-            draw_text(_rect.x + 10, _rect.y + 8, _card.name);
+            draw_text(card_rect.x + 10, card_rect.y + 8, _card.name);
             draw_set_color(COL_GOLD);
-            draw_text(_rect.x + 10, _rect.y + 34, "ATK " + string(_card.atk));
+            draw_text(card_rect.x + 10, card_rect.y + 34, "ATK " + string(_card.atk));
             draw_set_color(COL_ACCENT);
-            draw_text(_rect.x + _rect.w - 64, _rect.y + 34, "HP " + string(_card.hp));
+            draw_text(card_rect.x + card_rect.w - 64, card_rect.y + 34, "HP " + string(_card.hp));
             draw_set_color(COL_TEXT);
             draw_set_color(COL_MUTED);
-            draw_text_ext(_rect.x + 10, _rect.y + 59, card_abilities_text(_card), 16, _rect.w - 20);
+            draw_text_ext(card_rect.x + 10, card_rect.y + 59, card_abilities_text(_card), 16, card_rect.w - 20);
         }
     }
     if (is_undefined(_card) && !_legal) draw_set_alpha(0.48);
     draw_set_color(outline);
-    draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, true);
+    draw_roundrect(card_rect.x, card_rect.y, card_rect.x + card_rect.w, card_rect.y + card_rect.h, true);
     draw_set_alpha(1);
     if (_legal) {
+        var legal_pulse = 0.58 + 0.42 * abs(sin(current_time / 220));
+        draw_set_alpha(legal_pulse);
         draw_set_color(COL_LEGAL);
-        draw_roundrect(_rect.x + 2, _rect.y + 2, _rect.x + _rect.w - 2, _rect.y + _rect.h - 2, true);
+        draw_roundrect(card_rect.x + 2, card_rect.y + 2,
+            card_rect.x + card_rect.w - 2, card_rect.y + card_rect.h - 2, true);
+        draw_set_alpha(1);
     }
 }
 

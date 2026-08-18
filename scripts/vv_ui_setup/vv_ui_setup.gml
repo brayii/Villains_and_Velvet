@@ -5,16 +5,16 @@ function setup_selector_button_rect(_category) {
     return {x:panel_x, y:158, w:250, h:38};
 }
 
-function setup_gear_rect() {
-    return {x:1190, y:24, w:50, h:50};
+function setup_battle_settings_rect() {
+    return {x:1040, y:24, w:200, h:46};
 }
 
 function setup_hero_button_rect(_slot, _direction) {
-    return {x:955, y:151 + _slot * 42, w:250, h:35};
+    return {x:982, y:145 + _slot * 42, w:223, h:35};
 }
 
 function setup_restore_defaults_rect() {
-    return {x:930, y:66, w:230, h:44};
+    return {x:970, y:286, w:240, h:36};
 }
 
 function setup_event_definitions(_category) {
@@ -26,7 +26,11 @@ function setup_event_selections(_category) {
 }
 
 function setup_event_category_rect(_category) {
-    return _category == "strike" ? {x:50, y:310, w:560, h:280} : {x:670, y:310, w:560, h:280};
+    var visible_rows = min(4, array_length(setup_event_definitions(_category)));
+    var panel_height = max(130, 60 + visible_rows * 48);
+    return _category == "strike"
+        ? {x:50, y:330, w:560, h:panel_height}
+        : {x:670, y:330, w:560, h:panel_height};
 }
 
 function setup_event_page_count(_category) {
@@ -50,12 +54,12 @@ function setup_event_set_page(_category, _page) {
 
 function setup_event_page_button_rect(_category, _direction) {
     var panel = setup_event_category_rect(_category);
-    return {x:panel.x + (_direction < 0 ? 448 : 504), y:319, w:44, h:34};
+    return {x:panel.x + (_direction < 0 ? 448 : 504), y:panel.y + 9, w:44, h:34};
 }
 
 function setup_event_count_button_rect(_category, _visible_row, _direction) {
     var panel = setup_event_category_rect(_category);
-    return {x:panel.x + (_direction < 0 ? 450 : 506), y:360 + _visible_row * 52, w:44, h:42};
+    return {x:panel.x + (_direction < 0 ? 450 : 506), y:panel.y + 48 + _visible_row * 48, w:44, h:40};
 }
 
 function setup_event_handle_category_input(_category, _pointer_x, _pointer_y) {
@@ -108,9 +112,9 @@ function draw_setup_event_category(_category, _title) {
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
     draw_set_color(COL_GOLD);
-    draw_text(panel.x + 16, 324, _title);
+    draw_text(panel.x + 16, panel.y + 14, _title);
     if (page_count > 1) {
-        draw_center(string(page + 1) + " / " + string(page_count), panel.x + 418, 336, COL_MUTED);
+        draw_center(string(page + 1) + " / " + string(page_count), panel.x + 418, panel.y + 26, COL_MUTED);
         draw_setup_counter_button(setup_event_page_button_rect(_category, -1), "<", page > 0);
         draw_setup_counter_button(setup_event_page_button_rect(_category, 1), ">", page < page_count - 1);
     }
@@ -118,14 +122,14 @@ function draw_setup_event_category(_category, _title) {
         draw_set_halign(fa_left);
         draw_set_valign(fa_top);
         draw_set_color(COL_MUTED);
-        draw_text(panel.x + 16, 375, "None available");
+        draw_text(panel.x + 16, panel.y + 65, "None available");
         return;
     }
     var first_definition = page * 4;
     var final_definition = min(array_length(definitions), first_definition + 4);
     for (var definition_i = first_definition; definition_i < final_definition; definition_i++) {
         var visible_row = definition_i - first_definition;
-        var row_y = 360 + visible_row * 52;
+        var row_y = panel.y + 48 + visible_row * 48;
         var definition = definitions[definition_i];
         var selection_i = find_enemy_event_selection_index(selections, definition.card.id);
         var copies = selection_i >= 0 ? selections[selection_i].copies : 0;
@@ -150,14 +154,6 @@ function draw_setup_dropdown(_rect, _value) {
     draw_center("v", _rect.x + _rect.w - 18, _rect.y + _rect.h / 2, COL_GOLD);
 }
 
-function setup_event_default_total(_definitions) {
-    var total = 0;
-    for (var definition_i = 0; definition_i < array_length(_definitions); definition_i++) {
-        total += _definitions[definition_i].default_copies;
-    }
-    return total;
-}
-
 function setup_event_selection_group_total(_selections) {
     var total = 0;
     for (var selection_i = 0; selection_i < array_length(_selections); selection_i++) {
@@ -171,8 +167,11 @@ function vv_ui_draw_setup() {
     draw_center("VILLAINS & VELVET", 640, 40, COL_GOLD);
     vv_ui_set_font(UI_FONT_BODY);
     draw_center(setup_advanced_events ? "BATTLE SETTINGS" : "CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
-    var gear = setup_gear_rect();
-    draw_setup_gear(gear, setup_advanced_events);
+    var battle_settings = setup_battle_settings_rect();
+    draw_glass_panel(battle_settings, make_color_rgb(24, 33, 46), COL_EDGE, 0.72);
+    draw_center(setup_advanced_events ? "BACK TO BATTLE" : "BATTLE SETTINGS",
+        battle_settings.x + battle_settings.w / 2,
+        battle_settings.y + battle_settings.h / 2, COL_TEXT);
 
     if (!content_registry_validation.valid) {
         var content_error_panel = {x:290, y:190, w:700, h:230};
@@ -196,10 +195,10 @@ function vv_ui_draw_setup() {
 
     if (setup_advanced_events) {
         var setup_panels = [
-            {x:35, y:120, w:280, h:175},
-            {x:335, y:120, w:280, h:175},
-            {x:635, y:120, w:280, h:175},
-            {x:935, y:120, w:280, h:175}
+            {x:35, y:110, w:280, h:165},
+            {x:335, y:110, w:280, h:165},
+            {x:635, y:110, w:280, h:165},
+            {x:935, y:110, w:280, h:165}
         ];
         draw_set_alpha(0.92);
         for (var panel_i = 0; panel_i < 4; panel_i++) draw_panel(setup_panels[panel_i], COL_PANEL, COL_EDGE);
@@ -208,10 +207,10 @@ function vv_ui_draw_setup() {
         draw_set_halign(fa_left);
         draw_set_valign(fa_top);
         draw_set_color(COL_GOLD);
-        draw_text(55, 134, "LEADER");
-        draw_text(355, 134, "SCENARIO");
-        draw_text(655, 134, "MINION SET");
-        draw_text(955, 134, "HERO TEAM");
+        draw_text(55, 124, "LEADER");
+        draw_text(355, 124, "SCENARIO");
+        draw_text(655, 124, "MINION SET");
+        draw_text(955, 124, "HERO TEAM");
         draw_setup_dropdown(setup_selector_button_rect("leader"), enemy_leader.name);
         draw_setup_dropdown(setup_selector_button_rect("scenario"), enemy_scenario.name);
         draw_setup_dropdown(setup_selector_button_rect("minion_set"), enemy_minion_set.name);
@@ -219,35 +218,43 @@ function vv_ui_draw_setup() {
         draw_set_halign(fa_left);
         draw_set_valign(fa_top);
         draw_set_color(COL_MUTED);
-        draw_text(55, 208, string(enemy_leader.starting_hp) + " HEALTH   "
+        draw_text(55, 204, string(enemy_leader.starting_hp) + " HEALTH   "
             + string(enemy_leader.attack) + " ATTACK");
-        draw_text(55, 236, string(setup_event_selection_group_total(enemy_event_selection.leader_strikes))
+        draw_text(55, 232, string(setup_event_selection_group_total(enemy_event_selection.leader_strikes))
             + " LEADER STRIKES");
-        draw_text(355, 208, string(setup_event_selection_group_total(enemy_event_selection.twists)) + " TWISTS");
-        draw_text_ext(355, 234, enemy_scenario.description, 16, 245);
-        draw_text(655, 208, string(CORE_MINION_TOTAL) + " MINIONS");
+        draw_text(355, 204, string(setup_event_selection_group_total(enemy_event_selection.twists)) + " TWISTS");
+        draw_text_ext(355, 230, enemy_scenario.description, 16, 245);
+        draw_text(655, 204, string(CORE_MINION_TOTAL) + " MINIONS");
 
         for (var setup_hero_i = 0; setup_hero_i < array_length(selected_hero_ids); setup_hero_i++) {
             var setup_hero = find_hero_definition(available_heroes, selected_hero_ids[setup_hero_i]);
+            draw_set_halign(fa_left);
+            draw_set_valign(fa_middle);
+            vv_ui_set_font(UI_FONT_SMALL);
+            draw_set_color(COL_MUTED);
+            draw_text(949, 162 + setup_hero_i * 42, string(setup_hero_i + 1));
+            vv_ui_set_font(UI_FONT_BODY);
             if (!is_undefined(setup_hero)) draw_setup_dropdown(setup_hero_button_rect(setup_hero_i, 1), setup_hero.name);
         }
 
+        var strike_event_panel = setup_event_category_rect("strike");
+        var twist_event_panel = setup_event_category_rect("twist");
+        var event_mix_height = max(strike_event_panel.h, twist_event_panel.h) + 60;
+        draw_glass_panel({x:35, y:282, w:1210, h:event_mix_height},
+            make_color_rgb(24, 33, 46), COL_EDGE, 0.50);
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_top);
+        draw_set_color(COL_GOLD);
+        draw_text(52, 295, "ENEMY EVENT MIX");
         draw_setup_event_category("strike", "LEADER STRIKES");
-        draw_setup_event_category("twist", "SCENARIO TWISTS");
+        draw_setup_event_category("twist", "TWISTS");
         var restore_rect = setup_restore_defaults_rect();
         draw_panel(restore_rect, setup_event_defaults_restored ? COL_ACCENT : COL_PANEL,
             setup_event_defaults_restored ? COL_TEXT : COL_EDGE);
-        var default_strikes = enemy_scenario.recommended_strikes;
-        var default_twists = setup_event_default_total(enemy_scenario.twists);
         draw_center(setup_event_defaults_restored ? "EVENT MIX RESET" : "RESET EVENT MIX",
-            restore_rect.x + restore_rect.w / 2, restore_rect.y + 14,
+            restore_rect.x + restore_rect.w / 2, restore_rect.y + restore_rect.h / 2,
             setup_event_defaults_restored ? COL_BG : COL_TEXT);
-        draw_center(string(default_strikes) + " STRIKES  +  " + string(default_twists) + " TWISTS",
-            restore_rect.x + restore_rect.w / 2, restore_rect.y + 31,
-            setup_event_defaults_restored ? COL_BG : COL_MUTED);
     } else {
-        draw_center(enemy_leader.name + "   |   " + enemy_scenario.name + "   |   " + enemy_minion_set.name,
-            640, 126, COL_TEXT);
         var hero_summary = "";
         for (var summary_i = 0; summary_i < array_length(selected_hero_ids); summary_i++) {
             var summary_hero = find_hero_definition(available_heroes, selected_hero_ids[summary_i]);
@@ -256,8 +263,9 @@ function vv_ui_draw_setup() {
                 hero_summary += summary_hero.name;
             }
         }
+        draw_center(enemy_leader.name + "   |   " + enemy_scenario.name + "   |   " + enemy_minion_set.name,
+            640, 126, COL_TEXT);
         draw_center(hero_summary, 640, 158, COL_MUTED);
-        draw_center("Use the gear to change the battle.", 640, 194, COL_MUTED);
         if (!enemy_event_validation.valid) draw_center("Enemy Events must total 8.", 640, 535, COL_DANGER);
     }
 
@@ -279,9 +287,7 @@ function vv_ui_draw_setup() {
     draw_center("START GAME", setup_start_rect.x + setup_start_rect.w / 2,
         setup_start_rect.y + setup_start_rect.h / 2,
         setup_validation.valid ? COL_BG : COL_MUTED);
-    draw_glass_panel(setup_exit_rect, make_color_rgb(24, 33, 46), COL_EDGE, 0.72);
+    draw_glass_panel(setup_exit_rect, make_color_rgb(24, 33, 46), COL_EDGE, 0.38);
     draw_center("EXIT GAME", setup_exit_rect.x + setup_exit_rect.w / 2,
-        setup_exit_rect.y + setup_exit_rect.h / 2, COL_TEXT);
+        setup_exit_rect.y + setup_exit_rect.h / 2, COL_MUTED);
 }
-
-

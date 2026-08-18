@@ -76,6 +76,18 @@ function ui_drag_target_is_legal(_target_type, _target_index) {
     return false;
 }
 
+function ui_set_interaction_feedback(_rect, _kind, _frames) {
+    interaction_feedback_rect = _rect;
+    interaction_feedback_kind = _kind;
+    interaction_feedback_timer = _frames;
+}
+
+function ui_card_visual_rect(_type, _index, _rect) {
+    var pressed = pointer_card_down && !drag_active
+        && pointer_card_type == _type && pointer_card_index == _index;
+    return pressed ? {x:_rect.x, y:_rect.y - 3, w:_rect.w, h:_rect.h} : _rect;
+}
+
 function vv_ui_handle_input() {
     var pointer_x = device_mouse_x_to_gui(0);
     var pointer_y = device_mouse_y_to_gui(0);
@@ -173,14 +185,22 @@ function vv_ui_handle_input() {
             if (drag_active) {
                 var drag_target = ui_drag_target_at_point(pointer_x, pointer_y);
                 if (!is_undefined(drag_target)) {
-                    command_drag_card(pointer_card_type, pointer_card_index, drag_target.type, drag_target.index);
+                    var drop_success = command_drag_card(pointer_card_type, pointer_card_index,
+                        drag_target.type, drag_target.index);
+                    ui_set_interaction_feedback(ui_card_rect(drag_target.type, drag_target.index),
+                        drop_success ? "drop" : "invalid", drop_success ? 14 : 18);
+                } else {
+                    ui_set_interaction_feedback(ui_card_rect(pointer_card_type, pointer_card_index),
+                        "invalid", 18);
                 }
             } else {
                 var released_card = ui_card_at_point(pointer_x, pointer_y);
                 var same_card = !is_undefined(released_card)
                     && released_card.type == pointer_card_type && released_card.index == pointer_card_index;
                 if (same_card && pointer_max_distance <= tap_move_limit) {
-                    ui_run_card_tap(pointer_card_type, pointer_card_index);
+                    var tap_success = ui_run_card_tap(pointer_card_type, pointer_card_index);
+                    if (!tap_success) ui_set_interaction_feedback(
+                        ui_card_rect(pointer_card_type, pointer_card_index), "invalid", 18);
                 }
             }
             pointer_card_down = false;
@@ -201,7 +221,7 @@ function vv_ui_handle_input() {
             game_end();
             return;
         }
-        if (point_in_rect(pointer_x, pointer_y, setup_gear_rect())) {
+        if (point_in_rect(pointer_x, pointer_y, setup_battle_settings_rect())) {
             setup_advanced_events = !setup_advanced_events;
             return;
         }
@@ -257,10 +277,13 @@ function vv_ui_handle_input() {
     }
 
     if (point_in_rect(pointer_x, pointer_y, action_rect)) {
+        action_press_timer = 5;
         var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
         if (player_action_phase && action_cooldown <= 0 && command_action()) {
             detail_card_selected = undefined;
             action_cooldown = 24;
+        } else if (!player_action_phase || action_cooldown > 0 || prompt_mode != "") {
+            ui_set_interaction_feedback(action_rect, "invalid", 18);
         }
         return;
     }
@@ -294,6 +317,21 @@ function draw_hold_feedback() {
         held_rect.x + held_rect.w + 2, held_rect.y + held_rect.h + 2, true);
     draw_rectangle(held_rect.x, held_rect.y + held_rect.h - 5,
         held_rect.x + held_rect.w * hold_progress, held_rect.y + held_rect.h, false);
+    draw_set_alpha(1);
+}
+
+function draw_interaction_feedback() {
+    if (interaction_feedback_timer <= 0 || is_undefined(interaction_feedback_rect)) return;
+    var progress = interaction_feedback_timer / (interaction_feedback_kind == "drop" ? 14 : 18);
+    var feedback_rect = interaction_feedback_rect;
+    var inset = interaction_feedback_kind == "drop" ? (1 - progress) * 7 : 0;
+    var shake = interaction_feedback_kind == "invalid"
+        ? sin(interaction_feedback_timer * 2.4) * 3 * progress : 0;
+    draw_set_alpha(0.30 + 0.70 * progress);
+    draw_set_color(interaction_feedback_kind == "drop" ? COL_ACCENT : COL_DANGER);
+    draw_roundrect(feedback_rect.x + inset + shake, feedback_rect.y + inset,
+        feedback_rect.x + feedback_rect.w - inset + shake,
+        feedback_rect.y + feedback_rect.h - inset, true);
     draw_set_alpha(1);
 }
 
@@ -407,9 +445,10 @@ if (!is_undefined(revealed_enemy_card)) {
     draw_center_shadow("MINIONS ENTER HERE", 865, 36, COL_MUTED);
     vv_ui_set_font(UI_FONT_BODY);
 }
-draw_card(minions[0], minion_rects[0], false, false);
-if (!is_undefined(revealed_enemy_card)) draw_enemy_reveal(revealed_enemy_card, minion_rects[1]);
-else draw_card(minions[1], minion_rects[1], false, false);
+draw_card(minions[0], ui_card_visual_rect("minion", 0, minion_rects[0]), false, false);
+if (!is_undefined(revealed_enemy_card)) {
+    draw_enemy_reveal(revealed_enemy_card, ui_card_visual_rect("reveal", 0, minion_rects[1]));
+} else draw_card(minions[1], ui_card_visual_rect("minion", 1, minion_rects[1]), false, false);
 draw_center_shadow("←", 755, 186, COL_ACCENT);
 
 // Build and Hand.
@@ -422,7 +461,8 @@ for (var build_i = 0; build_i < 3; build_i++) {
     var auto_selected = enemy_auto_play && enemy_ai_visual_stage == "targeting"
         && enemy_ai_pending_zone == "build"
         && enemy_ai_selected_slot == build_i;
-    draw_card(visible_build_card, build_rects[build_i], selected_build == build_i || auto_selected, legal_build);
+    draw_card(visible_build_card, ui_card_visual_rect("build", build_i, build_rects[build_i]),
+        selected_build == build_i || auto_selected, legal_build);
 }
 
 draw_center_shadow("HAND", 640, 512, COL_MUTED);
@@ -435,7 +475,8 @@ for (var hand_i = 0; hand_i < 3; hand_i++) {
     if (ui_drag_hides_card("hand", hand_i)) hand_card = undefined;
     var auto_hand_selected = enemy_auto_play && enemy_ai_visual_stage == "targeting"
         && enemy_ai_pending_zone == "hand" && enemy_ai_selected_slot == hand_i;
-    draw_card(hand_card, hand_rects[hand_i], selected_hand == hand_i || auto_hand_selected, legal_hand);
+    draw_card(hand_card, ui_card_visual_rect("hand", hand_i, hand_rects[hand_i]),
+        selected_hand == hand_i || auto_hand_selected, legal_hand);
 }
 
 // Event log.
@@ -608,7 +649,10 @@ var confirming_build = phase == "build" && build_finish_confirm;
 var confirming_attack = phase == "attack" && attack_finish_confirm;
 var button_fill = button_enabled ? ((confirming_build || confirming_attack) ? COL_GOLD : COL_ACCENT) : COL_PANEL;
 var button_outline = button_enabled ? COL_TEXT : COL_EDGE;
-draw_panel(action_rect, button_fill, button_outline);
+var action_draw_rect = action_press_timer > 0
+    ? {x:action_rect.x, y:action_rect.y + 3, w:action_rect.w, h:action_rect.h - 3}
+    : action_rect;
+draw_panel(action_draw_rect, button_fill, button_outline);
 var button_text = "";
 if (enemy_auto_play && enemy_ai_visual_stage == "result") button_text = "ATTACK RESOLVED";
 else if (prompt_mode == "enemy_attack" && enemy_auto_play) button_text = "ENEMY TARGETING...";
@@ -617,17 +661,19 @@ else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" :
 else if (phase == "build") button_text = confirming_build ? "CONFIRM BUILD" : "DONE BUILDING";
 else if (phase == "attack") button_text = confirming_attack ? "CONFIRM END" : "DONE ATTACKING";
 else button_text = "RESOLVING...";
-draw_center(button_text, action_rect.x + action_rect.w / 2, action_rect.y + action_rect.h / 2,
+draw_center(button_text, action_draw_rect.x + action_draw_rect.w / 2,
+    action_draw_rect.y + action_draw_rect.h / 2,
     button_enabled ? COL_BG : COL_MUTED);
 
 // The dragged card follows the pointer and is drawn above the board.
 draw_hold_feedback();
+draw_interaction_feedback();
 
 if (pointer_card_down && drag_active && !is_undefined(pointer_card_value)) {
-    var drag_w = pointer_card_type == "hand" ? hand_rects[0].w : build_rects[0].w;
-    var drag_h = pointer_card_type == "hand" ? hand_rects[0].h : build_rects[0].h;
+    var drag_w = (pointer_card_type == "hand" ? hand_rects[0].w : build_rects[0].w) * 1.04;
+    var drag_h = (pointer_card_type == "hand" ? hand_rects[0].h : build_rects[0].h) * 1.04;
     var drag_x = device_mouse_x_to_gui(0) - drag_w / 2;
-    var drag_y = device_mouse_y_to_gui(0) - drag_h / 2;
+    var drag_y = device_mouse_y_to_gui(0) - drag_h / 2 - 7;
     draw_card(pointer_card_value, {x:drag_x, y:drag_y, w:drag_w, h:drag_h}, true, false);
 }
 
