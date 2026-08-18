@@ -104,11 +104,14 @@ function ui_draw_guided_target(_rect) {
 }
 
 function ui_draw_guided_coach() {
+    if (guided_tutorial_complete || turn_number > 2) return;
     var target_rects = [];
+    var show_leader_target = false;
 
-    if (!hint_turn_steps && phase == "step1_ready") {
+    if (phase == "step1_ready") {
         array_push(target_rects, action_rect);
-    } else if (!hint_build && phase == "build") {
+    } else if (phase == "build") {
+        array_push(target_rects, action_rect);
         if (selected_hand < 0) {
             for (var hand_i = 0; hand_i < 3; hand_i++) {
                 if (hand_i < array_length(hand) && !is_undefined(hand[hand_i])) {
@@ -118,7 +121,8 @@ function ui_draw_guided_coach() {
         } else {
             for (var build_i = 0; build_i < 3; build_i++) array_push(target_rects, build_rects[build_i]);
         }
-    } else if (!hint_attack && phase == "attack") {
+    } else if (phase == "attack") {
+        array_push(target_rects, action_rect);
         var has_target = false;
         for (var minion_i = 0; minion_i < 2; minion_i++) {
             if (!is_undefined(minions[minion_i]) && attack_left >= minions[minion_i].hp) {
@@ -129,6 +133,7 @@ function ui_draw_guided_coach() {
         if (!leader_is_protected() && attack_left > 0) {
             array_push(target_rects, leader_rect);
             has_target = true;
+            show_leader_target = true;
         }
         if (!has_target) {
             array_push(target_rects, action_rect);
@@ -137,6 +142,12 @@ function ui_draw_guided_coach() {
 
     for (var target_i = 0; target_i < array_length(target_rects); target_i++) {
         ui_draw_guided_target(target_rects[target_i]);
+    }
+    if (show_leader_target) {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_center_shadow("ATTACK LEADER", leader_rect.x + leader_rect.w - 78,
+            leader_rect.y + leader_rect.h + 13, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
     }
 }
 
@@ -619,7 +630,7 @@ else if (phase == "build") {
     else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.\nHold to inspect.";
     else instruction = "Build your attack.\nTap or drag cards. Hold to inspect.";
 } else if (phase == "attack") instruction = "ATTACK " + string(attack_left)
-    + "\nTap a target. Hold to inspect.\nToo little Attack is not spent.";
+    + "\nTap a Minion or the Leader.\nToo little Attack is not spent.";
 else if (phase == "attack_complete_wait") instruction = attack_notice_text;
 else if (phase == "step5_ready") instruction = "Calculating your Attack...";
 else if (phase == "step6_ready") instruction = "Discarding the cards left in your Hand...";

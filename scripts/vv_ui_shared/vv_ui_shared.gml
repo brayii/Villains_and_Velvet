@@ -215,6 +215,7 @@ function vv_feedback_snapshot() {
 
 function vv_feedback_update() {
     vv_feedback_update_music_context();
+    if (!setup_active && turn_number > 2) vv_settings_complete_guided_tutorial();
     if (setup_active) {
         feedback_ready = false;
         return;

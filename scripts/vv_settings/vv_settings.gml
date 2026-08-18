@@ -2,9 +2,10 @@
 
 function vv_settings_defaults() {
     return {
-        settings_version: 4,
+        settings_version: 5,
         enemy_targeting_mode: "auto",
         audio_enabled: true,
+        guided_tutorial_complete: false,
         hint_turn_steps: false,
         hint_enemy_event: false,
         hint_build: false,
@@ -35,6 +36,9 @@ function vv_settings_decode(_text) {
             upgraded:version != defaults.settings_version,
             enemy_auto_play:mode == "auto",
             audio_enabled:version >= 3 && variable_struct_exists(loaded, "audio_enabled") ? loaded.audio_enabled : true,
+            guided_tutorial_complete:version >= 5
+                && variable_struct_exists(loaded, "guided_tutorial_complete")
+                ? loaded.guided_tutorial_complete : false,
             hint_turn_steps:version >= 4 && variable_struct_exists(loaded, "hint_turn_steps") ? loaded.hint_turn_steps : false,
             hint_enemy_event:version >= 2 && variable_struct_exists(loaded, "hint_enemy_event") ? loaded.hint_enemy_event : false,
             hint_build:version >= 4 && variable_struct_exists(loaded, "hint_build") ? loaded.hint_build : false,
@@ -49,10 +53,11 @@ function vv_settings_decode(_text) {
 
 function vv_settings_init() {
     settings_filename = "villains_and_velvet_settings.json";
-    settings_version = 4;
+    settings_version = 5;
     settings_dirty = true;
     enemy_auto_play = true;
     audio_enabled = true;
+    guided_tutorial_complete = false;
     hint_turn_steps = false;
     hint_enemy_event = false;
     hint_build = false;
@@ -67,6 +72,7 @@ function vv_settings_init() {
 function vv_settings_load() {
     enemy_auto_play = true;
     audio_enabled = true;
+    guided_tutorial_complete = false;
     hint_turn_steps = false;
     hint_enemy_event = false;
     hint_build = false;
@@ -92,6 +98,7 @@ function vv_settings_load() {
     enemy_auto_play = decoded.enemy_auto_play;
     if (decoded.valid) {
         audio_enabled = decoded.audio_enabled;
+        guided_tutorial_complete = decoded.guided_tutorial_complete;
         hint_turn_steps = decoded.hint_turn_steps;
         hint_enemy_event = decoded.hint_enemy_event;
         hint_build = decoded.hint_build;
@@ -109,6 +116,7 @@ function vv_settings_save_if_dirty() {
         settings_version: settings_version,
         enemy_targeting_mode: enemy_auto_play ? "auto" : "manual",
         audio_enabled: audio_enabled,
+        guided_tutorial_complete: guided_tutorial_complete,
         hint_turn_steps: hint_turn_steps,
         hint_enemy_event: hint_enemy_event,
         hint_build: hint_build,
@@ -141,6 +149,14 @@ function vv_settings_mark_hint(_hint) {
         vv_settings_save_if_dirty();
     }
     return changed;
+}
+
+function vv_settings_complete_guided_tutorial() {
+    if (guided_tutorial_complete) return false;
+    guided_tutorial_complete = true;
+    settings_dirty = true;
+    vv_settings_save_if_dirty();
+    return true;
 }
 
 function vv_settings_set_enemy_auto(_enabled) {
