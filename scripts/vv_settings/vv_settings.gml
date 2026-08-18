@@ -2,7 +2,7 @@
 
 function vv_settings_defaults() {
     return {
-        settings_version: 3,
+        settings_version: 4,
         enemy_targeting_mode: "auto",
         audio_enabled: true,
         hint_turn_steps: false,
@@ -35,12 +35,12 @@ function vv_settings_decode(_text) {
             upgraded:version != defaults.settings_version,
             enemy_auto_play:mode == "auto",
             audio_enabled:version >= 3 && variable_struct_exists(loaded, "audio_enabled") ? loaded.audio_enabled : true,
-            hint_turn_steps:version >= 2 && variable_struct_exists(loaded, "hint_turn_steps") ? loaded.hint_turn_steps : false,
+            hint_turn_steps:version >= 4 && variable_struct_exists(loaded, "hint_turn_steps") ? loaded.hint_turn_steps : false,
             hint_enemy_event:version >= 2 && variable_struct_exists(loaded, "hint_enemy_event") ? loaded.hint_enemy_event : false,
-            hint_build:version >= 2 && variable_struct_exists(loaded, "hint_build") ? loaded.hint_build : false,
+            hint_build:version >= 4 && variable_struct_exists(loaded, "hint_build") ? loaded.hint_build : false,
             hint_drag:version >= 2 && variable_struct_exists(loaded, "hint_drag") ? loaded.hint_drag : false,
             hint_inspect:version >= 2 && variable_struct_exists(loaded, "hint_inspect") ? loaded.hint_inspect : false,
-            hint_attack:version >= 2 && variable_struct_exists(loaded, "hint_attack") ? loaded.hint_attack : false
+            hint_attack:version >= 4 && variable_struct_exists(loaded, "hint_attack") ? loaded.hint_attack : false
         };
     } catch (_error) {
         return {valid:false, enemy_auto_play:true};
@@ -49,7 +49,7 @@ function vv_settings_decode(_text) {
 
 function vv_settings_init() {
     settings_filename = "villains_and_velvet_settings.json";
-    settings_version = 3;
+    settings_version = 4;
     settings_dirty = true;
     enemy_auto_play = true;
     audio_enabled = true;

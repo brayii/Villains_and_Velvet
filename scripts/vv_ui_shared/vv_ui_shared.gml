@@ -100,6 +100,7 @@ function vv_ui_reset_match_interaction() {
     feedback_fx = [];
     feedback_phase_timer = 0;
     feedback_phase_text = "";
+    battle_music_started = false;
 }
 
 function vv_feedback_load_sound(_filename) {
@@ -179,7 +180,10 @@ function vv_feedback_apply_audio_enabled() {
 }
 
 function vv_feedback_update_music_context() {
-    var next_mode = setup_active ? "setup" : "battle";
+    if (!setup_active && !battle_music_started && phase != "step1_ready") {
+        battle_music_started = true;
+    }
+    var next_mode = setup_active ? "setup" : (battle_music_started ? "battle" : "silent");
     if (feedback_music_mode == next_mode) return;
     feedback_music_mode = next_mode;
     vv_feedback_apply_audio_enabled();

@@ -165,7 +165,7 @@ public static class VelvetMusicGenerator {
 
     public static void GenerateBattle(string path) {
         const int rate = 22050;
-        const double bpm = 108.0;
+        const double bpm = 116.0;
         double beat = 60.0 / bpm;
         double barLength = beat * 4.0;
         int[][] chords = {
@@ -211,7 +211,7 @@ public static class VelvetMusicGenerator {
                     * 0.105 * NoteEnvelope(eighthPhase, eighth * 0.72);
 
                 // Heroic lead phrase marks the battle while remaining playful.
-                int melodyNote = melody[Math.Min(melody.Length - 1, bar * 4 + beatStep)];
+                int melodyNote = melody[Math.Min(melody.Length - 1, bar * 4 + beatStep)] - 7;
                 sample += (Sine(melodyNote, t) + 0.20 * Sine(melodyNote + 12, t))
                     * 0.058 * NoteEnvelope(beatPhase, beat * 0.72);
 
