@@ -37,12 +37,23 @@ function ui_run_card_tap(_type, _index) {
     if (prompt_mode != "" && _type == "build") return command_prompt_build(_index);
     if (prompt_mode != "") return false;
     if (phase == "build") {
-        if (_type == "hand") return command_select_hand(_index);
-        if (_type == "build") return command_select_build(_index);
+        if (_type == "hand") {
+            detail_card_selected = undefined;
+            return command_select_hand(_index);
+        }
+        if (_type == "build") {
+            detail_card_selected = undefined;
+            return command_select_build(_index);
+        }
     }
     if (phase == "attack" && _type == "minion") return command_attack_minion(_index);
     if (phase == "attack" && _type == "leader") return command_attack_leader();
-    return false;
+    if (_type == "leader") detail_card_selected = enemy_leader;
+    else if (_type == "reveal") detail_card_selected = revealed_enemy_card;
+    else if (_type == "minion") detail_card_selected = minions[_index];
+    else if (_type == "hand" && _index < array_length(hand)) detail_card_selected = hand[_index];
+    else if (_type == "build") detail_card_selected = build[_index];
+    return !is_undefined(detail_card_selected);
 }
 
 function ui_drag_target_at_point(_pointer_x, _pointer_y) {
@@ -130,6 +141,7 @@ function vv_ui_handle_input() {
             drag_active = false;
             return;
         }
+        detail_card_selected = undefined;
     }
 
     if (pointer_card_down) {
@@ -246,7 +258,10 @@ function vv_ui_handle_input() {
 
     if (point_in_rect(pointer_x, pointer_y, action_rect)) {
         var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
-        if (player_action_phase && action_cooldown <= 0 && command_action()) action_cooldown = 24;
+        if (player_action_phase && action_cooldown <= 0 && command_action()) {
+            detail_card_selected = undefined;
+            action_cooldown = 24;
+        }
         return;
     }
 
@@ -449,10 +464,10 @@ else if (prompt_mode == "full_assault_shatter") instruction = "Shatter: choose a
 else if (prompt_mode == "destroy_hand") instruction = prompt_source + "\nChoose a highlighted Hand card.\n"
     + string(escape_cards_remaining) + " remaining.";
 else if (phase == "step1_ready") instruction = turn_number == 1
-    ? "Tap START TURN to draw three cards."
-    : "Tap START NEXT TURN to draw three cards.";
-else if (phase == "step2_ready") instruction = "Minions advance and escape.";
-else if (phase == "step3_ready") instruction = "Draw and resolve Enemy cards. New Minions attack the Build Area.";
+    ? "Draw three cards to begin."
+    : "Draw three cards for the next turn.";
+else if (phase == "step2_ready") instruction = "Advance Minions and resolve escapes.";
+else if (phase == "step3_ready") instruction = "Draw an Enemy card and resolve its attack.";
 else if (phase == "step4_ready") instruction = "Build phase is opening.";
 else if (phase == "start_resolving") instruction = step_number == 2
     ? "Resolving Minion movement and escapes..."
@@ -469,9 +484,9 @@ else if (phase == "build") {
         instruction = "Confirm your Build or move a card.";
     } else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.\nHold to inspect.";
     else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.\nHold to inspect.";
-    else instruction = "Tap or drag cards to build. Hold to inspect.\nTap DONE BUILDING when finished.";
+    else instruction = "Build your attack.\nTap or drag cards. Hold to inspect.";
 } else if (phase == "attack") instruction = "ATTACK " + string(attack_left)
-    + "\nTap to attack. Hold to inspect.\nToo little Attack is not spent.\nTap DONE ATTACKING when finished.";
+    + "\nTap a target. Hold to inspect.\nToo little Attack is not spent.";
 else if (phase == "attack_complete_wait") instruction = attack_notice_text;
 else if (phase == "step5_ready") instruction = "Calculating your Attack...";
 else if (phase == "step6_ready") instruction = "Discarding the cards left in your Hand...";
@@ -495,86 +510,78 @@ if (prompt_mode == "enemy_attack_hand") {
 if (enemy_auto_play && enemy_ai_visual_stage == "result") {
     instruction = enemy_ai_result_heading + "\n" + enemy_ai_result_text;
 }
-if (prompt_mode != "") {
-    instruction += enemy_auto_play && (prompt_mode == "enemy_attack"
-        || prompt_mode == "enemy_attack_hand")
-        ? "\nHold to inspect."
-        : "\nTap to choose. Hold to inspect.";
-}
-var context_panel = {x:985, y:16, w:280, h:190};
+var phase_names = [
+    "DRAW CARDS", "ADVANCE / ESCAPE", "ENEMY DRAW / ATTACK", "BUILD",
+    "PLAYER ATTACK", "DISCARD", "END TURN"
+];
+var context_panel = {x:985, y:16, w:280, h:174};
 draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.62);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
-draw_set_color(COL_MUTED);
-draw_text(1000, 29, "TURN STEPS");
+draw_set_color(COL_GOLD);
+draw_text(1000, 27, "STEP " + string(step_number) + " — " + phase_names[step_number - 1]);
 vv_ui_set_font(UI_FONT_SMALL);
-var step_list = [
-    "STEP 1: DRAW CARDS",
-    "STEP 2: ADVANCE / ESCAPE",
-    "STEP 3: ENEMY DRAW / ATTACK",
-    "STEP 4: BUILD",
-    "STEP 5: PLAYER ATTACK",
-    "STEP 6: DISCARD",
-    "STEP 7: END TURN"
-];
+draw_set_color(COL_MUTED);
+draw_text(1000, 51, "TURN STEPS");
 for (var step_i = 0; step_i < 7; step_i++) {
-    draw_set_color(step_i + 1 == step_number ? COL_GOLD : COL_MUTED);
-    draw_text(1000, 53 + step_i * 19, step_list[step_i]);
+    var active_step = step_i + 1 == step_number;
+    draw_set_alpha(active_step ? 1 : 0.58);
+    draw_set_color(active_step ? COL_GOLD : COL_MUTED);
+    draw_text(1000, 70 + step_i * 14, string(step_i + 1) + "  " + phase_names[step_i]);
 }
+draw_set_alpha(1);
 vv_ui_set_font(UI_FONT_BODY);
 
 // Short current instruction remains separate from the permanent step list.
 if (build_finish_confirm && phase == "build") {
-    var build_warning_rect = {x:985, y:215, w:280, h:105};
+    var build_warning_rect = {x:985, y:199, w:280, h:105};
     draw_glass_panel(build_warning_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.48);
     draw_set_color(COL_GOLD);
-    draw_text_ext(1000, 230, build_confirm_heading, 18, 250);
+    draw_text_ext(1000, 214, build_confirm_heading, 18, 250);
     draw_set_color(COL_TEXT);
-    draw_text_ext(1000, 260, instruction, 18, 250);
+    draw_text_ext(1000, 244, instruction, 18, 250);
 } else if ((attack_finish_confirm && phase == "attack") || phase == "attack_complete_wait") {
-    var attack_warning_rect = {x:985, y:215, w:280, h:105};
+    var attack_warning_rect = {x:985, y:199, w:280, h:105};
     draw_glass_panel(attack_warning_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.48);
     draw_set_color(COL_GOLD);
     var attack_heading = phase == "attack_complete_wait"
         ? attack_notice_heading
         : "UNUSED ATTACK: " + string(attack_left);
-    draw_text_ext(1000, 230, attack_heading, 18, 250);
+    draw_text_ext(1000, 214, attack_heading, 18, 250);
     draw_set_color(COL_TEXT);
     var attack_warning_text = phase == "attack_complete_wait"
         ? attack_notice_text
         : "Confirm the end of your Attack step or attack a target.";
-    draw_text_ext(1000, 260, attack_warning_text, 18, 250);
+    draw_text_ext(1000, 244, attack_warning_text, 18, 250);
 } else {
-    var instruction_panel = {x:985, y:215, w:280, h:140};
+    var instruction_panel = {x:985, y:199, w:280, h:116};
     draw_glass_panel(instruction_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.38);
     draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
-    draw_text_ext(1000, 225, instruction, 18, 250);
+    draw_text_ext(1000, 211, instruction, 18, 250);
 }
 
 // A selected card gets a readable description without covering the board.
 var detail_card = undefined;
 if (selected_hand >= 0 && selected_hand < array_length(hand)) detail_card = hand[selected_hand];
 else if (selected_build >= 0 && selected_build < 3) detail_card = build[selected_build];
-else if (!is_undefined(revealed_enemy_card)) detail_card = revealed_enemy_card;
-else if (!is_undefined(minions[1])) detail_card = minions[1];
-else if (!is_undefined(minions[0])) detail_card = minions[0];
+else detail_card = detail_card_selected;
 
 if (!is_undefined(detail_card)) {
-    var detail_panel = {x:985, y:365, w:280, h:145};
+    var detail_panel = {x:985, y:326, w:280, h:162};
     draw_glass_panel(detail_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.84);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
     draw_set_color(COL_MUTED);
-    draw_text(1000, 377, "CARD DETAILS");
+    draw_text(1000, 338, "CARD DETAILS");
     draw_set_color(COL_TEXT);
-    draw_text(1000, 401, string_upper(detail_card.name));
+    draw_text(1000, 362, string_upper(detail_card.name));
     if (variable_struct_exists(detail_card, "atk")) {
         draw_set_color(COL_GOLD);
-        draw_text(1000, 425, "ATK " + string(detail_card.atk));
+        draw_text(1000, 386, "ATK " + string(detail_card.atk));
         draw_set_color(COL_ACCENT);
-        draw_text(1090, 425, "HP " + string(detail_card.hp));
+        draw_text(1090, 386, "HP " + string(detail_card.hp));
     }
-    var detail_y = variable_struct_exists(detail_card, "atk") ? 450 : 425;
+    var detail_y = variable_struct_exists(detail_card, "atk") ? 411 : 386;
     draw_set_color(COL_TEXT);
     var detail_text = variable_struct_exists(detail_card, "abilities")
         ? card_abilities_text(detail_card)
@@ -583,17 +590,16 @@ if (!is_undefined(detail_card)) {
 }
 
 // Main action.
-var match_panel = {x:1025, y:515, w:235, h:96};
+var match_panel = {x:985, y:550, w:280, h:48};
 draw_glass_panel(match_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.62);
 vv_ui_set_font(UI_FONT_SMALL);
 draw_set_halign(fa_left);
-draw_set_valign(fa_top);
-draw_set_color(COL_GOLD);
-draw_text(1038, 526, "TURN " + string(turn_number));
-draw_set_color(COL_MUTED);
-draw_text(1038, 548, "PLAYER DECK: " + string(array_length(player_deck)));
-draw_text(1038, 570, "DISCARD: " + string(array_length(player_discard)));
-draw_text(1038, 590, "ENEMY DECK: " + string(array_length(enemy_deck)));
+draw_set_valign(fa_middle);
+draw_set_color(COL_TEXT);
+draw_text(997, 574, "T" + string(turn_number)
+    + " · DECK " + string(array_length(player_deck))
+    + " · DISC " + string(array_length(player_discard))
+    + " · ENEMY " + string(array_length(enemy_deck)));
 vv_ui_set_font(UI_FONT_BODY);
 
 var button_enabled = prompt_mode == "" && action_cooldown <= 0

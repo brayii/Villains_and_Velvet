@@ -81,6 +81,7 @@ function vv_ui_reset_match_interaction() {
     drag_active = false;
     card_popup = undefined;
     card_popup_type = "";
+    detail_card_selected = undefined;
     build_changed = false;
     build_finish_confirm = false;
     attack_finish_confirm = false;
@@ -243,4 +244,3 @@ function draw_setup_gear(_rect, _active) {
             center_x + lengthdir_x(16, angle), center_y + lengthdir_y(16, angle), 4);
     }
 }
-
