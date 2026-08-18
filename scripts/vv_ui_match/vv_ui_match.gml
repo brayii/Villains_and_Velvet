@@ -98,37 +98,27 @@ function ui_draw_guided_target(_rect) {
     draw_set_color(COL_GOLD);
     for (var edge_i = 0; edge_i < 3; edge_i++) {
         draw_roundrect(_rect.x - 3 - edge_i, _rect.y - 3 - edge_i,
-            _rect.x + _rect.w + 3 + edge_i, _rect.y + _rect.h + 3 + edge_i, false);
+            _rect.x + _rect.w + 3 + edge_i, _rect.y + _rect.h + 3 + edge_i, true);
     }
     draw_set_alpha(1);
 }
 
 function ui_draw_guided_coach() {
-    var coach_text = "";
-    var coach_rect = undefined;
     var target_rects = [];
 
     if (!hint_turn_steps && phase == "step1_ready") {
-        coach_text = "START HERE\nDraw your opening cards";
-        coach_rect = {x:1000, y:552, w:260, h:66};
         array_push(target_rects, action_rect);
     } else if (!hint_build && phase == "build") {
         if (selected_hand < 0) {
-            coach_text = "CHOOSE A HERO";
-            coach_rect = {x:18, y:558, w:205, h:54};
             for (var hand_i = 0; hand_i < 3; hand_i++) {
                 if (hand_i < array_length(hand) && !is_undefined(hand[hand_i])) {
                     array_push(target_rects, hand_rects[hand_i]);
                 }
             }
         } else {
-            coach_text = "PLACE IT IN YOUR BUILD";
-            coach_rect = {x:18, y:350, w:205, h:54};
             for (var build_i = 0; build_i < 3; build_i++) array_push(target_rects, build_rects[build_i]);
         }
     } else if (!hint_attack && phase == "attack") {
-        coach_text = "CHOOSE A GLOWING TARGET";
-        coach_rect = {x:985, y:326, w:280, h:54};
         var has_target = false;
         for (var minion_i = 0; minion_i < 2; minion_i++) {
             if (!is_undefined(minions[minion_i]) && attack_left >= minions[minion_i].hp) {
@@ -141,20 +131,13 @@ function ui_draw_guided_coach() {
             has_target = true;
         }
         if (!has_target) {
-            coach_text = "NO TARGET AVAILABLE\nFinish your attack";
             array_push(target_rects, action_rect);
         }
     }
 
-    if (is_undefined(coach_rect)) return;
     for (var target_i = 0; target_i < array_length(target_rects); target_i++) {
         ui_draw_guided_target(target_rects[target_i]);
     }
-    draw_glass_panel(coach_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.90);
-    vv_ui_set_font(UI_FONT_SMALL);
-    draw_center(coach_text, coach_rect.x + coach_rect.w / 2,
-        coach_rect.y + coach_rect.h / 2, COL_GOLD);
-    vv_ui_set_font(UI_FONT_BODY);
 }
 
 function ui_card_visual_rect(_type, _index, _rect) {
