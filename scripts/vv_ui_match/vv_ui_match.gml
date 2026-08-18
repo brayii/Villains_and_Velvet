@@ -107,11 +107,13 @@ function ui_draw_guided_coach() {
     if (!tutorial_mode || tutorial_complete_prompt) return;
     var target_rects = [];
     var show_leader_target = false;
-    var watch_escape = tutorial_escape_notice_timer > 0;
+    var escape_before = phase == "tutorial_escape_ready";
+    var escape_after = phase == "tutorial_escape_done";
 
-    if (watch_escape) {
+    if (escape_before || escape_after) {
         array_push(target_rects, minion_rects[0]);
         array_push(target_rects, minion_rects[1]);
+        array_push(target_rects, action_rect);
     } else if (phase == "step1_ready") {
         array_push(target_rects, action_rect);
     } else if (phase == "build") {
@@ -155,9 +157,17 @@ function ui_draw_guided_coach() {
             leader_rect.y + leader_rect.h + 13, COL_GOLD);
         vv_ui_set_font(UI_FONT_BODY);
     }
-    if (watch_escape) {
+    if (escape_before) {
         vv_ui_set_font(UI_FONT_SMALL);
-        draw_center_shadow("AREA 1 MOVED  ·  AREA 2 ESCAPED", 755, 316, COL_GOLD);
+        draw_center_shadow("ESCAPES", minion_rects[0].x + minion_rects[0].w / 2,
+            minion_rects[0].y + minion_rects[0].h + 18, COL_DANGER);
+        draw_center_shadow("PUSHES LEFT  ←", minion_rects[1].x + minion_rects[1].w / 2,
+            minion_rects[1].y + minion_rects[1].h + 18, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
+    } else if (escape_after) {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_center_shadow("THE AREA 2 MINION ESCAPED  ·  AREA 1 MOVED LEFT",
+            755, 316, COL_GOLD);
         vv_ui_set_font(UI_FONT_BODY);
     }
 }
@@ -394,7 +404,8 @@ function vv_ui_handle_input() {
 
     if (point_in_rect(pointer_x, pointer_y, action_rect)) {
         action_press_timer = 5;
-        var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
+        var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack"
+            || phase == "tutorial_escape_ready" || phase == "tutorial_escape_done";
         var action_phase_before = phase;
         var tutorial_build_blocked = tutorial_mode && phase == "build"
             && count_occupied_build() < 3;
@@ -636,6 +647,8 @@ else if (phase == "step1_ready") instruction = turn_number == 1
     ? "Draw three cards to begin."
     : "Draw three cards for the next turn.";
 else if (phase == "step2_ready") instruction = "Advance Minions and resolve escapes.";
+else if (phase == "tutorial_escape_ready") instruction = "AREA 1 PUSHES AREA 2\nThe Area 2 Minion must escape.";
+else if (phase == "tutorial_escape_done") instruction = "PUSH COMPLETE\nArea 1 moved left. Area 2 escaped.";
 else if (phase == "step3_ready") instruction = "Draw an Enemy card and resolve its attack.";
 else if (phase == "step4_ready") instruction = "Build phase is opening.";
 else if (phase == "start_resolving") instruction = step_number == 2
@@ -779,7 +792,8 @@ draw_text(997, 574, "T" + string(turn_number)
 vv_ui_set_font(UI_FONT_BODY);
 
 var button_enabled = prompt_mode == "" && action_cooldown <= 0
-    && (phase == "step1_ready" || phase == "build" || phase == "attack");
+    && (phase == "step1_ready" || phase == "build" || phase == "attack"
+        || phase == "tutorial_escape_ready" || phase == "tutorial_escape_done");
 var confirming_build = phase == "build" && build_finish_confirm;
 var confirming_attack = phase == "attack" && attack_finish_confirm;
 var button_fill = button_enabled ? ((confirming_build || confirming_attack) ? COL_GOLD : COL_ACCENT) : COL_PANEL;
@@ -793,6 +807,8 @@ if (enemy_auto_play && enemy_ai_visual_stage == "result") button_text = "ATTACK 
 else if (prompt_mode == "enemy_attack" && enemy_auto_play) button_text = "ENEMY TARGETING...";
 else if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
+else if (phase == "tutorial_escape_ready") button_text = "SHOW ESCAPE";
+else if (phase == "tutorial_escape_done") button_text = "CONTINUE";
 else if (phase == "build") button_text = confirming_build ? "CONFIRM BUILD" : "DONE BUILDING";
 else if (phase == "attack") button_text = confirming_attack ? "CONFIRM END" : "DONE ATTACKING";
 else button_text = "RESOLVING...";
