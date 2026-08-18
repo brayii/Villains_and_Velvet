@@ -190,6 +190,10 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
 
 function command_attack_minion(_index) {
     if (phase != "attack" || _index < 0 || _index > 1 || is_undefined(minions[_index])) return false;
+    if (tutorial_mode && (turn_number < 3 || !tutorial_escape_seen)) {
+        log_add("Training: leave the Minions in place to learn how escaping works.");
+        return false;
+    }
     if (tutorial_mode && tutorial_minion_defeated) {
         log_add("Training: now use your remaining Attack on the highlighted Leader.");
         return false;
@@ -218,7 +222,11 @@ function command_attack_minion(_index) {
 
 function command_attack_leader() {
     if (phase != "attack") return false;
-    if (tutorial_mode && !tutorial_minion_defeated) {
+    if (tutorial_mode && turn_number == 2) {
+        log_add("Training: preserve both Minions so Area 1 can push Area 2 next turn.");
+        return false;
+    }
+    if (tutorial_mode && turn_number >= 3 && !tutorial_minion_defeated) {
         log_add("Training: defeat a highlighted Minion before attacking the Leader.");
         return false;
     }
@@ -237,6 +245,7 @@ function command_attack_leader() {
     var actual_damage = min(damage, leader_hp);
     leader_hp = max(0, leader_hp - damage);
     if (tutorial_mode) tutorial_leader_attacked = true;
+    if (tutorial_mode && turn_number >= 3) tutorial_final_leader_attacked = true;
     enemy_ai_baseline_record_leader_damage(actual_damage);
     attack_left = 0;
     log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
@@ -252,6 +261,6 @@ function command_attack_leader() {
     if (attack_left <= 0 && !game_over) show_attack_completion("ALL ATTACK USED", "Attack step complete.");
     validate_state("Player attacks Leader");
     if (tutorial_mode && tutorial_escape_seen && tutorial_minion_defeated
-    && tutorial_leader_attacked) tutorial_complete_prompt = true;
+    && tutorial_leader_attacked && tutorial_final_leader_attacked) tutorial_complete_prompt = true;
     return true;
 }

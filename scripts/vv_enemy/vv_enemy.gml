@@ -597,6 +597,7 @@ function draw_next_enemy_card() {
     } else {
         log_add("Enemy Draw #" + string(enemy_draw_number) + " — " + enemy_card.name + ".");
         minions[1] = enemy_card;
+        if (tutorial_mode) tutorial_entry_notice_timer = 100;
         resolve_minion_entry(enemy_card);
     }
 }

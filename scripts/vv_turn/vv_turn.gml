@@ -21,13 +21,14 @@ function resume_after_prompts() {
             minions[0] = advance_incoming_minion;
             minions[1] = undefined;
             log_add(minions[0].name + " advances to Area 2.");
+            if (tutorial_mode && !completed_escape) tutorial_move_notice_timer = 100;
         }
         advance_incoming_minion = undefined;
         advance_escape_pending = false;
         log_add("Step 2 — Advance/Escape complete.");
         step_number = 3;
         phase = "step3_ready";
-        auto_timer = completed_escape ? 100 : 50;
+        auto_timer = tutorial_mode && !is_undefined(minions[0]) ? 110 : (completed_escape ? 100 : 50);
         log_add("Next: Enemy Draw.");
         validate_state("Advance/Escape complete");
     } else if (action == "continue_enemy_draw") {
@@ -190,6 +191,8 @@ function command_action() {
 }
 
 function vv_turn_update() {
+    if (tutorial_entry_notice_timer > 0) tutorial_entry_notice_timer--;
+    if (tutorial_move_notice_timer > 0) tutorial_move_notice_timer--;
     if (interaction_feedback_timer > 0) interaction_feedback_timer--;
     if (action_press_timer > 0) action_press_timer--;
     vv_feedback_update();

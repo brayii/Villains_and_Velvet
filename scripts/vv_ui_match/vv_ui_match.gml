@@ -37,6 +37,7 @@ function ui_run_card_tap(_type, _index) {
     if (prompt_mode != "" && _type == "build") return command_prompt_build(_index);
     if (prompt_mode != "") return false;
     if (phase == "build") {
+        if (tutorial_mode && turn_number > 1) return false;
         if (_type == "hand") {
             detail_card_selected = undefined;
             return command_select_hand(_index);
@@ -109,7 +110,11 @@ function ui_draw_guided_coach() {
     var show_leader_target = false;
     if (phase == "step1_ready") {
         array_push(target_rects, action_rect);
-    } else if (phase == "build") {
+    } else if (tutorial_entry_notice_timer > 0) {
+        array_push(target_rects, minion_rects[1]);
+    } else if (tutorial_move_notice_timer > 0) {
+        array_push(target_rects, minion_rects[0]);
+    } else if (phase == "build" && turn_number == 1) {
         array_push(target_rects, action_rect);
         if (selected_hand < 0) {
             for (var hand_i = 0; hand_i < 3; hand_i++) {
@@ -120,10 +125,18 @@ function ui_draw_guided_coach() {
         } else {
             for (var build_i = 0; build_i < 3; build_i++) array_push(target_rects, build_rects[build_i]);
         }
-    } else if (phase == "attack") {
+    } else if (phase == "build") {
         array_push(target_rects, action_rect);
+    } else if (phase == "attack") {
         var has_target = false;
-        if (!tutorial_minion_defeated) {
+        if (turn_number == 1 && !tutorial_leader_attacked) {
+            array_push(target_rects, leader_rect);
+            has_target = true;
+            show_leader_target = true;
+        } else if (turn_number == 2) {
+            array_push(target_rects, action_rect);
+            has_target = true;
+        } else if (!tutorial_minion_defeated) {
             for (var minion_i = 0; minion_i < 2; minion_i++) {
                 if (!is_undefined(minions[minion_i]) && attack_left >= minions[minion_i].hp) {
                     array_push(target_rects, minion_rects[minion_i]);
@@ -148,6 +161,17 @@ function ui_draw_guided_coach() {
         vv_ui_set_font(UI_FONT_SMALL);
         draw_center_shadow("ATTACK LEADER", leader_rect.x + leader_rect.w - 78,
             leader_rect.y + leader_rect.h + 13, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
+    }
+    if (tutorial_entry_notice_timer > 0) {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_center_shadow("MINION ENTERS AREA 1", minion_rects[1].x + minion_rects[1].w / 2,
+            minion_rects[1].y - 12, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
+    } else if (tutorial_move_notice_timer > 0) {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_center_shadow("MINION ADVANCES TO AREA 2", minion_rects[0].x + minion_rects[0].w / 2,
+            minion_rects[0].y - 12, COL_GOLD);
         vv_ui_set_font(UI_FONT_BODY);
     }
 }
@@ -271,6 +295,7 @@ function vv_ui_handle_input() {
             }
         }
         if (pointer_held && phase == "build" && prompt_mode == ""
+        && !(tutorial_mode && turn_number > 1)
         && (pointer_card_type == "hand" || pointer_card_type == "build")) {
             if (pointer_max_distance >= drag_threshold && !drag_active) {
                 drag_active = true;
@@ -386,9 +411,12 @@ function vv_ui_handle_input() {
         action_press_timer = 5;
         var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
         var action_phase_before = phase;
-        var tutorial_build_blocked = tutorial_mode && phase == "build"
+        var tutorial_build_blocked = tutorial_mode && phase == "build" && turn_number == 1
             && count_occupied_build() < 3;
-        if (tutorial_build_blocked) {
+        var tutorial_attack_blocked = tutorial_mode && phase == "attack"
+            && ((turn_number == 1 && !tutorial_leader_attacked)
+            || (turn_number >= 3 && (!tutorial_minion_defeated || !tutorial_final_leader_attacked)));
+        if (tutorial_build_blocked || tutorial_attack_blocked) {
             ui_set_interaction_feedback(action_rect, "invalid", 18);
             return;
         }
@@ -644,10 +672,14 @@ else if (prompt_mode == "full_assault_disrupt") instruction = "Disrupt: choose a
 else if (prompt_mode == "full_assault_shatter") instruction = "Shatter: choose a highlighted lowest-HP card.";
 else if (prompt_mode == "destroy_hand") instruction = prompt_source + "\nChoose a highlighted Hand card.\n"
     + string(escape_cards_remaining) + " remaining.";
-else if (phase == "step1_ready") instruction = turn_number == 1
-    ? "Draw three cards to begin."
-    : "Draw three cards for the next turn.";
-else if (phase == "step2_ready") instruction = "Advance Minions and resolve escapes.";
+else if (phase == "step1_ready") {
+    if (tutorial_mode && turn_number == 1) instruction = "Draw your opening hand.";
+    else if (turn_number == 1) instruction = "Draw three cards to begin.";
+    else instruction = "Draw three cards for the next turn.";
+}
+else if (phase == "step2_ready") instruction = tutorial_mode && turn_number == 1
+    ? "Both Minion Areas are empty. Nothing advances."
+    : "Advance Minions and resolve escapes.";
 else if (phase == "step3_ready") instruction = "Draw an Enemy card and resolve its attack.";
 else if (phase == "step4_ready") instruction = "Build phase is opening.";
 else if (phase == "start_resolving") instruction = step_number == 2
@@ -663,16 +695,21 @@ else if (phase == "build") {
         else if (!build_changed) build_confirm_heading = "NO BUILD CHANGES";
         else build_confirm_heading = "EMPTY BUILD SPACES";
         instruction = "Confirm your Build or move a card.";
-    } else if (tutorial_mode) instruction = selected_hand >= 0
+    } else if (tutorial_mode && turn_number == 1) instruction = selected_hand >= 0
         ? "Place this Hero in a highlighted Build space."
-        : "Build all three Heroes for 12 Attack.";
+        : "Build all three Heroes. Their Attack combines.";
+    else if (tutorial_mode) instruction = "Your Build stays in play. No changes needed.";
     else if (selected_hand >= 0) instruction = "Hand card selected. Tap a Build space to place or swap it.\nHold to inspect.";
     else if (selected_build >= 0) instruction = "Build card selected. Tap a Hand card to swap it.\nHold to inspect.";
     else instruction = "Build your attack.\nTap or drag cards. Hold to inspect.";
 } else if (phase == "attack") instruction = tutorial_mode
-    ? (tutorial_minion_defeated
-        ? "ATTACK " + string(attack_left) + "\nNow attack the highlighted Leader."
-        : "ATTACK " + string(attack_left) + "\nFirst defeat a highlighted Minion.")
+    ? (turn_number == 1
+        ? "Minions do not protect the Leader.\nAttack the highlighted Leader."
+        : (turn_number == 2
+            ? "Leave both Minions in play.\nTap DONE ATTACKING."
+            : (tutorial_minion_defeated
+                ? "Spend your remaining " + string(attack_left) + " Attack on the Leader."
+                : "Defeat a 6-HP Minion.\nYour unused Attack remains.")))
     : "ATTACK " + string(attack_left)
         + "\nTap a Minion or the Leader.\nToo little Attack is not spent.";
 else if (phase == "attack_complete_wait") instruction = attack_notice_text;
@@ -841,10 +878,10 @@ if (tutorial_complete_prompt) {
     draw_set_halign(fa_left);
     draw_set_valign(fa_middle);
     draw_set_color(COL_LEGAL);
-    draw_text(445, 325, "✓  Watched a Minion move and escape");
-    draw_text(445, 375, "✓  Built a three-Hero attack");
-    draw_text(445, 425, "✓  Defeated a Minion");
-    draw_text(445, 475, "✓  Attacked the Enemy Leader");
+    draw_text(425, 325, "✓  Drew and built a three-Hero attack");
+    draw_text(425, 375, "✓  Attacked the Enemy Leader");
+    draw_text(425, 425, "✓  Watched Minions enter, advance, and escape");
+    draw_text(425, 475, "✓  Defeated a Minion and used remaining Attack");
     draw_panel(tutorial_real_match_rect, COL_ACCENT, COL_TEXT);
     draw_center("START REAL BATTLE", 640,
         tutorial_real_match_rect.y + tutorial_real_match_rect.h / 2, COL_BG);

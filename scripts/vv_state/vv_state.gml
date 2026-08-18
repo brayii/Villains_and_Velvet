@@ -610,10 +610,10 @@ function command_start_game_from_setup() {
     return true;
 }
 
-function tutorial_take_player_normal(_deck, _hero_id) {
+function tutorial_take_player_card(_deck, _hero_id, _kind) {
     for (var card_i = 0; card_i < array_length(_deck); card_i++) {
         var candidate = _deck[card_i];
-        if (candidate.hero == _hero_id && candidate.kind == "Normal") {
+        if (candidate.hero == _hero_id && candidate.kind == _kind) {
             var card = _deck[card_i];
             array_delete(_deck, card_i, 1);
             return card;
@@ -637,7 +637,9 @@ function tutorial_take_easy_minion(_deck) {
 function configure_tutorial_match() {
     var opening_hand = [];
     for (var hero_i = 0; hero_i < array_length(selected_hero_ids); hero_i++) {
-        var hero_card = tutorial_take_player_normal(player_deck, selected_hero_ids[hero_i]);
+        var hero_id = selected_hero_ids[hero_i];
+        var opening_kind = hero_id == "orc" ? "Ability" : "Normal";
+        var hero_card = tutorial_take_player_card(player_deck, hero_id, opening_kind);
         if (!is_undefined(hero_card)) array_push(opening_hand, hero_card);
     }
     // draw_player_hand pops from the end, so reverse the desired visible order.
@@ -645,16 +647,23 @@ function configure_tutorial_match() {
         array_push(player_deck, opening_hand[opening_i]);
     }
 
-    var area_2_card = tutorial_take_easy_minion(enemy_deck);
-    var area_1_card = tutorial_take_easy_minion(enemy_deck);
-    var next_enemy_card = tutorial_take_easy_minion(enemy_deck);
-    minions = [area_2_card, area_1_card];
-    if (!is_undefined(next_enemy_card)) array_push(enemy_deck, next_enemy_card);
+    var tutorial_enemies = [];
+    for (var enemy_i = 0; enemy_i < 3; enemy_i++) {
+        var easy_minion = tutorial_take_easy_minion(enemy_deck);
+        if (!is_undefined(easy_minion)) array_push(tutorial_enemies, easy_minion);
+    }
+    for (var push_enemy_i = array_length(tutorial_enemies) - 1; push_enemy_i >= 0; push_enemy_i--) {
+        array_push(enemy_deck, tutorial_enemies[push_enemy_i]);
+    }
+    minions = [undefined, undefined];
     tutorial_escape_seen = false;
     tutorial_minion_defeated = false;
     tutorial_leader_attacked = false;
+    tutorial_final_leader_attacked = false;
     tutorial_complete_prompt = false;
     tutorial_escape_notice_timer = 0;
+    tutorial_entry_notice_timer = 0;
+    tutorial_move_notice_timer = 0;
 }
 
 function command_complete_tutorial() {
@@ -788,8 +797,11 @@ function reset_game() {
         tutorial_escape_seen = false;
         tutorial_minion_defeated = false;
         tutorial_leader_attacked = false;
+        tutorial_final_leader_attacked = false;
         tutorial_complete_prompt = false;
         tutorial_escape_notice_timer = 0;
+        tutorial_entry_notice_timer = 0;
+        tutorial_move_notice_timer = 0;
     }
     vv_ui_reset_match_interaction();
     enemy_ai_baseline_begin_match();

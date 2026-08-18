@@ -53,8 +53,11 @@ function vv_ui_init() {
     tutorial_escape_seen = false;
     tutorial_minion_defeated = false;
     tutorial_leader_attacked = false;
+    tutorial_final_leader_attacked = false;
     tutorial_complete_prompt = false;
     tutorial_escape_notice_timer = 0;
+    tutorial_entry_notice_timer = 0;
+    tutorial_move_notice_timer = 0;
     escape_card_surface = -1;
 
     drag_threshold = 8;
@@ -215,8 +218,15 @@ function vv_feedback_add_card_fx(_card, _rect, _kind) {
 
 function vv_feedback_add_escape_fx(_card) {
     if (is_undefined(_card)) return;
+    var escape_heal = 0;
+    if (variable_struct_exists(_card, "escape_effects")) {
+        for (var effect_i = 0; effect_i < array_length(_card.escape_effects); effect_i++) {
+            var escape_effect = _card.escape_effects[effect_i];
+            if (escape_effect.id == EFFECT_HEAL_LEADER) escape_heal = escape_effect.params.amount;
+        }
+    }
     array_push(feedback_fx, {card:_card, rect:minion_rects[0], kind:"escape",
-        timer:90, duration:90});
+        timer:90, duration:90, escape_heal:escape_heal});
     vv_feedback_play(feedback_sound_move);
 }
 
@@ -255,8 +265,9 @@ function vv_feedback_update() {
         vv_feedback_play(feedback_sound_button);
     }
     if (feedback_minions[1] == minions[0] && !is_undefined(minions[0])) {
+        var move_duration = tutorial_mode ? 60 : 22;
         array_push(feedback_fx, {card:minions[0], rect:minion_rects[1], end_rect:minion_rects[0],
-            kind:"move", timer:22, duration:22});
+            kind:"move", timer:move_duration, duration:move_duration});
         vv_feedback_play(feedback_sound_move);
     }
     if (is_undefined(feedback_revealed_card) && !is_undefined(revealed_enemy_card)) {
@@ -331,6 +342,16 @@ function vv_feedback_draw() {
                 draw_surface_ext(escape_card_surface, draw_x, draw_y,
                     escape_scale, escape_scale, escape_angle, c_white, 1);
                 draw_set_alpha(1);
+                if (progress > 0.42) {
+                    vv_ui_set_font(UI_FONT_SMALL);
+                    draw_center_shadow("ESCAPED", portal.x + portal.w / 2,
+                        portal.y + portal.h - 31, COL_GOLD);
+                    if (fx.escape_heal > 0) {
+                        draw_center_shadow("LEADER +" + string(fx.escape_heal) + " HP",
+                            portal.x + portal.w / 2, portal.y + portal.h - 14, COL_LEGAL);
+                    }
+                    vv_ui_set_font(UI_FONT_BODY);
+                }
             }
         } else if (fx.kind == "reveal") {
             var reveal_scale = 0.82 + 0.18 * min(1, progress * 1.6);
