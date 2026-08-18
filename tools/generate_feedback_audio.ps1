@@ -17,7 +17,9 @@ function Write-Wave([string]$Name, [double[]]$Samples) {
     $writer.Write([int16]2); $writer.Write([int16]16)
     $writer.Write([Text.Encoding]::ASCII.GetBytes("data")); $writer.Write([int]$dataBytes)
     foreach ($sample in $Samples) {
-        $value = [Math]::Max(-1, [Math]::Min(1, $sample))
+        # Decimal bounds force the floating-point overload. Integer bounds
+        # silently rounded most quiet samples to zero.
+        $value = [Math]::Max(-1.0, [Math]::Min(1.0, [double]$sample))
         $writer.Write([int16]($value * 32760))
     }
     $writer.Dispose(); $stream.Dispose()
@@ -73,7 +75,7 @@ Write-Wave "healing" (New-Sound 0.65 { param($t,$p)
 })
 Write-Wave "victory" (New-Sound 0.95 { param($t,$p)
     $f = if ($t -lt .28) {523.25} elseif ($t -lt .56) {659.25} else {783.99}
-    (Tone $f $t) * 0.22 * [Math]::Sin([Math]::PI*[Math]::Min(1,($t%0.3)/0.3)) * (1-0.35*$p)
+    (Tone $f $t) * 0.22 * [Math]::Sin([Math]::PI*[Math]::Min(1.0,[double](($t%0.3)/0.3))) * (1-0.35*$p)
 })
 Write-Wave "defeat" (New-Sound 0.95 { param($t,$p)
     $f = if ($t -lt .30) {392.00} elseif ($t -lt .60) {311.13} else {233.08}

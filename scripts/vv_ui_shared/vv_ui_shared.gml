@@ -35,8 +35,9 @@ function vv_ui_init() {
     match_menu_rect = {x:20, y:130, w:46, h:46};
     auto_toggle_rect = {x:76, y:130, w:46, h:46};
     menu_resume_rect = {x:490, y:280, w:300, h:58};
-    menu_options_rect = {x:490, y:352, w:300, h:58};
-    menu_exit_rect = {x:490, y:424, w:300, h:58};
+    menu_sound_rect = {x:490, y:352, w:300, h:58};
+    menu_options_rect = {x:490, y:424, w:300, h:58};
+    menu_exit_rect = {x:490, y:496, w:300, h:58};
     menu_confirm_rect = {x:490, y:344, w:300, h:58};
     menu_cancel_rect = {x:490, y:416, w:300, h:58};
     result_play_rect = {x:490, y:400, w:300, h:54};
@@ -152,7 +153,14 @@ function vv_feedback_audio_cleanup() {
 }
 
 function vv_feedback_play(_sound) {
-    if (_sound >= 0) audio_play_sound(_sound, 0, false);
+    if (audio_enabled && _sound >= 0) audio_play_sound(_sound, 0, false);
+}
+
+function vv_feedback_apply_audio_enabled() {
+    if (!variable_instance_exists(id, "feedback_music_instance")) return;
+    if (feedback_music_instance >= 0) {
+        audio_sound_gain(feedback_music_instance, audio_enabled ? 0.38 : 0, 180);
+    }
 }
 
 function vv_feedback_card_present(_card) {

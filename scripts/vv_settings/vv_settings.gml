@@ -2,8 +2,9 @@
 
 function vv_settings_defaults() {
     return {
-        settings_version: 2,
+        settings_version: 3,
         enemy_targeting_mode: "auto",
+        audio_enabled: true,
         hint_turn_steps: false,
         hint_enemy_event: false,
         hint_build: false,
@@ -33,6 +34,7 @@ function vv_settings_decode(_text) {
             valid:true,
             upgraded:version != defaults.settings_version,
             enemy_auto_play:mode == "auto",
+            audio_enabled:version >= 3 && variable_struct_exists(loaded, "audio_enabled") ? loaded.audio_enabled : true,
             hint_turn_steps:version >= 2 && variable_struct_exists(loaded, "hint_turn_steps") ? loaded.hint_turn_steps : false,
             hint_enemy_event:version >= 2 && variable_struct_exists(loaded, "hint_enemy_event") ? loaded.hint_enemy_event : false,
             hint_build:version >= 2 && variable_struct_exists(loaded, "hint_build") ? loaded.hint_build : false,
@@ -47,9 +49,10 @@ function vv_settings_decode(_text) {
 
 function vv_settings_init() {
     settings_filename = "villains_and_velvet_settings.json";
-    settings_version = 2;
+    settings_version = 3;
     settings_dirty = true;
     enemy_auto_play = true;
+    audio_enabled = true;
     hint_turn_steps = false;
     hint_enemy_event = false;
     hint_build = false;
@@ -58,10 +61,12 @@ function vv_settings_init() {
     hint_attack = false;
     vv_settings_load();
     vv_settings_save_if_dirty();
+    vv_feedback_apply_audio_enabled();
 }
 
 function vv_settings_load() {
     enemy_auto_play = true;
+    audio_enabled = true;
     hint_turn_steps = false;
     hint_enemy_event = false;
     hint_build = false;
@@ -86,6 +91,7 @@ function vv_settings_load() {
     var decoded = vv_settings_decode(settings_text);
     enemy_auto_play = decoded.enemy_auto_play;
     if (decoded.valid) {
+        audio_enabled = decoded.audio_enabled;
         hint_turn_steps = decoded.hint_turn_steps;
         hint_enemy_event = decoded.hint_enemy_event;
         hint_build = decoded.hint_build;
@@ -102,6 +108,7 @@ function vv_settings_save_if_dirty() {
     var settings_data = {
         settings_version: settings_version,
         enemy_targeting_mode: enemy_auto_play ? "auto" : "manual",
+        audio_enabled: audio_enabled,
         hint_turn_steps: hint_turn_steps,
         hint_enemy_event: hint_enemy_event,
         hint_build: hint_build,
@@ -149,4 +156,18 @@ function vv_settings_set_enemy_auto(_enabled) {
 
 function vv_settings_toggle_enemy_auto() {
     return vv_settings_set_enemy_auto(!enemy_auto_play);
+}
+
+function vv_settings_set_audio_enabled(_enabled) {
+    var next_value = _enabled == true;
+    if (audio_enabled == next_value) return false;
+    audio_enabled = next_value;
+    settings_dirty = true;
+    vv_feedback_apply_audio_enabled();
+    vv_settings_save_if_dirty();
+    return true;
+}
+
+function vv_settings_toggle_audio() {
+    return vv_settings_set_audio_enabled(!audio_enabled);
 }

@@ -139,6 +139,9 @@ function vv_ui_handle_input() {
         }
         if (point_in_rect(pointer_x, pointer_y, menu_resume_rect)) {
             match_menu_active = false;
+        } else if (point_in_rect(pointer_x, pointer_y, menu_sound_rect)) {
+            vv_settings_toggle_audio();
+            if (audio_enabled) vv_feedback_play(feedback_sound_button);
         } else if (point_in_rect(pointer_x, pointer_y, menu_options_rect)) {
             quit_match_confirm = true;
         } else if (point_in_rect(pointer_x, pointer_y, menu_exit_rect)) {
@@ -232,6 +235,11 @@ function vv_ui_handle_input() {
     if (!pointer_pressed) return;
 
     if (setup_active) {
+        if (point_in_rect(pointer_x, pointer_y, setup_sound_button_rect())) {
+            vv_settings_toggle_audio();
+            if (audio_enabled) vv_feedback_play(feedback_sound_button);
+            return;
+        }
         if (point_in_rect(pointer_x, pointer_y, setup_exit_rect)) {
             game_end();
             return;
@@ -771,6 +779,10 @@ if (match_menu_active) {
         vv_ui_set_font(UI_FONT_BODY);
         draw_panel(menu_resume_rect, COL_ACCENT, COL_TEXT);
         draw_center("RESUME GAME", 640, menu_resume_rect.y + menu_resume_rect.h / 2, COL_BG);
+        draw_panel(menu_sound_rect, COL_PANEL, audio_enabled ? COL_ACCENT : COL_EDGE);
+        draw_center(audio_enabled ? "SOUND: ON" : "SOUND: OFF", 640,
+            menu_sound_rect.y + menu_sound_rect.h / 2,
+            audio_enabled ? COL_TEXT : COL_MUTED);
         draw_panel(menu_options_rect, COL_PANEL, COL_EDGE);
         draw_center("QUIT TO GAME OPTIONS", 640, menu_options_rect.y + menu_options_rect.h / 2, COL_TEXT);
         draw_panel(menu_exit_rect, COL_PANEL, COL_EDGE);

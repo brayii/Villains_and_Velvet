@@ -9,6 +9,10 @@ function setup_battle_settings_rect() {
     return {x:1040, y:24, w:200, h:46};
 }
 
+function setup_sound_button_rect() {
+    return {x:900, y:24, w:130, h:46};
+}
+
 function setup_hero_button_rect(_slot, _direction) {
     return {x:982, y:145 + _slot * 42, w:223, h:40};
 }
@@ -169,6 +173,12 @@ function vv_ui_draw_setup() {
     draw_center_shadow(setup_advanced_events ? "BATTLE SETTINGS" : "CHOOSE YOUR BATTLE",
         640, 70, COL_TEXT);
     var battle_settings = setup_battle_settings_rect();
+    var setup_sound = setup_sound_button_rect();
+    draw_glass_panel(setup_sound, make_color_rgb(24, 33, 46),
+        audio_enabled ? COL_ACCENT : COL_EDGE, 0.72);
+    draw_center(audio_enabled ? "SOUND ON" : "SOUND OFF",
+        setup_sound.x + setup_sound.w / 2, setup_sound.y + setup_sound.h / 2,
+        audio_enabled ? COL_TEXT : COL_MUTED);
     draw_glass_panel(battle_settings, make_color_rgb(24, 33, 46), COL_EDGE, 0.72);
     draw_center(setup_advanced_events ? "BACK TO BATTLE" : "BATTLE SETTINGS",
         battle_settings.x + battle_settings.w / 2,
