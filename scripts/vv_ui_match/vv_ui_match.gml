@@ -345,10 +345,10 @@ function draw_auto_checkbox(_rect) {
 function vv_ui_draw_game() {
 vv_ui_set_font(UI_FONT_BODY);
 draw_clear(COL_BG);
-// Battlefield artwork with a dark veil keeps the cards and instructions readable.
+// A light global veil preserves the artwork; local glass and shadows carry text contrast.
 var background_rect = {x:0, y:0, w:1280, h:720};
 draw_art_cover(background_art_sprite, background_rect);
-draw_set_alpha(setup_active ? 0.30 : 0.48);
+draw_set_alpha(setup_active ? 0.30 : 0.34);
 draw_set_color(COL_BG);
 draw_rectangle(0, 0, 1280, 720, false);
 draw_set_alpha(1);
@@ -378,27 +378,27 @@ draw_center(string(leader_strikes_remaining), leader_rect.x + 263, leader_rect.y
 draw_set_color(leader_protected ? COL_GOLD : COL_DANGER);
 draw_roundrect(leader_rect.x, leader_rect.y, leader_rect.x + leader_rect.w, leader_rect.y + leader_rect.h, true);
 
-draw_center("AREA 2", 645, 17, COL_GOLD);
+draw_center_shadow("AREA 2", 645, 17, COL_GOLD);
 vv_ui_set_font(UI_FONT_SMALL);
-draw_center("ESCAPES WHEN PUSHED", 645, 36, COL_MUTED);
+draw_center_shadow("ESCAPES WHEN PUSHED", 645, 36, COL_MUTED);
 vv_ui_set_font(UI_FONT_BODY);
 if (!is_undefined(revealed_enemy_card)) {
-    draw_center("ENEMY DRAW #" + string(revealed_enemy_draw_number) + " — "
+    draw_center_shadow("ENEMY DRAW #" + string(revealed_enemy_draw_number) + " — "
         + (revealed_enemy_card.card_type == "strike" ? "LEADER STRIKE" : "TWIST"), 865, 17, COL_GOLD);
-    draw_center(revealed_enemy_card.name, 865, 36, COL_TEXT);
+    draw_center_shadow(revealed_enemy_card.name, 865, 36, COL_TEXT);
 } else {
-    draw_center("AREA 1", 865, 17, COL_GOLD);
+    draw_center_shadow("AREA 1", 865, 17, COL_GOLD);
     vv_ui_set_font(UI_FONT_SMALL);
-    draw_center("MINIONS ENTER HERE", 865, 36, COL_MUTED);
+    draw_center_shadow("MINIONS ENTER HERE", 865, 36, COL_MUTED);
     vv_ui_set_font(UI_FONT_BODY);
 }
 draw_card(minions[0], minion_rects[0], false, false);
 if (!is_undefined(revealed_enemy_card)) draw_enemy_reveal(revealed_enemy_card, minion_rects[1]);
 else draw_card(minions[1], minion_rects[1], false, false);
-draw_center("←", 755, 186, COL_ACCENT);
+draw_center_shadow("←", 755, 186, COL_ACCENT);
 
 // Build and Hand.
-draw_center("BUILD AREA", 640, 297, COL_MUTED);
+draw_center_shadow("BUILD AREA", 640, 297, COL_MUTED);
 for (var build_i = 0; build_i < 3; build_i++) {
     var legal_build = (prompt_mode != "" && prompt_build_is_legal(build_i))
         || (phase == "build" && prompt_mode == "" && selected_hand >= 0)
@@ -410,7 +410,7 @@ for (var build_i = 0; build_i < 3; build_i++) {
     draw_card(visible_build_card, build_rects[build_i], selected_build == build_i || auto_selected, legal_build);
 }
 
-draw_center("HAND", 640, 512, COL_MUTED);
+draw_center_shadow("HAND", 640, 512, COL_MUTED);
 for (var hand_i = 0; hand_i < 3; hand_i++) {
     var hand_card = hand_i < array_length(hand) ? hand[hand_i] : undefined;
     var legal_hand = ((prompt_mode == "destroy_hand" && hand_i < array_length(hand)
@@ -545,6 +545,8 @@ if (build_finish_confirm && phase == "build") {
         : "Confirm the end of your Attack step or attack a target.";
     draw_text_ext(1000, 260, attack_warning_text, 18, 250);
 } else {
+    var instruction_panel = {x:985, y:215, w:280, h:140};
+    draw_glass_panel(instruction_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.38);
     draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
     draw_text_ext(1000, 225, instruction, 18, 250);
 }
@@ -669,4 +671,3 @@ if (match_menu_active) {
     }
 }
 }
-

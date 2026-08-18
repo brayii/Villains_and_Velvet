@@ -118,6 +118,13 @@ function draw_center(_text, _x, _y, _color) {
     draw_text(_x, _y, _text);
 }
 
+function draw_center_shadow(_text, _x, _y, _color) {
+    draw_set_alpha(0.78);
+    draw_center(_text, _x + 1, _y + 2, COL_BG);
+    draw_set_alpha(1);
+    draw_center(_text, _x, _y, _color);
+}
+
 function draw_art_contained(_sprite, _rect, _padding) {
     if (_sprite < 0) return;
     var source_w = sprite_get_width(_sprite);
@@ -161,16 +168,14 @@ function draw_card(_card, _rect, _selected, _legal) {
     if (_legal) outline = COL_LEGAL;
     if (_selected) outline = COL_GOLD;
     if (is_undefined(_card)) {
-        draw_set_alpha(0.48);
+        draw_set_alpha(_legal ? 0.26 : 0.12);
         draw_set_color(fill);
         draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, false);
         draw_set_alpha(1);
     } else {
         draw_panel(_rect, fill, outline);
     }
-    if (is_undefined(_card)) {
-        draw_center("EMPTY", _rect.x + _rect.w / 2, _rect.y + _rect.h / 2, COL_MUTED);
-    } else {
+    if (!is_undefined(_card)) {
         var art_sprite = variable_struct_exists(_card, "art_file") ? get_art_sprite(_card.art_file) : -1;
         if (art_sprite >= 0) {
             draw_art_contained(art_sprite, _rect, 4);
@@ -188,8 +193,10 @@ function draw_card(_card, _rect, _selected, _legal) {
             draw_text_ext(_rect.x + 10, _rect.y + 59, card_abilities_text(_card), 16, _rect.w - 20);
         }
     }
+    if (is_undefined(_card) && !_legal) draw_set_alpha(0.48);
     draw_set_color(outline);
     draw_roundrect(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, true);
+    draw_set_alpha(1);
     if (_legal) {
         draw_set_color(COL_LEGAL);
         draw_roundrect(_rect.x + 2, _rect.y + 2, _rect.x + _rect.w - 2, _rect.y + _rect.h - 2, true);
@@ -236,5 +243,4 @@ function draw_setup_gear(_rect, _active) {
             center_x + lengthdir_x(16, angle), center_y + lengthdir_y(16, angle), 4);
     }
 }
-
 
