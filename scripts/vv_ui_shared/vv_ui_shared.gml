@@ -131,17 +131,27 @@ function vv_feedback_audio_init() {
     feedback_sound_victory = vv_feedback_load_sound("victory");
     feedback_sound_defeat = vv_feedback_load_sound("defeat");
     feedback_music = vv_feedback_load_sound("velvet_storybook_loop");
+    feedback_battle_music = vv_feedback_load_sound("velvet_battle_loop");
     feedback_music_instance = -1;
+    feedback_battle_music_instance = -1;
+    feedback_music_mode = "setup";
     if (feedback_music >= 0) {
         feedback_music_instance = audio_play_sound(feedback_music, -10, true);
-        audio_sound_gain(feedback_music_instance, 0.38, 0);
+        // Settings apply the audible gain immediately after audio initialization.
+        audio_sound_gain(feedback_music_instance, 0, 0);
+    }
+    if (feedback_battle_music >= 0) {
+        feedback_battle_music_instance = audio_play_sound(feedback_battle_music, -10, true);
+        audio_sound_gain(feedback_battle_music_instance, 0, 0);
     }
 }
 
 function vv_feedback_audio_cleanup() {
     if (!variable_instance_exists(id, "feedback_audio_sounds")) return;
     if (feedback_music_instance >= 0) audio_stop_sound(feedback_music_instance);
+    if (feedback_battle_music_instance >= 0) audio_stop_sound(feedback_battle_music_instance);
     feedback_music_instance = -1;
+    feedback_battle_music_instance = -1;
     for (var sound_i = 0; sound_i < array_length(feedback_audio_sounds); sound_i++) {
         if (feedback_audio_sounds[sound_i] >= 0) audio_free_buffer_sound(feedback_audio_sounds[sound_i]);
     }
@@ -158,9 +168,21 @@ function vv_feedback_play(_sound) {
 
 function vv_feedback_apply_audio_enabled() {
     if (!variable_instance_exists(id, "feedback_music_instance")) return;
+    var setup_gain = audio_enabled && feedback_music_mode == "setup" ? 0.38 : 0;
+    var battle_gain = audio_enabled && feedback_music_mode == "battle" ? 0.34 : 0;
     if (feedback_music_instance >= 0) {
-        audio_sound_gain(feedback_music_instance, audio_enabled ? 0.38 : 0, 180);
+        audio_sound_gain(feedback_music_instance, setup_gain, 180);
     }
+    if (feedback_battle_music_instance >= 0) {
+        audio_sound_gain(feedback_battle_music_instance, battle_gain, 180);
+    }
+}
+
+function vv_feedback_update_music_context() {
+    var next_mode = setup_active ? "setup" : "battle";
+    if (feedback_music_mode == next_mode) return;
+    feedback_music_mode = next_mode;
+    vv_feedback_apply_audio_enabled();
 }
 
 function vv_feedback_card_present(_card) {
@@ -188,6 +210,7 @@ function vv_feedback_snapshot() {
 }
 
 function vv_feedback_update() {
+    vv_feedback_update_music_context();
     if (setup_active) {
         feedback_ready = false;
         return;

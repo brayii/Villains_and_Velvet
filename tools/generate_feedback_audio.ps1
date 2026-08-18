@@ -162,9 +162,77 @@ public static class VelvetMusicGenerator {
             }
         }
     }
+
+    public static void GenerateBattle(string path) {
+        const int rate = 22050;
+        const double bpm = 108.0;
+        double beat = 60.0 / bpm;
+        double barLength = beat * 4.0;
+        int[][] chords = {
+            new[]{50,53,57,62}, new[]{46,50,53,58}, new[]{48,52,55,60}, new[]{45,50,53,57},
+            new[]{50,53,57,62}, new[]{46,50,53,58}, new[]{43,47,50,55}, new[]{45,49,52,57},
+            new[]{50,53,57,62}, new[]{48,52,55,60}, new[]{46,50,53,58}, new[]{45,49,52,57},
+            new[]{43,47,50,55}, new[]{46,50,53,58}, new[]{45,49,52,57}, new[]{50,53,57,62}
+        };
+        int[] melody = {
+            74,77,81,79, 77,74,70,72, 72,76,79,76, 69,74,77,73,
+            74,77,81,86, 82,77,74,70, 67,70,74,79, 76,73,69,73,
+            74,77,81,79, 84,79,76,72, 77,74,70,72, 73,76,81,76,
+            79,74,70,67, 70,74,77,82, 81,76,73,69, 74,72,69,74
+        };
+        int count = (int)Math.Round(chords.Length * barLength * rate);
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        using (var writer = new BinaryWriter(File.Create(path))) {
+            int bytes = count * 2;
+            writer.Write(Encoding.ASCII.GetBytes("RIFF")); writer.Write(36 + bytes);
+            writer.Write(Encoding.ASCII.GetBytes("WAVEfmt ")); writer.Write(16);
+            writer.Write((short)1); writer.Write((short)1); writer.Write(rate); writer.Write(rate * 2);
+            writer.Write((short)2); writer.Write((short)16);
+            writer.Write(Encoding.ASCII.GetBytes("data")); writer.Write(bytes);
+            uint noiseState = 191207u;
+            for (int i = 0; i < count; i++) {
+                double t = (double)i / rate;
+                int bar = Math.Min(chords.Length - 1, (int)(t / barLength));
+                double inBar = t - bar * barLength;
+                int beatStep = (int)(inBar / beat);
+                double beatPhase = inBar - beatStep * beat;
+                double eighth = beat / 2.0;
+                int eighthStep = (int)(inBar / eighth);
+                double eighthPhase = inBar - eighthStep * eighth;
+                double sample = 0.0;
+
+                // Sustained strings keep the action rooted in the storybook world.
+                double barShape = Math.Sin(Math.PI * inBar / barLength);
+                foreach (int note in chords[bar]) sample += Sine(note, t) * 0.018 * barShape;
+
+                // Driving low-string ostinato supplies motion without overpowering card effects.
+                int pulseNote = chords[bar][eighthStep % 2 == 0 ? 0 : 2] - 12;
+                sample += (Sine(pulseNote, t) + 0.22 * Sine(pulseNote + 12, t))
+                    * 0.105 * NoteEnvelope(eighthPhase, eighth * 0.72);
+
+                // Heroic lead phrase marks the battle while remaining playful.
+                int melodyNote = melody[Math.Min(melody.Length - 1, bar * 4 + beatStep)];
+                sample += (Sine(melodyNote, t) + 0.20 * Sine(melodyNote + 12, t))
+                    * 0.058 * NoteEnvelope(beatPhase, beat * 0.72);
+
+                // Soft drum and brushed noise emphasize the first and third beats.
+                double drum = Math.Sin(2.0 * Math.PI * (88.0 - 45.0 * beatPhase / beat) * beatPhase);
+                if (beatStep == 0 || beatStep == 2)
+                    sample += drum * 0.10 * Math.Exp(-15.0 * beatPhase / beat);
+                noiseState = noiseState * 1664525u + 1013904223u;
+                double noise = ((noiseState >> 8) / 16777215.0) * 2.0 - 1.0;
+                sample += noise * (eighthStep % 2 == 1 ? 0.020 : 0.010)
+                    * Math.Exp(-22.0 * eighthPhase / eighth);
+
+                sample = Math.Max(-0.92, Math.Min(0.92, sample));
+                writer.Write((short)Math.Round(sample * 32760.0));
+            }
+        }
+    }
 }
 '@
 
 [VelvetMusicGenerator]::Generate((Join-Path $OutputDirectory "velvet_storybook_loop.wav"))
+[VelvetMusicGenerator]::GenerateBattle((Join-Path $OutputDirectory "velvet_battle_loop.wav"))
 
 Write-Host "Generated feedback audio and music in $OutputDirectory"

@@ -22,6 +22,7 @@
     {"$GMIncludedFile":"","%Name":"healing.wav","CopyToMask":-1,"filePath":"datafiles/audio","name":"healing.wav","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"leader_damage.wav","CopyToMask":-1,"filePath":"datafiles/audio","name":"leader_damage.wav","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"minion_move.wav","CopyToMask":-1,"filePath":"datafiles/audio","name":"minion_move.wav","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"velvet_battle_loop.wav","CopyToMask":-1,"filePath":"datafiles/audio","name":"velvet_battle_loop.wav","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"velvet_storybook_loop.wav","CopyToMask":-1,"filePath":"datafiles/audio","name":"velvet_storybook_loop.wav","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"victory.wav","CopyToMask":-1,"filePath":"datafiles/audio","name":"victory.wav","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"atkinson_hyperlegible_next_ofl.txt","CopyToMask":-1,"filePath":"datafiles","name":"atkinson_hyperlegible_next_ofl.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
