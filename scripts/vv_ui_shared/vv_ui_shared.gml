@@ -55,6 +55,7 @@ function vv_ui_init() {
     tutorial_leader_attacked = false;
     tutorial_complete_prompt = false;
     tutorial_escape_notice_timer = 0;
+    escape_card_surface = -1;
 
     drag_threshold = 8;
     tap_move_limit = 6;
@@ -71,6 +72,8 @@ function vv_ui_cleanup() {
     UI_FONT_SMALL = -1;
     UI_FONT_BODY = -1;
     UI_FONT_TITLE = -1;
+    if (surface_exists(escape_card_surface)) surface_free(escape_card_surface);
+    escape_card_surface = -1;
     vv_feedback_audio_cleanup();
 }
 
@@ -210,6 +213,20 @@ function vv_feedback_add_card_fx(_card, _rect, _kind) {
     array_push(feedback_fx, {card:_card, rect:_rect, kind:_kind, timer:18, duration:18});
 }
 
+function vv_feedback_add_escape_fx(_card) {
+    if (is_undefined(_card)) return;
+    array_push(feedback_fx, {card:_card, rect:minion_rects[0], kind:"escape",
+        timer:90, duration:90});
+    vv_feedback_play(feedback_sound_move);
+}
+
+function vv_feedback_has_card_fx(_card, _kind) {
+    for (var fx_i = 0; fx_i < array_length(feedback_fx); fx_i++) {
+        if (feedback_fx[fx_i].card == _card && feedback_fx[fx_i].kind == _kind) return true;
+    }
+    return false;
+}
+
 function vv_feedback_snapshot() {
     feedback_minions = [minions[0], minions[1]];
     feedback_build = [build[0], build[1], build[2]];
@@ -265,8 +282,10 @@ function vv_feedback_update() {
     }
     for (var old_minion_i = 0; old_minion_i < 2; old_minion_i++) {
         if (!is_undefined(feedback_minions[old_minion_i]) && !vv_feedback_card_present(feedback_minions[old_minion_i])) {
-            vv_feedback_add_card_fx(feedback_minions[old_minion_i], minion_rects[old_minion_i], "destroy");
-            vv_feedback_play(feedback_sound_hit);
+            if (!vv_feedback_has_card_fx(feedback_minions[old_minion_i], "escape")) {
+                vv_feedback_add_card_fx(feedback_minions[old_minion_i], minion_rects[old_minion_i], "destroy");
+                vv_feedback_play(feedback_sound_hit);
+            }
         }
     }
     if (!feedback_game_over && game_over) vv_feedback_play(victory
@@ -288,6 +307,31 @@ function vv_feedback_draw() {
             var move_rect = {x:lerp(fx.rect.x, fx.end_rect.x, progress),
                 y:lerp(fx.rect.y, fx.end_rect.y, progress), w:fx.rect.w, h:fx.rect.h};
             draw_card(fx.card, move_rect, true, false);
+        } else if (fx.kind == "escape") {
+            if (!surface_exists(escape_card_surface)) {
+                escape_card_surface = surface_create(round(fx.rect.w), round(fx.rect.h));
+            }
+            if (surface_exists(escape_card_surface)) {
+                surface_set_target(escape_card_surface);
+                draw_clear_alpha(c_black, 0);
+                draw_card(fx.card, {x:0, y:0, w:fx.rect.w, h:fx.rect.h}, false, false);
+                surface_reset_target();
+                var portal = {x:430, y:145, w:105, h:150};
+                var center_x = lerp(fx.rect.x + fx.rect.w / 2, portal.x + portal.w / 2, progress);
+                var center_y = lerp(fx.rect.y + fx.rect.h / 2, portal.y + portal.h / 2, progress);
+                var escape_scale = max(0.03, 1 - progress * 0.96);
+                var escape_angle = progress * 540;
+                var angle_cos = dcos(escape_angle);
+                var angle_sin = dsin(escape_angle);
+                var offset_x = -fx.rect.w * escape_scale / 2;
+                var offset_y = -fx.rect.h * escape_scale / 2;
+                var draw_x = center_x + offset_x * angle_cos - offset_y * angle_sin;
+                var draw_y = center_y + offset_x * angle_sin + offset_y * angle_cos;
+                draw_set_alpha(max(0.15, 1 - progress * 0.85));
+                draw_surface_ext(escape_card_surface, draw_x, draw_y,
+                    escape_scale, escape_scale, escape_angle, c_white, 1);
+                draw_set_alpha(1);
+            }
         } else if (fx.kind == "reveal") {
             var reveal_scale = 0.82 + 0.18 * min(1, progress * 1.6);
             var reveal_rect = {x:fx.rect.x + fx.rect.w * (1 - reveal_scale) / 2,

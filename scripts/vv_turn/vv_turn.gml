@@ -9,12 +9,13 @@ function resume_after_prompts() {
     var action = resume_action;
     resume_action = "";
     if (action == "finish_advance") {
+        var completed_escape = advance_escape_pending;
         if (!is_undefined(advance_incoming_minion)) {
             if (advance_escape_pending && !is_undefined(minions[0])) {
                 if (tutorial_mode) {
                     tutorial_escape_seen = true;
-                    tutorial_escape_notice_timer = 120;
                 }
+                vv_feedback_add_escape_fx(minions[0]);
                 retire_minion(0, "finishes escaping");
             }
             minions[0] = advance_incoming_minion;
@@ -24,17 +25,10 @@ function resume_after_prompts() {
         advance_incoming_minion = undefined;
         advance_escape_pending = false;
         log_add("Step 2 — Advance/Escape complete.");
-        if (tutorial_mode && tutorial_escape_seen) {
-            step_number = 2;
-            phase = "tutorial_escape_done";
-            auto_timer = 0;
-            tutorial_escape_notice_timer = 0;
-        } else {
-            step_number = 3;
-            phase = "step3_ready";
-            auto_timer = 50;
-            log_add("Next: Enemy Draw.");
-        }
+        step_number = 3;
+        phase = "step3_ready";
+        auto_timer = completed_escape ? 100 : 50;
+        log_add("Next: Enemy Draw.");
         validate_state("Advance/Escape complete");
     } else if (action == "continue_enemy_draw") {
         phase = "enemy_event_reveal_wait";
@@ -69,29 +63,8 @@ function do_step_1() {
 function do_step_2() {
     if (phase != "step2_ready" || game_over) return;
     enemy_ai_policy_begin_turn();
-    if (tutorial_mode && !tutorial_escape_seen) {
-        phase = "tutorial_escape_ready";
-        auto_timer = 0;
-        return;
-    }
     phase = "start_resolving";
     begin_advance_phase();
-}
-
-function tutorial_show_escape() {
-    if (phase != "tutorial_escape_ready") return false;
-    phase = "start_resolving";
-    begin_advance_phase();
-    return true;
-}
-
-function tutorial_continue_after_escape() {
-    if (phase != "tutorial_escape_done") return false;
-    step_number = 3;
-    phase = "step3_ready";
-    auto_timer = 35;
-    log_add("Next: Enemy Draw.");
-    return true;
 }
 
 function do_step_3() {
@@ -204,8 +177,6 @@ function finish_turn() {
 function command_action() {
     if (game_over || prompt_mode != "") return false;
     if (phase == "step1_ready") do_step_1();
-    else if (phase == "tutorial_escape_ready") return tutorial_show_escape();
-    else if (phase == "tutorial_escape_done") return tutorial_continue_after_escape();
     else if (phase == "step2_ready") do_step_2();
     else if (phase == "step3_ready") do_step_3();
     else if (phase == "step4_ready") begin_build();
@@ -219,7 +190,6 @@ function command_action() {
 }
 
 function vv_turn_update() {
-    if (tutorial_escape_notice_timer > 0) tutorial_escape_notice_timer--;
     if (interaction_feedback_timer > 0) interaction_feedback_timer--;
     if (action_press_timer > 0) action_press_timer--;
     vv_feedback_update();

@@ -107,14 +107,7 @@ function ui_draw_guided_coach() {
     if (!tutorial_mode || tutorial_complete_prompt) return;
     var target_rects = [];
     var show_leader_target = false;
-    var escape_before = phase == "tutorial_escape_ready";
-    var escape_after = phase == "tutorial_escape_done";
-
-    if (escape_before || escape_after) {
-        array_push(target_rects, minion_rects[0]);
-        array_push(target_rects, minion_rects[1]);
-        array_push(target_rects, action_rect);
-    } else if (phase == "step1_ready") {
+    if (phase == "step1_ready") {
         array_push(target_rects, action_rect);
     } else if (phase == "build") {
         array_push(target_rects, action_rect);
@@ -155,19 +148,6 @@ function ui_draw_guided_coach() {
         vv_ui_set_font(UI_FONT_SMALL);
         draw_center_shadow("ATTACK LEADER", leader_rect.x + leader_rect.w - 78,
             leader_rect.y + leader_rect.h + 13, COL_GOLD);
-        vv_ui_set_font(UI_FONT_BODY);
-    }
-    if (escape_before) {
-        vv_ui_set_font(UI_FONT_SMALL);
-        draw_center_shadow("ESCAPES", minion_rects[0].x + minion_rects[0].w / 2,
-            minion_rects[0].y + minion_rects[0].h + 18, COL_DANGER);
-        draw_center_shadow("PUSHES LEFT  ←", minion_rects[1].x + minion_rects[1].w / 2,
-            minion_rects[1].y + minion_rects[1].h + 18, COL_GOLD);
-        vv_ui_set_font(UI_FONT_BODY);
-    } else if (escape_after) {
-        vv_ui_set_font(UI_FONT_SMALL);
-        draw_center_shadow("THE AREA 2 MINION ESCAPED  ·  AREA 1 MOVED LEFT",
-            755, 316, COL_GOLD);
         vv_ui_set_font(UI_FONT_BODY);
     }
 }
@@ -404,8 +384,7 @@ function vv_ui_handle_input() {
 
     if (point_in_rect(pointer_x, pointer_y, action_rect)) {
         action_press_timer = 5;
-        var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack"
-            || phase == "tutorial_escape_ready" || phase == "tutorial_escape_done";
+        var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
         var action_phase_before = phase;
         var tutorial_build_blocked = tutorial_mode && phase == "build"
             && count_occupied_build() < 3;
@@ -532,6 +511,27 @@ function draw_auto_checkbox(_rect) {
     draw_text(_rect.x + _rect.w + 8, _rect.y + _rect.h / 2, "AUTO");
 }
 
+function draw_escape_portal() {
+    var portal = {x:430, y:145, w:105, h:150};
+    draw_glass_panel(portal, make_color_rgb(24, 21, 38), COL_EDGE, 0.30);
+    var center_x = portal.x + portal.w / 2;
+    var center_y = portal.y + portal.h / 2 + 8;
+    var pulse = 0.5 + 0.5 * sin(current_time / 240);
+    draw_set_alpha(0.34 + pulse * 0.12);
+    draw_set_color(make_color_rgb(35, 18, 54));
+    draw_circle(center_x, center_y, 38, false);
+    draw_set_alpha(0.52 + pulse * 0.16);
+    draw_set_color(make_color_rgb(91, 42, 91));
+    draw_circle(center_x, center_y, 29, false);
+    draw_set_alpha(0.82);
+    draw_set_color(COL_GOLD);
+    draw_circle(center_x, center_y, 39, true);
+    draw_set_alpha(1);
+    vv_ui_set_font(UI_FONT_SMALL);
+    draw_center_shadow("ESCAPE", center_x, portal.y + 14, COL_MUTED);
+    vv_ui_set_font(UI_FONT_BODY);
+}
+
 function vv_ui_draw_game() {
 vv_ui_set_font(UI_FONT_BODY);
 draw_clear(COL_BG);
@@ -586,6 +586,7 @@ if (!is_undefined(revealed_enemy_card)) {
         ui_card_visual_rect("reveal", 0, minion_rects[1]));
 } else draw_card(minions[1], ui_card_visual_rect("minion", 1, minion_rects[1]), false, false);
 draw_center_shadow("←", 755, 186, COL_ACCENT);
+draw_escape_portal();
 
 // Build and Hand.
 draw_center_shadow("BUILD AREA", 640, 297, COL_MUTED);
@@ -647,8 +648,6 @@ else if (phase == "step1_ready") instruction = turn_number == 1
     ? "Draw three cards to begin."
     : "Draw three cards for the next turn.";
 else if (phase == "step2_ready") instruction = "Advance Minions and resolve escapes.";
-else if (phase == "tutorial_escape_ready") instruction = "AREA 1 PUSHES AREA 2\nThe Area 2 Minion must escape.";
-else if (phase == "tutorial_escape_done") instruction = "PUSH COMPLETE\nArea 1 moved left. Area 2 escaped.";
 else if (phase == "step3_ready") instruction = "Draw an Enemy card and resolve its attack.";
 else if (phase == "step4_ready") instruction = "Build phase is opening.";
 else if (phase == "start_resolving") instruction = step_number == 2
@@ -792,8 +791,7 @@ draw_text(997, 574, "T" + string(turn_number)
 vv_ui_set_font(UI_FONT_BODY);
 
 var button_enabled = prompt_mode == "" && action_cooldown <= 0
-    && (phase == "step1_ready" || phase == "build" || phase == "attack"
-        || phase == "tutorial_escape_ready" || phase == "tutorial_escape_done");
+    && (phase == "step1_ready" || phase == "build" || phase == "attack");
 var confirming_build = phase == "build" && build_finish_confirm;
 var confirming_attack = phase == "attack" && attack_finish_confirm;
 var button_fill = button_enabled ? ((confirming_build || confirming_attack) ? COL_GOLD : COL_ACCENT) : COL_PANEL;
@@ -807,8 +805,6 @@ if (enemy_auto_play && enemy_ai_visual_stage == "result") button_text = "ATTACK 
 else if (prompt_mode == "enemy_attack" && enemy_auto_play) button_text = "ENEMY TARGETING...";
 else if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
-else if (phase == "tutorial_escape_ready") button_text = "SHOW ESCAPE";
-else if (phase == "tutorial_escape_done") button_text = "CONTINUE";
 else if (phase == "build") button_text = confirming_build ? "CONFIRM BUILD" : "DONE BUILDING";
 else if (phase == "attack") button_text = confirming_attack ? "CONFIRM END" : "DONE ATTACKING";
 else button_text = "RESOLVING...";
