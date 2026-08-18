@@ -9,7 +9,9 @@
 - `scripts/vv_enemy/vv_enemy.gml`: Enemy targeting, Minion entry and escape effects, Enemy attacks, Leader Strike, Twist, Overflow, and Enemy prompts.
 - `scripts/vv_player/vv_player.gml`: Player drawing and recycling, Build placement and swapping, attack totals, Hero abilities, and Player attacks.
 - `scripts/vv_turn/vv_turn.gml`: the seven turn steps, automatic timing, prompt continuation, and action-button commands.
-- `scripts/vv_ui/vv_ui.gml`: board layout, colors, drawing, highlighting, hit testing, and translating taps into gameplay commands.
+- `scripts/vv_ui_shared/vv_ui_shared.gml`: shared UI initialization, typography, colors, drawing primitives, card rendering, and cleanup.
+- `scripts/vv_ui_setup/vv_ui_setup.gml`: battle-setup layout, selectors, Enemy Event controls, setup input helpers, and setup drawing.
+- `scripts/vv_ui_match/vv_ui_match.gml`: match input routing, card gestures, inspection, battlefield controls, and match drawing.
 - `scripts/vv_assets/vv_assets.gml`: loading, caching, and releasing dynamically loaded artwork.
 - `scripts/vv_settings/vv_settings.gml`: versioned player preferences, validation, safe defaults, and independent settings persistence.
 - `scripts/vv_ai/vv_ai.gml`: snapshot-based Enemy target scoring, deterministic ranking, and Build-slot selection; Auto submits its selected slot through the normal Enemy combat command and never resolves attacks directly.
@@ -80,7 +82,7 @@ Available Leader Strike definitions belong to the selected Leader, and available
 
 The selected Hero IDs are also separate from the available Hero definitions. `validate_hero_selection()` requires exactly three different IDs that exist in the available content. `refresh_setup_validation()` combines the Hero and Enemy Event checks, and `command_start_game_from_setup()` is the only setup command that starts a match.
 
-The setup screen is drawn and routed by `vv_ui.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
+The setup screen is drawn by `vv_ui_setup.gml` and routed through the UI input entry point in `vv_ui_match.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
 
 The match menu pauses automatic turn resolution. Returning to Game Options abandons the current match only after confirmation. The Enemy Targeting preference can be changed from this menu without restarting the match. `vv_ui_reset_match_interaction()` clears touch, drag, popup, confirmation, and menu state whenever a match resets or the player returns to setup, preventing transient UI state from leaking into Play Again or the next battle.
 
@@ -100,7 +102,7 @@ The normal setup view shows a short event summary. The settings gear opens the p
 
 ## Runtime Flow and Ownership
 
-`obj_controller` owns the live match variables. Its Create event builds the current content definitions, initializes setup state and the UI, and loads initial artwork without constructing a match. `command_start_game_from_setup()` validates the selections and is the only setup path that calls `reset_game()`. The Step event advances timers and routes taps. The Draw GUI event delegates the full screen to `vv_ui_draw_game()`. The Clean Up event releases dynamic sprites through `vv_assets_cleanup()`.
+`obj_controller` owns the live match variables. Its Create event builds the current content definitions, initializes setup state and the UI, and loads initial artwork without constructing a match. `command_start_game_from_setup()` validates the selections and is the only setup path that calls `reset_game()`. The Step event advances timers and routes taps. The Draw GUI event delegates the full screen to `vv_ui_draw_game()`. The Clean Up event releases dynamic fonts through `vv_ui_cleanup()` and dynamic sprites through `vv_assets_cleanup()`.
 
 Rules that need a player choice set `prompt_mode`, `prompt_value`, and `prompt_source`, then return. The UI highlights only legal targets. After a valid command clears the prompt, `resume_after_prompts()` continues queued Enemy attacks or the suspended turn action. New prompt-producing rules must preserve this pause-and-resume pattern.
 
