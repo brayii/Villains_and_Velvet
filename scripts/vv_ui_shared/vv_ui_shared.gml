@@ -129,10 +129,18 @@ function vv_feedback_audio_init() {
     feedback_sound_heal = vv_feedback_load_sound("healing");
     feedback_sound_victory = vv_feedback_load_sound("victory");
     feedback_sound_defeat = vv_feedback_load_sound("defeat");
+    feedback_music = vv_feedback_load_sound("velvet_storybook_loop");
+    feedback_music_instance = -1;
+    if (feedback_music >= 0) {
+        feedback_music_instance = audio_play_sound(feedback_music, -10, true);
+        audio_sound_gain(feedback_music_instance, 0.38, 0);
+    }
 }
 
 function vv_feedback_audio_cleanup() {
     if (!variable_instance_exists(id, "feedback_audio_sounds")) return;
+    if (feedback_music_instance >= 0) audio_stop_sound(feedback_music_instance);
+    feedback_music_instance = -1;
     for (var sound_i = 0; sound_i < array_length(feedback_audio_sounds); sound_i++) {
         if (feedback_audio_sounds[sound_i] >= 0) audio_free_buffer_sound(feedback_audio_sounds[sound_i]);
     }
