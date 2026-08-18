@@ -12,23 +12,6 @@ available_heroes = make_hero_definitions();
 content_registry_validation = validate_content_registries(
     available_leaders, available_scenarios, available_minion_sets, available_heroes);
 if (content_registry_validation.valid) {
-    var validation_self_checks = run_content_validation_self_checks(
-        available_leaders, available_scenarios, available_minion_sets, available_heroes);
-    if (!validation_self_checks.valid) content_registry_validation = validation_self_checks;
-}
-if (content_registry_validation.valid) {
-    var ai_scoring_self_checks = enemy_ai_run_scoring_self_checks(available_heroes);
-    if (!ai_scoring_self_checks.valid) content_registry_validation = ai_scoring_self_checks;
-}
-if (content_registry_validation.valid) {
-    var ai_selection_self_checks = enemy_ai_run_selection_self_checks(available_heroes);
-    if (!ai_selection_self_checks.valid) content_registry_validation = ai_selection_self_checks;
-}
-if (content_registry_validation.valid) {
-    var ai_oracle_self_checks = enemy_ai_run_oracle_self_checks(available_heroes);
-    if (!ai_oracle_self_checks.valid) content_registry_validation = ai_oracle_self_checks;
-}
-if (content_registry_validation.valid) {
     var ai_release_self_checks = enemy_ai_run_release_self_checks();
     if (!ai_release_self_checks.valid) content_registry_validation = ai_release_self_checks;
 }
@@ -36,46 +19,30 @@ if (content_registry_validation.valid) {
     var ai_data_self_checks = vv_ai_data_run_self_checks();
     if (!ai_data_self_checks.valid) content_registry_validation = ai_data_self_checks;
 }
-if (content_registry_validation.valid) {
-    var ai_learning_self_checks = enemy_ai_run_conditional_learning_self_checks(available_heroes);
-    if (!ai_learning_self_checks.valid) content_registry_validation = ai_learning_self_checks;
-}
-if (content_registry_validation.valid) {
-    var advance_self_checks = run_minion_advance_self_checks();
-    if (!advance_self_checks.valid) content_registry_validation = advance_self_checks;
-}
-if (content_registry_validation.valid) {
-    var full_assault_self_checks = run_full_assault_self_checks(
-        available_scenarios, available_minion_sets);
-    if (!full_assault_self_checks.valid) content_registry_validation = full_assault_self_checks;
-}
-if (content_registry_validation.valid) {
-    var reward_self_checks = enemy_ai_run_reward_self_checks();
-    if (!reward_self_checks.valid) content_registry_validation = reward_self_checks;
-}
-if (content_registry_validation.valid) {
-    var health_learning_self_checks = enemy_ai_run_health_learning_self_checks();
-    if (!health_learning_self_checks.valid) content_registry_validation = health_learning_self_checks;
-}
-if (content_registry_validation.valid) {
-    var rng_self_checks = enemy_ai_run_rng_self_checks();
-    if (!rng_self_checks.valid) content_registry_validation = rng_self_checks;
-}
-if (content_registry_validation.valid) {
-    var exploration_self_checks = enemy_ai_run_exploration_self_checks();
-    if (!exploration_self_checks.valid) content_registry_validation = exploration_self_checks;
-}
-if (content_registry_validation.valid) {
-    var evaluation_self_checks = enemy_ai_run_evaluation_self_checks(available_heroes);
-    if (!evaluation_self_checks.valid) content_registry_validation = evaluation_self_checks;
-}
-if (content_registry_validation.valid) {
-    var stability_self_checks = vv_ai_data_run_stability_self_checks();
-    if (!stability_self_checks.valid) content_registry_validation = stability_self_checks;
-}
-if (content_registry_validation.valid) {
-    var future_content_self_checks = enemy_ai_run_future_content_self_checks();
-    if (!future_content_self_checks.valid) content_registry_validation = future_content_self_checks;
+if (VV_DEVELOPMENT_SELF_CHECKS && content_registry_validation.valid) {
+    var development_checks = [
+        run_content_validation_self_checks(
+            available_leaders, available_scenarios, available_minion_sets, available_heroes),
+        enemy_ai_run_scoring_self_checks(available_heroes),
+        enemy_ai_run_selection_self_checks(available_heroes),
+        enemy_ai_run_oracle_self_checks(available_heroes),
+        enemy_ai_run_conditional_learning_self_checks(available_heroes),
+        run_minion_advance_self_checks(),
+        run_full_assault_self_checks(available_scenarios, available_minion_sets),
+        enemy_ai_run_reward_self_checks(),
+        enemy_ai_run_health_learning_self_checks(),
+        enemy_ai_run_rng_self_checks(),
+        enemy_ai_run_exploration_self_checks(),
+        enemy_ai_run_evaluation_self_checks(available_heroes),
+        vv_ai_data_run_stability_self_checks(),
+        enemy_ai_run_future_content_self_checks()
+    ];
+    for (var check_i = 0; check_i < array_length(development_checks); check_i++) {
+        if (!development_checks[check_i].valid) {
+            content_registry_validation = development_checks[check_i];
+            break;
+        }
+    }
 }
 if (!content_registry_validation.valid) {
     show_debug_message("STARTUP VALIDATION FAILED: " + content_registry_validation.message);

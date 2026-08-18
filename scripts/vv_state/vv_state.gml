@@ -186,6 +186,11 @@ function validate_ability_entries(_abilities, _allowed_ids, _owner_label) {
             return content_validation_result(false, _owner_label + " repeats ability ID '" + ability.id + "'.");
         }
         array_push(seen_ids, ability.id);
+        if (variable_struct_exists(ability.params, "conditional_trigger")
+        && ability.params.conditional_trigger != CONDITIONAL_TRIGGER_MINION_DEFEATED) {
+            return content_validation_result(false, _owner_label + " ability '"
+                + ability.id + "' has an unsupported conditional trigger.");
+        }
         if (ability.id == ABILITY_OVERPOWER || ability.id == ABILITY_RELENTLESS || ability.id == ABILITY_RALLY) {
             if (!variable_struct_exists(ability.params, "amount")
             || !content_number_is_valid(ability.params.amount, 0, false)) {

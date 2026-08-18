@@ -12,4 +12,8 @@ Auto chooses legal Build targets using the Enemy Attack AI and submits them thro
 
 Every Auto attack is recorded, including blocked attacks, forced targets, and attacks against the Hand. During Full Assault, Auto selects the lowest-Health legal Hand card and uses the leftmost slot to break ties. Only genuine Build Area choices train the Build targeting preference; Hand and forced attacks remain useful attack observations without distorting that preference.
 
+Build scoring uses each card's actual Enemy destruction cost, including card effects that modify that cost. Overall Auto performance and genuine Build-choice performance use separate reward histories so forced and blocked turns do not distort Build targeting.
+
+Bounded exploration remains available for seeded evaluation but is disabled in normal play until testing demonstrates a reliable improvement. Complete AI stress checks are retained for development builds; production startup runs only lightweight content, configuration, and saved-data validation.
+
 Disrupt, Shatter, Escape effects, and other non-attack prompts remain player choices in both modes.

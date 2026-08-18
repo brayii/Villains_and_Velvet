@@ -77,6 +77,11 @@ function setup_gear_rect() {
     return {x:1190, y:24, w:50, h:50};
 }
 
+function auto_toggle_hit_rect() {
+    return {x:auto_toggle_rect.x, y:auto_toggle_rect.y,
+        w:112, h:auto_toggle_rect.h};
+}
+
 function setup_hero_button_rect(_slot, _direction) {
     return {x:955, y:151 + _slot * 42, w:250, h:35};
 }
@@ -243,8 +248,7 @@ function vv_ui_handle_input() {
     }
 
     if (pointer_pressed && !setup_active && !game_over && !match_menu_active
-    && point_in_rect(pointer_x, pointer_y,
-        {x:auto_toggle_rect.x, y:auto_toggle_rect.y, w:112, h:auto_toggle_rect.h})) {
+    && point_in_rect(pointer_x, pointer_y, auto_toggle_hit_rect())) {
         vv_settings_toggle_enemy_auto();
         return;
     }

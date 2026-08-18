@@ -86,6 +86,7 @@ function core_minion_slots_are_valid(_minion_set) {
 #macro EFFECT_FULL_ASSAULT "full_assault"
 #macro EFFECT_HEAL_LEADER "heal_leader"
 #macro EFFECT_DESTROY_HAND_CARD "destroy_hand_card"
+#macro CONDITIONAL_TRIGGER_MINION_DEFEATED "minion_defeated"
 
 function ability_entry(_id, _name, _text, _params) {
     return {id:_id, name:_name, text:_text, params:_params};
@@ -220,8 +221,8 @@ function make_hero_definitions() {
             id: "goblin",
             name: "Goblin",
             normal: card_player("goblin", "Goblin", "Normal", 5, 3, [], "", "card_art/heroes/hero_a_normal_goblin.png", goblin_color),
-            ability: card_player("goblin", "Goblin", "Ability", 4, 2, [ability_entry(ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack.", {amount:2})], "After you defeat a Minion, gain +2 Attack.", "card_art/heroes/hero_a_ability_goblin.png", goblin_color),
-            special: card_player("goblin", "Goblin", "Special", 7, 2, [ability_entry(ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack.", {amount:3})], "After you defeat a Minion, gain +3 Attack.", "card_art/heroes/hero_a_special_goblin.png", goblin_color)
+            ability: card_player("goblin", "Goblin", "Ability", 4, 2, [ability_entry(ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack.", {amount:2, conditional_trigger:CONDITIONAL_TRIGGER_MINION_DEFEATED})], "After you defeat a Minion, gain +2 Attack.", "card_art/heroes/hero_a_ability_goblin.png", goblin_color),
+            special: card_player("goblin", "Goblin", "Special", 7, 2, [ability_entry(ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack.", {amount:3, conditional_trigger:CONDITIONAL_TRIGGER_MINION_DEFEATED})], "After you defeat a Minion, gain +3 Attack.", "card_art/heroes/hero_a_special_goblin.png", goblin_color)
         },
         {
             id: "skeleton",

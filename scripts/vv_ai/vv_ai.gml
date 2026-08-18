@@ -6,7 +6,9 @@
 #macro ENEMY_AI_EXPLORATION_RATE 0.05
 #macro ENEMY_AI_EXPLORATION_MARGIN 1.0
 #macro ENEMY_AI_PRODUCTION_HEALTH_LEARNING true
+// Exploration stays gated until seeded evaluation demonstrates a production benefit.
 #macro ENEMY_AI_PRODUCTION_EXPLORATION false
+#macro VV_DEVELOPMENT_SELF_CHECKS false
 #macro ENEMY_AI_TARGET_DELAY_FRAMES 45
 #macro ENEMY_AI_RESULT_DELAY_FRAMES 30
 
@@ -145,22 +147,22 @@ function enemy_ai_record_attack_observation(_zone, _candidate_count) {
     return true;
 }
 
-function enemy_ai_normalized_health_delta(_candidate_healths, _chosen_index) {
-    var candidate_count = array_length(_candidate_healths);
+function enemy_ai_normalized_cost_delta(_candidate_costs, _chosen_index) {
+    var candidate_count = array_length(_candidate_costs);
     if (candidate_count < 2 || _chosen_index < 0 || _chosen_index >= candidate_count) return 0;
-    var health_total = 0;
-    var health_min = _candidate_healths[0];
-    var health_max = _candidate_healths[0];
-    for (var health_i = 0; health_i < candidate_count; health_i++) {
-        health_total += _candidate_healths[health_i];
-        health_min = min(health_min, _candidate_healths[health_i]);
-        health_max = max(health_max, _candidate_healths[health_i]);
+    var cost_total = 0;
+    var cost_min = _candidate_costs[0];
+    var cost_max = _candidate_costs[0];
+    for (var cost_i = 0; cost_i < candidate_count; cost_i++) {
+        cost_total += _candidate_costs[cost_i];
+        cost_min = min(cost_min, _candidate_costs[cost_i]);
+        cost_max = max(cost_max, _candidate_costs[cost_i]);
     }
-    var health_range = health_max - health_min;
-    if (health_range <= 0) return 0;
-    var chosen_health = _candidate_healths[_chosen_index];
-    var alternative_mean = (health_total - chosen_health) / (candidate_count - 1);
-    return (chosen_health - alternative_mean) / health_range;
+    var cost_range = cost_max - cost_min;
+    if (cost_range <= 0) return 0;
+    var chosen_cost = _candidate_costs[_chosen_index];
+    var alternative_mean = (cost_total - chosen_cost) / (candidate_count - 1);
+    return (chosen_cost - alternative_mean) / cost_range;
 }
 
 function enemy_ai_make_decision_record(_current_state, _selected_slot) {
@@ -168,9 +170,9 @@ function enemy_ai_make_decision_record(_current_state, _selected_slot) {
     var ranked = enemy_ai_rank_build_with_weights(_current_state.build_snapshot,
         enemy_ai_conditional_weight(), enemy_ai_health_weight());
     var candidates = [];
-    var candidate_healths = [];
-    var health_total = 0;
-    var chosen_health = 0;
+    var candidate_costs = [];
+    var cost_total = 0;
+    var chosen_cost = 0;
     var chosen_found = false;
     var chosen_candidate_index = -1;
     for (var rank_i = 0; rank_i < array_length(ranked); rank_i++) {
@@ -178,10 +180,10 @@ function enemy_ai_make_decision_record(_current_state, _selected_slot) {
         if (!enemy_target_is_legal_in_build(_current_state.build_snapshot,
         candidate.slot, _current_state.attack_remaining)) continue;
         array_push(candidates, candidate);
-        array_push(candidate_healths, candidate.health);
-        health_total += candidate.health;
+        array_push(candidate_costs, candidate.destruction_cost);
+        cost_total += candidate.destruction_cost;
         if (candidate.slot == _selected_slot) {
-            chosen_health = candidate.health;
+            chosen_cost = candidate.destruction_cost;
             chosen_found = true;
             chosen_candidate_index = array_length(candidates) - 1;
         }
@@ -189,7 +191,7 @@ function enemy_ai_make_decision_record(_current_state, _selected_slot) {
     var candidate_count = array_length(candidates);
     if (!chosen_found || !enemy_ai_policy_choice_is_eligible(enemy_auto_play,
     enemy_ai_policy_turn_number, turn_number, candidate_count)) return undefined;
-    var alternative_mean = (health_total - chosen_health) / (candidate_count - 1);
+    var alternative_mean = (cost_total - chosen_cost) / (candidate_count - 1);
     return {
         turn_id: turn_number,
         decision_index: array_length(enemy_ai_policy_decisions) + 1,
@@ -197,10 +199,10 @@ function enemy_ai_make_decision_record(_current_state, _selected_slot) {
         candidate_count: candidate_count,
         candidates: candidates,
         chosen_target: _selected_slot,
-        chosen_target_health: chosen_health,
-        alternative_health_mean: alternative_mean,
-        normalized_health_delta: enemy_ai_normalized_health_delta(
-            candidate_healths, chosen_candidate_index)
+        chosen_target_cost: chosen_cost,
+        alternative_cost_mean: alternative_mean,
+        normalized_cost_delta: enemy_ai_normalized_cost_delta(
+            candidate_costs, chosen_candidate_index)
     };
 }
 
@@ -210,7 +212,7 @@ function enemy_ai_apply_health_learning(_weight, _advantage, _decisions) {
     if (decision_count <= 0) return next_weight;
     for (var decision_i = 0; decision_i < decision_count; decision_i++) {
         next_weight -= ENEMY_AI_HEALTH_LEARNING_RATE * _advantage
-            * _decisions[decision_i].normalized_health_delta / decision_count;
+            * _decisions[decision_i].normalized_cost_delta / decision_count;
         next_weight = clamp(next_weight, 0.25, 3.0);
     }
     return next_weight;
@@ -230,6 +232,10 @@ function enemy_ai_reward_ema_transition(_old_ema, _reward) {
     };
 }
 
+function enemy_ai_policy_reward_should_update(_meaningful_choice_count) {
+    return _meaningful_choice_count > 0;
+}
+
 /// _terminal_result: +1 Enemy win, -1 Enemy loss, 0 non-terminal.
 function enemy_ai_reward_finish_player_response(_terminal_result) {
     if (!enemy_ai_reward_measurement_is_eligible(enemy_ai_reward_turn_active,
@@ -242,17 +248,25 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
     var result = enemy_ai_calculate_turn_reward(
         enemy_ai_reward_hp_before, leader_hp, array_length(enemy_deck),
         enemy_ai_reward_initial_deck_size, _terminal_result);
-    var ema_update = enemy_ai_reward_ema_transition(ai_reward_ema, result.reward);
+    var overall_ema_update = enemy_ai_reward_ema_transition(ai_reward_ema, result.reward);
     enemy_ai_last_turn_reward = result.reward;
-    enemy_ai_last_advantage = ema_update.advantage;
     var meaningful_choice_count = array_length(enemy_ai_policy_decisions);
+    var policy_ema_update = enemy_ai_reward_ema_transition(
+        ai_policy_choice_reward_ema, result.reward);
+    var update_policy_reward = enemy_ai_policy_reward_should_update(meaningful_choice_count);
+    enemy_ai_last_advantage = update_policy_reward
+        ? policy_ema_update.advantage : 0;
     var old_health_weight = enemy_ai_learned_health_weight();
-    if (ENEMY_AI_PRODUCTION_HEALTH_LEARNING) {
-        ai_health_weight = enemy_ai_apply_health_learning(
-            old_health_weight, ema_update.advantage, enemy_ai_policy_decisions);
+    if (update_policy_reward) {
+        if (ENEMY_AI_PRODUCTION_HEALTH_LEARNING) {
+            ai_health_weight = enemy_ai_apply_health_learning(
+                old_health_weight, policy_ema_update.advantage, enemy_ai_policy_decisions);
+        }
+        ai_policy_choice_reward_ema = policy_ema_update.new_ema;
+        ai_policy_choice_turn_count++;
     }
     ai_meaningful_choice_count += meaningful_choice_count;
-    ai_reward_ema = ema_update.new_ema;
+    ai_reward_ema = overall_ema_update.new_ema;
     ai_auto_turn_count++;
     if (_terminal_result > 0) ai_games_won_auto++;
     else if (_terminal_result < 0) ai_games_lost_auto++;
@@ -268,12 +282,14 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
         + " | deck_ratio=" + string(result.deck_ratio)
         + " | terminal=" + string(_terminal_result)
         + " | reward=" + string(result.reward)
-        + " | ema_old=" + string(ema_update.old_ema)
-        + " | advantage=" + string(ema_update.advantage)
+        + " | overall_ema_old=" + string(overall_ema_update.old_ema)
+        + " | policy_ema_old=" + string(policy_ema_update.old_ema)
+        + " | policy_advantage=" + string(enemy_ai_last_advantage)
         + " | meaningful_choices=" + string(meaningful_choice_count)
         + " | W_H_old=" + string(old_health_weight)
         + " | W_H_new=" + string(ai_health_weight)
-        + " | ema_new=" + string(ema_update.new_ema)
+        + " | overall_ema_new=" + string(ai_reward_ema)
+        + " | policy_ema_new=" + string(ai_policy_choice_reward_ema)
         + " | auto_turns=" + string(ai_auto_turn_count));
     enemy_ai_policy_cancel_turn();
     enemy_ai_reward_cancel_turn();
@@ -305,8 +321,12 @@ function enemy_ai_count_exposed_conditional_abilities(_build_snapshot, _attack_a
     var exposed = 0;
     for (var card_i = 0; card_i < array_length(_build_snapshot); card_i++) {
         if (is_undefined(_build_snapshot[card_i])) continue;
-        if (card_has_ability(_build_snapshot[card_i], ABILITY_OVERPOWER)) exposed++;
-        if (card_has_ability(_build_snapshot[card_i], ABILITY_RELENTLESS)) exposed++;
+        var card = _build_snapshot[card_i];
+        if (!variable_struct_exists(card, "abilities")) continue;
+        for (var ability_i = 0; ability_i < array_length(card.abilities); ability_i++) {
+            if (ability_param_value(card.abilities[ability_i], "conditional_trigger", "")
+            == CONDITIONAL_TRIGGER_MINION_DEFEATED) exposed++;
+        }
     }
     return exposed;
 }
@@ -616,15 +636,15 @@ _conditional_weight, _health_weight) {
         - evaluation_after.guaranteed_attack;
     var conditional_threat = _evaluation_before.conditional_attack
         - evaluation_after.conditional_attack;
-    var target_health = _build_snapshot[_slot].hp;
+    var destruction_cost = card_enemy_destruction_cost(_build_snapshot[_slot]);
     return {
         slot: _slot,
         guaranteed_threat: guaranteed_threat,
         conditional_threat: conditional_threat,
-        health: target_health,
+        destruction_cost: destruction_cost,
         score: guaranteed_threat
             + _conditional_weight * conditional_threat
-            - _health_weight * target_health
+            - _health_weight * destruction_cost
     };
 }
 
@@ -633,7 +653,9 @@ function enemy_ai_candidate_ranks_before(_left, _right) {
     if (_left.guaranteed_threat != _right.guaranteed_threat) {
         return _left.guaranteed_threat > _right.guaranteed_threat;
     }
-    if (_left.health != _right.health) return _left.health < _right.health;
+    if (_left.destruction_cost != _right.destruction_cost) {
+        return _left.destruction_cost < _right.destruction_cost;
+    }
     return _left.slot < _right.slot;
 }
 
@@ -777,12 +799,8 @@ function enemy_ai_schedule_current_target() {
     var selected_slot = targets_hand
         ? enemy_ai_choose_hand_target(prompt_value) : enemy_ai_choose_target(current_state);
     if (selected_slot < 0) {
-        if (!targets_hand) return command_end_enemy_attack_if_blocked();
-        prompt_mode = "";
-        prompt_value = 0;
-        prompt_source = "";
-        resume_after_prompts();
-        return true;
+        return targets_hand ? command_end_enemy_hand_attack_if_blocked()
+            : command_end_enemy_attack_if_blocked();
     }
     enemy_ai_pending_decision_record = targets_hand
         ? undefined
@@ -1448,6 +1466,7 @@ function enemy_ai_run_future_content_self_checks() {
         guaranteed_attack_others: 2,
         conditional_attack_self: 4,
         conditional_attack_others: 2,
+        conditional_trigger: CONDITIONAL_TRIGGER_MINION_DEFEATED,
         enemy_target_priority: true,
         enemy_destruction_cost_delta: 2
     });
@@ -1469,6 +1488,10 @@ function enemy_ai_run_future_content_self_checks() {
         enemy_ai_rank_build_with_weights(snapshot, 0.5, 1.0), 999);
     var sequence = enemy_ai_oracle_greedy_sequence_with_weights(
         snapshot, 6, 0.5, 1.0, 0.5);
+    var future_minion = card_minion("future_minion", "Future Minion", "Normal",
+        1, 4, [], "", [], "");
+    var future_exposure = enemy_ai_count_exposed_conditional_abilities(
+        snapshot, 6, [future_minion, undefined]);
 
     if (!enemy_ai_scores_are_close(evaluation.guaranteed_attack, 8)
     || !enemy_ai_scores_are_close(evaluation.conditional_attack, 6)
@@ -1485,6 +1508,8 @@ function enemy_ai_run_future_content_self_checks() {
     || enemy_target_is_legal_in_build(snapshot, 0, 4)
     || !enemy_target_is_legal_in_build(snapshot, 0, 5)
     || card_enemy_destruction_cost(source) != 5
+    || scored.destruction_cost != 5
+    || future_exposure != 1
     || array_length(legal_pool) != 1 || legal_pool[0].slot != 0
     || array_length(sequence.sequence) != 1 || sequence.sequence[0] != 0
     || is_undefined(sequence.final_snapshot[1])) {
@@ -1557,17 +1582,19 @@ function enemy_ai_run_reward_self_checks() {
     || !enemy_ai_reward_measurement_is_eligible(true, true, 4, 4)
     || enemy_ai_reward_measurement_is_eligible(true, false, 4, 4)
     || enemy_ai_reward_measurement_is_eligible(false, true, 4, 4)
-    || enemy_ai_reward_measurement_is_eligible(true, true, 3, 4)) {
+    || enemy_ai_reward_measurement_is_eligible(true, true, 3, 4)
+    || !enemy_ai_policy_reward_should_update(1)
+    || enemy_ai_policy_reward_should_update(0)) {
         return content_validation_result(false, "Enemy AI reward calculation check failed.");
     }
     return content_validation_result(true, "");
 }
 
 function enemy_ai_run_health_learning_self_checks() {
-    var one_expensive = [{normalized_health_delta:0.5}];
+    var one_expensive = [{normalized_cost_delta:0.5}];
     var two_expensive = [
-        {normalized_health_delta:0.5},
-        {normalized_health_delta:0.5}
+        {normalized_cost_delta:0.5},
+        {normalized_cost_delta:0.5}
     ];
     var positive = enemy_ai_apply_health_learning(1.0, 1.0, one_expensive);
     var negative = enemy_ai_apply_health_learning(1.0, -1.0, one_expensive);
@@ -1578,8 +1605,8 @@ function enemy_ai_run_health_learning_self_checks() {
     var blocked_observation = enemy_ai_attack_observation_flags("build", 0);
     var forced_observation = enemy_ai_attack_observation_flags("build", 1);
     var hand_observation = enemy_ai_attack_observation_flags("hand", 2);
-    if (!enemy_ai_scores_are_close(enemy_ai_normalized_health_delta([2, 4, 8], 2), 5 / 6)
-    || !enemy_ai_scores_are_close(enemy_ai_normalized_health_delta([4, 4], 0), 0)
+    if (!enemy_ai_scores_are_close(enemy_ai_normalized_cost_delta([2, 4, 8], 2), 5 / 6)
+    || !enemy_ai_scores_are_close(enemy_ai_normalized_cost_delta([4, 4], 0), 0)
     || !enemy_ai_scores_are_close(positive, 0.99)
     || !enemy_ai_scores_are_close(negative, 1.01)
     || !enemy_ai_scores_are_close(shared, 0.99)

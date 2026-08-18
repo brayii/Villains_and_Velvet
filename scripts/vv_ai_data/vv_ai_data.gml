@@ -2,12 +2,14 @@
 
 function vv_ai_data_defaults() {
     return {
-        ai_data_version: 2,
+        ai_data_version: 3,
         W_H: 1.0,
         conditional_exposures: 0,
         conditional_activations: 0,
         reward_ema: 0,
+        policy_choice_reward_ema: 0,
         auto_turn_count: 0,
+        policy_choice_turn_count: 0,
         meaningful_ai_choice_count: 0,
         attack_observation_count: 0,
         blocked_attack_count: 0,
@@ -38,7 +40,8 @@ function vv_ai_data_decode(_text) {
         if (!is_struct(loaded)
         || !variable_struct_exists(loaded, "ai_data_version")
         || (loaded.ai_data_version != defaults.ai_data_version
-            && loaded.ai_data_version != 1 && loaded.ai_data_version != 0)) {
+            && loaded.ai_data_version != 2 && loaded.ai_data_version != 1
+            && loaded.ai_data_version != 0)) {
             return result;
         }
 
@@ -66,8 +69,14 @@ function vv_ai_data_decode(_text) {
             data.reward_ema = loaded.reward_ema;
         } else repaired = true;
 
+        if (variable_struct_exists(loaded, "policy_choice_reward_ema")
+        && vv_ai_data_is_finite_number(loaded.policy_choice_reward_ema)) {
+            data.policy_choice_reward_ema = loaded.policy_choice_reward_ema;
+        } else repaired = true;
+
         var counter_names = [
             "auto_turn_count",
+            "policy_choice_turn_count",
             "meaningful_ai_choice_count",
             "attack_observation_count",
             "blocked_attack_count",
@@ -110,7 +119,9 @@ function vv_ai_data_apply(_data) {
     ai_conditional_exposures = _data.conditional_exposures;
     ai_conditional_activations = _data.conditional_activations;
     ai_reward_ema = _data.reward_ema;
+    ai_policy_choice_reward_ema = _data.policy_choice_reward_ema;
     ai_auto_turn_count = _data.auto_turn_count;
+    ai_policy_choice_turn_count = _data.policy_choice_turn_count;
     ai_meaningful_choice_count = _data.meaningful_ai_choice_count;
     ai_attack_observation_count = _data.attack_observation_count;
     ai_blocked_attack_count = _data.blocked_attack_count;
@@ -127,7 +138,9 @@ function vv_ai_data_current() {
         conditional_exposures: ai_conditional_exposures,
         conditional_activations: ai_conditional_activations,
         reward_ema: ai_reward_ema,
+        policy_choice_reward_ema: ai_policy_choice_reward_ema,
         auto_turn_count: ai_auto_turn_count,
+        policy_choice_turn_count: ai_policy_choice_turn_count,
         meaningful_ai_choice_count: ai_meaningful_choice_count,
         attack_observation_count: ai_attack_observation_count,
         blocked_attack_count: ai_blocked_attack_count,
@@ -140,7 +153,7 @@ function vv_ai_data_current() {
 
 function vv_ai_data_init() {
     ai_data_filename = "villains_and_velvet_ai_data.json";
-    ai_data_version = 2;
+    ai_data_version = 3;
     ai_data_dirty = true;
     ai_data_dirty_frames = 0;
     ai_data_write_count = 0;
@@ -219,7 +232,9 @@ function vv_ai_data_run_self_checks() {
     valid_data.conditional_exposures = 9;
     valid_data.conditional_activations = 4;
     valid_data.reward_ema = -1.5;
+    valid_data.policy_choice_reward_ema = -0.75;
     valid_data.auto_turn_count = 7;
+    valid_data.policy_choice_turn_count = 4;
     valid_data.attack_observation_count = 12;
     valid_data.blocked_attack_count = 2;
     valid_data.forced_attack_count = 3;
@@ -227,6 +242,8 @@ function vv_ai_data_run_self_checks() {
     var decoded = vv_ai_data_decode(json_stringify(valid_data));
     if (!decoded.valid || decoded.data.W_H != 2.25
     || decoded.data.conditional_activations != 4 || decoded.data.auto_turn_count != 7
+    || decoded.data.policy_choice_reward_ema != -0.75
+    || decoded.data.policy_choice_turn_count != 4
     || decoded.data.attack_observation_count != 12
     || decoded.data.blocked_attack_count != 2
     || decoded.data.forced_attack_count != 3
@@ -278,11 +295,11 @@ function vv_ai_data_run_stability_self_checks() {
     var simulated_weight = 1.0;
     var simulated_ema = 0;
     var clamp_samples = 0;
-    var decisions = [{normalized_health_delta:0.75}];
+    var decisions = [{normalized_cost_delta:0.75}];
     for (var sample_i = 0; sample_i < 50000; sample_i++) {
         var advantage = ((sample_i mod 9) - 4) / 4;
-        if ((sample_i mod 2) == 1) decisions[0].normalized_health_delta = -0.75;
-        else decisions[0].normalized_health_delta = 0.75;
+        if ((sample_i mod 2) == 1) decisions[0].normalized_cost_delta = -0.75;
+        else decisions[0].normalized_cost_delta = 0.75;
         simulated_weight = enemy_ai_apply_health_learning(
             simulated_weight, advantage, decisions);
         var reward = ((sample_i mod 7) - 3) / 3;
@@ -295,7 +312,9 @@ function vv_ai_data_run_stability_self_checks() {
     stable_data.conditional_exposures = 50000;
     stable_data.conditional_activations = 17500;
     stable_data.reward_ema = simulated_ema;
+    stable_data.policy_choice_reward_ema = simulated_ema / 2;
     stable_data.auto_turn_count = 50000;
+    stable_data.policy_choice_turn_count = 24000;
     stable_data.meaningful_ai_choice_count = 24000;
     stable_data.attack_observation_count = 70000;
     stable_data.blocked_attack_count = 9000;
@@ -313,6 +332,8 @@ function vv_ai_data_run_stability_self_checks() {
     || !round_trip.valid
     || round_trip.data.W_H != stable_data.W_H
     || round_trip.data.reward_ema != stable_data.reward_ema
+    || round_trip.data.policy_choice_reward_ema != stable_data.policy_choice_reward_ema
+    || round_trip.data.policy_choice_turn_count != 24000
     || round_trip.data.meaningful_ai_choice_count != 24000
     || round_trip.data.attack_observation_count != 70000
     || round_trip.data.blocked_attack_count != 9000

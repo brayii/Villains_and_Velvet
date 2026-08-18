@@ -328,6 +328,23 @@ function command_end_enemy_attack_if_blocked() {
     return true;
 }
 
+function command_end_enemy_hand_attack_if_blocked() {
+    if (prompt_mode != "enemy_attack_hand"
+    || enemy_has_legal_hand_target(prompt_value)) return false;
+    enemy_attack_notice = count_occupied_hand() <= 0
+        ? "No cards remain to attack.\nThe unused Attack ends."
+        : "No Hand card can be defeated.\nThe unused Attack ends.";
+    log_add(string(prompt_value)
+        + " Attack remains, but no legal Hand card can be defeated. The Attack ends.");
+    prompt_mode = "";
+    prompt_value = 0;
+    prompt_source = "";
+    enemy_ai_baseline_end_attack();
+    resume_after_prompts();
+    validate_state("Enemy Hand Attack ends without a target");
+    return true;
+}
+
 function heal_leader(_amount) {
     var healing_room = enemy_leader.max_hp - leader_hp;
     var healed = min(_amount, healing_room);
