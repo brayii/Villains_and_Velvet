@@ -101,17 +101,15 @@ function vv_ui_reset_match_interaction() {
     feedback_phase_text = "";
 }
 
-function vv_feedback_make_tone(_frequency, _milliseconds) {
-    var sample_rate = 11025;
-    var sample_count = max(1, round(sample_rate * _milliseconds / 1000));
-    var sound_buffer = buffer_create(sample_count * 2, buffer_fixed, 1);
-    for (var sample_i = 0; sample_i < sample_count; sample_i++) {
-        var fade = 1 - sample_i / sample_count;
-        var sample_value = round(sin(sample_i * _frequency * 2 * pi / sample_rate) * 5200 * fade);
-        buffer_write(sound_buffer, buffer_s16, sample_value);
-    }
-    var sound_id = audio_create_buffer_sound(sound_buffer, buffer_s16, sample_rate, 0,
-        sample_count * 2, audio_mono);
+function vv_feedback_load_sound(_filename) {
+    var loaded_buffer = buffer_load(working_directory + "audio/" + _filename + ".wav");
+    if (loaded_buffer < 0) return -1;
+    var audio_length = buffer_get_size(loaded_buffer) - 44;
+    var sound_buffer = buffer_create(audio_length, buffer_fixed, 1);
+    buffer_copy(loaded_buffer, 44, audio_length, sound_buffer, 0);
+    buffer_delete(loaded_buffer);
+    var sound_id = audio_create_buffer_sound(sound_buffer, buffer_s16, 22050, 0,
+        audio_length, audio_mono);
     array_push(feedback_audio_buffers, sound_buffer);
     array_push(feedback_audio_sounds, sound_id);
     return sound_id;
@@ -120,12 +118,17 @@ function vv_feedback_make_tone(_frequency, _milliseconds) {
 function vv_feedback_audio_init() {
     feedback_audio_buffers = [];
     feedback_audio_sounds = [];
-    feedback_sound_soft = vv_feedback_make_tone(520, 55);
-    feedback_sound_move = vv_feedback_make_tone(300, 90);
-    feedback_sound_event = vv_feedback_make_tone(680, 120);
-    feedback_sound_hit = vv_feedback_make_tone(150, 90);
-    feedback_sound_heal = vv_feedback_make_tone(820, 150);
-    feedback_sound_result = vv_feedback_make_tone(440, 240);
+    feedback_sound_pickup = vv_feedback_load_sound("card_pickup");
+    feedback_sound_drop = vv_feedback_load_sound("card_drop");
+    feedback_sound_button = vv_feedback_load_sound("button_confirm");
+    feedback_sound_hit = vv_feedback_load_sound("attack_hit");
+    feedback_sound_move = vv_feedback_load_sound("minion_move");
+    feedback_sound_event = vv_feedback_load_sound("event_reveal");
+    feedback_sound_leader_damage = vv_feedback_load_sound("leader_damage");
+    feedback_sound_destroy = vv_feedback_load_sound("destruction");
+    feedback_sound_heal = vv_feedback_load_sound("healing");
+    feedback_sound_victory = vv_feedback_load_sound("victory");
+    feedback_sound_defeat = vv_feedback_load_sound("defeat");
 }
 
 function vv_feedback_audio_cleanup() {
@@ -182,7 +185,7 @@ function vv_feedback_update() {
     if (feedback_step != step_number) {
         feedback_phase_text = "STEP " + string(step_number) + "  ·  " + vv_step_name(step_number);
         feedback_phase_timer = 28;
-        vv_feedback_play(feedback_sound_soft);
+        vv_feedback_play(feedback_sound_button);
     }
     if (feedback_minions[1] == minions[0] && !is_undefined(minions[0])) {
         array_push(feedback_fx, {card:minions[0], rect:minion_rects[1], end_rect:minion_rects[0],
@@ -198,12 +201,12 @@ function vv_feedback_update() {
         var hp_change = leader_hp - feedback_leader_hp;
         array_push(feedback_fx, {card:undefined, rect:leader_rect, kind:hp_change > 0 ? "heal" : "damage",
             amount:abs(hp_change), timer:24, duration:24});
-        vv_feedback_play(hp_change > 0 ? feedback_sound_heal : feedback_sound_hit);
+        vv_feedback_play(hp_change > 0 ? feedback_sound_heal : feedback_sound_leader_damage);
     }
     for (var old_build_i = 0; old_build_i < 3; old_build_i++) {
         if (!is_undefined(feedback_build[old_build_i]) && !vv_feedback_card_present(feedback_build[old_build_i])) {
             vv_feedback_add_card_fx(feedback_build[old_build_i], build_rects[old_build_i], "destroy");
-            vv_feedback_play(feedback_sound_hit);
+            vv_feedback_play(feedback_sound_destroy);
         }
     }
     for (var old_minion_i = 0; old_minion_i < 2; old_minion_i++) {
@@ -212,7 +215,8 @@ function vv_feedback_update() {
             vv_feedback_play(feedback_sound_hit);
         }
     }
-    if (!feedback_game_over && game_over) vv_feedback_play(feedback_sound_result);
+    if (!feedback_game_over && game_over) vv_feedback_play(victory
+        ? feedback_sound_victory : feedback_sound_defeat);
 
     for (var fx_i = array_length(feedback_fx) - 1; fx_i >= 0; fx_i--) {
         feedback_fx[fx_i].timer--;
@@ -404,6 +408,24 @@ function draw_card(_card, _rect, _selected, _legal) {
         draw_roundrect(card_rect.x + 2, card_rect.y + 2,
             card_rect.x + card_rect.w - 2, card_rect.y + card_rect.h - 2, true);
         draw_set_alpha(1);
+        // A label keeps target legality understandable without relying on green alone.
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_set_alpha(0.88);
+        draw_set_color(COL_BG);
+        draw_rectangle(card_rect.x + 6, card_rect.y + 6,
+            card_rect.x + 72, card_rect.y + 28, false);
+        draw_center("TARGET", card_rect.x + 39, card_rect.y + 17, COL_TEXT);
+        draw_set_alpha(1);
+        vv_ui_set_font(UI_FONT_BODY);
+    } else if (_selected && !is_undefined(_card)) {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_set_alpha(0.88);
+        draw_set_color(COL_BG);
+        draw_rectangle(card_rect.x + 6, card_rect.y + 6,
+            card_rect.x + 84, card_rect.y + 28, false);
+        draw_center("SELECTED", card_rect.x + 45, card_rect.y + 17, COL_TEXT);
+        draw_set_alpha(1);
+        vv_ui_set_font(UI_FONT_BODY);
     }
 }
 

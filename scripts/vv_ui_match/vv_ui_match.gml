@@ -142,7 +142,7 @@ function vv_ui_handle_input() {
     if (!setup_active && !game_over && pointer_pressed) {
         var pressed_card = ui_card_at_point(pointer_x, pointer_y);
         if (!is_undefined(pressed_card)) {
-            vv_feedback_play(feedback_sound_soft);
+            vv_feedback_play(feedback_sound_pickup);
             pointer_card_down = true;
             pointer_card_type = pressed_card.type;
             pointer_card_index = pressed_card.index;
@@ -190,7 +190,7 @@ function vv_ui_handle_input() {
                         drag_target.type, drag_target.index);
                     ui_set_interaction_feedback(ui_card_rect(drag_target.type, drag_target.index),
                         drop_success ? "drop" : "invalid", drop_success ? 14 : 18);
-                    if (drop_success) vv_feedback_play(feedback_sound_soft);
+                    if (drop_success) vv_feedback_play(feedback_sound_drop);
                 } else {
                     ui_set_interaction_feedback(ui_card_rect(pointer_card_type, pointer_card_index),
                         "invalid", 18);
@@ -284,7 +284,7 @@ function vv_ui_handle_input() {
         if (player_action_phase && action_cooldown <= 0 && command_action()) {
             detail_card_selected = undefined;
             action_cooldown = 24;
-            vv_feedback_play(feedback_sound_soft);
+            vv_feedback_play(feedback_sound_button);
         } else if (!player_action_phase || action_cooldown > 0 || prompt_mode != "") {
             ui_set_interaction_feedback(action_rect, "invalid", 18);
         }
@@ -561,7 +561,7 @@ var phase_names = [
     "PLAYER ATTACK", "DISCARD", "END TURN"
 ];
 var context_panel = {x:985, y:16, w:280, h:174};
-draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.62);
+draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.70);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 draw_set_color(COL_GOLD);
@@ -571,7 +571,7 @@ draw_set_color(COL_MUTED);
 draw_text(1000, 51, "TURN STEPS");
 for (var step_i = 0; step_i < 7; step_i++) {
     var active_step = step_i + 1 == step_number;
-    draw_set_alpha(active_step ? 1 : 0.58);
+    draw_set_alpha(active_step ? 1 : 0.78);
     draw_set_color(active_step ? COL_GOLD : COL_MUTED);
     draw_text(1000, 70 + step_i * 14, string(step_i + 1) + "  " + phase_names[step_i]);
 }
@@ -601,7 +601,7 @@ if (build_finish_confirm && phase == "build") {
     draw_text_ext(1000, 244, attack_warning_text, 18, 250);
 } else {
     var instruction_panel = {x:985, y:199, w:280, h:116};
-    draw_glass_panel(instruction_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.38);
+    draw_glass_panel(instruction_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.52);
     draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
     draw_text_ext(1000, 211, instruction, 18, 250);
 }

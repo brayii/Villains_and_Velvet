@@ -2,7 +2,7 @@ function setup_selector_button_rect(_category) {
     var panel_x = 55;
     if (_category == "scenario") panel_x = 355;
     else if (_category == "minion_set") panel_x = 655;
-    return {x:panel_x, y:158, w:250, h:38};
+    return {x:panel_x, y:156, w:250, h:44};
 }
 
 function setup_battle_settings_rect() {
@@ -10,11 +10,11 @@ function setup_battle_settings_rect() {
 }
 
 function setup_hero_button_rect(_slot, _direction) {
-    return {x:982, y:145 + _slot * 42, w:223, h:35};
+    return {x:982, y:145 + _slot * 42, w:223, h:40};
 }
 
 function setup_restore_defaults_rect() {
-    return {x:970, y:286, w:240, h:36};
+    return {x:970, y:282, w:240, h:44};
 }
 
 function setup_event_definitions(_category) {
@@ -54,12 +54,12 @@ function setup_event_set_page(_category, _page) {
 
 function setup_event_page_button_rect(_category, _direction) {
     var panel = setup_event_category_rect(_category);
-    return {x:panel.x + (_direction < 0 ? 448 : 504), y:panel.y + 9, w:44, h:34};
+    return {x:panel.x + (_direction < 0 ? 448 : 504), y:panel.y + 7, w:44, h:40};
 }
 
 function setup_event_count_button_rect(_category, _visible_row, _direction) {
     var panel = setup_event_category_rect(_category);
-    return {x:panel.x + (_direction < 0 ? 450 : 506), y:panel.y + 48 + _visible_row * 48, w:44, h:40};
+    return {x:panel.x + (_direction < 0 ? 450 : 506), y:panel.y + 46 + _visible_row * 48, w:44, h:44};
 }
 
 function setup_event_handle_category_input(_category, _pointer_x, _pointer_y) {
