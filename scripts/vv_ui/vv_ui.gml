@@ -1,15 +1,25 @@
 /// UI layout, drawing, hit testing, and input routing.
 
 function vv_ui_init() {
-    COL_BG = make_color_rgb(18, 25, 36);
-    COL_PANEL = make_color_rgb(31, 42, 57);
-    COL_EDGE = make_color_rgb(91, 111, 139);
-    COL_TEXT = make_color_rgb(239, 244, 252);
-    COL_MUTED = make_color_rgb(164, 178, 198);
-    COL_ACCENT = make_color_rgb(70, 190, 180);
-    COL_DANGER = make_color_rgb(224, 82, 92);
-    COL_GOLD = make_color_rgb(242, 190, 72);
-    COL_LEGAL = make_color_rgb(114, 221, 130);
+    COL_BG = make_color_rgb(15, 22, 33);
+    COL_PANEL = make_color_rgb(29, 40, 56);
+    COL_EDGE = make_color_rgb(112, 132, 159);
+    COL_TEXT = make_color_rgb(247, 244, 238);
+    COL_MUTED = make_color_rgb(178, 190, 207);
+    COL_ACCENT = make_color_rgb(73, 194, 184);
+    COL_DANGER = make_color_rgb(228, 88, 99);
+    COL_GOLD = make_color_rgb(246, 191, 66);
+    COL_LEGAL = make_color_rgb(124, 224, 142);
+
+    var ui_font_file = working_directory + "atkinson_hyperlegible_next_medium.ttf";
+    UI_FONT_SMALL = -1;
+    UI_FONT_BODY = -1;
+    UI_FONT_TITLE = -1;
+    if (file_exists(ui_font_file)) {
+        UI_FONT_SMALL = font_add(ui_font_file, 13, false, false, 32, 255);
+        UI_FONT_BODY = font_add(ui_font_file, 15, false, false, 32, 255);
+        UI_FONT_TITLE = font_add(ui_font_file, 20, false, false, 32, 255);
+    }
 
     leader_rect = {x:16, y:16, w:520, h:99};
     minion_rects = [{x:560, y:50, w:170, h:245}, {x:780, y:50, w:170, h:245}];
@@ -42,6 +52,20 @@ function vv_ui_init() {
     tap_move_limit = 6;
     inspect_hold_frames = 30;
     vv_ui_reset_match_interaction();
+}
+
+function vv_ui_cleanup() {
+    var ui_fonts = [UI_FONT_SMALL, UI_FONT_BODY, UI_FONT_TITLE];
+    for (var font_i = 0; font_i < array_length(ui_fonts); font_i++) {
+        if (ui_fonts[font_i] >= 0 && font_exists(ui_fonts[font_i])) font_delete(ui_fonts[font_i]);
+    }
+    UI_FONT_SMALL = -1;
+    UI_FONT_BODY = -1;
+    UI_FONT_TITLE = -1;
+}
+
+function vv_ui_set_font(_font) {
+    draw_set_font(_font >= 0 && font_exists(_font) ? _font : -1);
 }
 
 function setup_selector_button_rect(_category) {
@@ -726,7 +750,9 @@ function setup_event_selection_group_total(_selections) {
 }
 
 function vv_ui_draw_setup() {
+    vv_ui_set_font(UI_FONT_TITLE);
     draw_center("VILLAINS & VELVET", 640, 40, COL_GOLD);
+    vv_ui_set_font(UI_FONT_BODY);
     draw_center(setup_advanced_events ? "BATTLE SETTINGS" : "CHOOSE YOUR BATTLE", 640, 70, COL_TEXT);
     var gear = setup_gear_rect();
     draw_setup_gear(gear, setup_advanced_events);
@@ -842,6 +868,7 @@ function vv_ui_draw_setup() {
 }
 
 function vv_ui_draw_game() {
+vv_ui_set_font(UI_FONT_BODY);
 draw_clear(COL_BG);
 // Battlefield artwork with a dark veil keeps the cards and instructions readable.
 var background_rect = {x:0, y:0, w:1280, h:720};
@@ -877,14 +904,18 @@ draw_set_color(leader_protected ? COL_GOLD : COL_DANGER);
 draw_roundrect(leader_rect.x, leader_rect.y, leader_rect.x + leader_rect.w, leader_rect.y + leader_rect.h, true);
 
 draw_center("AREA 2", 645, 17, COL_GOLD);
+vv_ui_set_font(UI_FONT_SMALL);
 draw_center("ESCAPES WHEN PUSHED", 645, 36, COL_MUTED);
+vv_ui_set_font(UI_FONT_BODY);
 if (!is_undefined(revealed_enemy_card)) {
     draw_center("ENEMY DRAW #" + string(revealed_enemy_draw_number) + " — "
         + (revealed_enemy_card.card_type == "strike" ? "LEADER STRIKE" : "TWIST"), 865, 17, COL_GOLD);
     draw_center(revealed_enemy_card.name, 865, 36, COL_TEXT);
 } else {
     draw_center("AREA 1", 865, 17, COL_GOLD);
+    vv_ui_set_font(UI_FONT_SMALL);
     draw_center("MINIONS ENTER HERE", 865, 36, COL_MUTED);
+    vv_ui_set_font(UI_FONT_BODY);
 }
 draw_card(minions[0], minion_rects[0], false, false);
 if (!is_undefined(revealed_enemy_card)) draw_enemy_reveal(revealed_enemy_card, minion_rects[1]);
@@ -1001,6 +1032,7 @@ draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 draw_set_color(COL_MUTED);
 draw_text(1000, 29, "TURN STEPS");
+vv_ui_set_font(UI_FONT_SMALL);
 var step_list = [
     "STEP 1: DRAW CARDS",
     "STEP 2: ADVANCE / ESCAPE",
@@ -1014,6 +1046,7 @@ for (var step_i = 0; step_i < 7; step_i++) {
     draw_set_color(step_i + 1 == step_number ? COL_GOLD : COL_MUTED);
     draw_text(1000, 53 + step_i * 19, step_list[step_i]);
 }
+vv_ui_set_font(UI_FONT_BODY);
 
 // Short current instruction remains separate from the permanent step list.
 if (build_finish_confirm && phase == "build") {
@@ -1075,6 +1108,7 @@ if (!is_undefined(detail_card)) {
 // Main action.
 var match_panel = {x:1025, y:515, w:235, h:96};
 draw_glass_panel(match_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.62);
+vv_ui_set_font(UI_FONT_SMALL);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 draw_set_color(COL_GOLD);
@@ -1083,6 +1117,7 @@ draw_set_color(COL_MUTED);
 draw_text(1038, 548, "PLAYER DECK: " + string(array_length(player_deck)));
 draw_text(1038, 570, "DISCARD: " + string(array_length(player_discard)));
 draw_text(1038, 590, "ENEMY DECK: " + string(array_length(enemy_deck)));
+vv_ui_set_font(UI_FONT_BODY);
 
 var button_enabled = prompt_mode == "" && action_cooldown <= 0
     && (phase == "step1_ready" || phase == "build" || phase == "attack");
@@ -1120,7 +1155,9 @@ if (game_over) {
     draw_set_color(COL_BG);
     draw_rectangle(0, 0, 1280, 720, false);
     draw_set_alpha(1);
+    vv_ui_set_font(UI_FONT_TITLE);
     draw_center(victory ? "VICTORY" : "DEFEAT", 640, 270, victory ? COL_ACCENT : COL_DANGER);
+    vv_ui_set_font(UI_FONT_BODY);
     draw_center(victory ? "The Enemy Leader has been defeated." : "The Enemy Deck ran out before the Leader fell.",
         640, 325, COL_TEXT);
     draw_panel(result_play_rect, COL_ACCENT, COL_TEXT);
@@ -1136,8 +1173,10 @@ if (match_menu_active) {
     draw_set_color(COL_BG);
     draw_rectangle(0, 0, 1280, 720, false);
     draw_set_alpha(1);
+    vv_ui_set_font(UI_FONT_TITLE);
     if (quit_match_confirm) {
         draw_center("QUIT THIS MATCH?", 640, 250, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
         draw_center("Your current match progress will be lost.", 640, 300, COL_TEXT);
         draw_panel(menu_confirm_rect, COL_DANGER, COL_TEXT);
         draw_center("QUIT TO GAME OPTIONS", 640, menu_confirm_rect.y + menu_confirm_rect.h / 2, COL_TEXT);
@@ -1145,6 +1184,7 @@ if (match_menu_active) {
         draw_center("CONTINUE PLAYING", 640, menu_cancel_rect.y + menu_cancel_rect.h / 2, COL_TEXT);
     } else {
         draw_center("GAME MENU", 640, 225, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
         draw_panel(menu_resume_rect, COL_ACCENT, COL_TEXT);
         draw_center("RESUME GAME", 640, menu_resume_rect.y + menu_resume_rect.h / 2, COL_BG);
         draw_panel(menu_options_rect, COL_PANEL, COL_EDGE);

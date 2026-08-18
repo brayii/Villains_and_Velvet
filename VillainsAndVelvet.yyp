@@ -12,6 +12,8 @@
   "Folders":[],
   "ForcedPrefabProjectReferences":[],
   "IncludedFiles":[
+    {"$GMIncludedFile":"","%Name":"atkinson_hyperlegible_next_ofl.txt","CopyToMask":-1,"filePath":"datafiles","name":"atkinson_hyperlegible_next_ofl.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"atkinson_hyperlegible_next_medium.ttf","CopyToMask":-1,"filePath":"datafiles","name":"atkinson_hyperlegible_next_medium.ttf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"battlefield.png","CopyToMask":-1,"filePath":"datafiles/card_art/backgrounds","name":"battlefield.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"enemy_event_leader_strike.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"enemy_event_leader_strike.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"leader_velvet_queen.png","CopyToMask":-1,"filePath":"datafiles/card_art/enemies","name":"leader_velvet_queen.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
