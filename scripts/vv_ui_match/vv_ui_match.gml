@@ -343,49 +343,7 @@ function vv_ui_handle_input() {
     if (!pointer_pressed) return;
 
     if (setup_active) {
-        if (point_in_rect(pointer_x, pointer_y, setup_sound_button_rect())) {
-            vv_settings_toggle_audio();
-            if (audio_enabled) vv_feedback_play(feedback_sound_button);
-            return;
-        }
-        if (point_in_rect(pointer_x, pointer_y, setup_exit_rect)) {
-            game_end();
-            return;
-        }
-        if (point_in_rect(pointer_x, pointer_y, setup_battle_settings_rect())) {
-            setup_advanced_events = !setup_advanced_events;
-            return;
-        }
-        if (!content_registry_validation.valid) return;
-        if (!setup_advanced_events) {
-            if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
-            return;
-        }
-        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("leader"))) {
-            command_select_leader(1);
-            return;
-        }
-        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("scenario"))) {
-            command_select_scenario(1);
-            return;
-        }
-        if (point_in_rect(pointer_x, pointer_y, setup_selector_button_rect("minion_set"))) {
-            command_select_minion_set(1);
-            return;
-        }
-        for (var setup_slot = 0; setup_slot < CORE_HERO_COUNT; setup_slot++) {
-            if (point_in_rect(pointer_x, pointer_y, setup_hero_button_rect(setup_slot, 1))) {
-                command_cycle_hero_slot(setup_slot, 1);
-                return;
-            }
-        }
-        if (point_in_rect(pointer_x, pointer_y, setup_restore_defaults_rect())) {
-            command_restore_enemy_event_defaults();
-            return;
-        }
-        if (setup_advanced_events && setup_event_handle_category_input("strike", pointer_x, pointer_y)) return;
-        if (setup_advanced_events && setup_event_handle_category_input("twist", pointer_x, pointer_y)) return;
-        if (point_in_rect(pointer_x, pointer_y, setup_start_rect)) command_start_game_from_setup();
+        vv_ui_setup_handle_input(pointer_x, pointer_y);
         return;
     }
 

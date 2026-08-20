@@ -303,3 +303,44 @@ function vv_ui_draw_setup() {
     draw_center("EXIT GAME", setup_exit_rect.x + setup_exit_rect.w / 2,
         setup_exit_rect.y + setup_exit_rect.h / 2, COL_MUTED);
 }
+function vv_ui_setup_handle_input(_pointer_x, _pointer_y) {
+    if (point_in_rect(_pointer_x, _pointer_y, setup_sound_button_rect())) {
+        vv_settings_toggle_audio();
+        if (audio_enabled) vv_feedback_play(feedback_sound_button);
+        return true;
+    }
+    if (point_in_rect(_pointer_x, _pointer_y, setup_exit_rect)) {
+        game_end();
+        return true;
+    }
+    if (point_in_rect(_pointer_x, _pointer_y, setup_battle_settings_rect())) {
+        setup_advanced_events = !setup_advanced_events;
+        return true;
+    }
+    if (!content_registry_validation.valid) return false;
+    if (!setup_advanced_events) {
+        if (point_in_rect(_pointer_x, _pointer_y, setup_start_rect)) return command_start_game_from_setup();
+        return false;
+    }
+    if (point_in_rect(_pointer_x, _pointer_y, setup_selector_button_rect("leader"))) {
+        return command_select_leader(1);
+    }
+    if (point_in_rect(_pointer_x, _pointer_y, setup_selector_button_rect("scenario"))) {
+        return command_select_scenario(1);
+    }
+    if (point_in_rect(_pointer_x, _pointer_y, setup_selector_button_rect("minion_set"))) {
+        return command_select_minion_set(1);
+    }
+    for (var setup_slot = 0; setup_slot < CORE_HERO_COUNT; setup_slot++) {
+        if (point_in_rect(_pointer_x, _pointer_y, setup_hero_button_rect(setup_slot, 1))) {
+            return command_cycle_hero_slot(setup_slot, 1);
+        }
+    }
+    if (point_in_rect(_pointer_x, _pointer_y, setup_restore_defaults_rect())) {
+        return command_restore_enemy_event_defaults();
+    }
+    if (setup_event_handle_category_input("strike", _pointer_x, _pointer_y)) return true;
+    if (setup_event_handle_category_input("twist", _pointer_x, _pointer_y)) return true;
+    if (point_in_rect(_pointer_x, _pointer_y, setup_start_rect)) return command_start_game_from_setup();
+    return false;
+}
