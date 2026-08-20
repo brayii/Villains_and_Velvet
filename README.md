@@ -20,6 +20,8 @@ This project is an in-development prototype. Gameplay rules and content may chan
 
 The game opens on a battle setup screen. Choose The Assault or The Queen's Wrath, then select the Leader, Minion Set, and Hero team. Use the plus and minus controls to adjust Leader Strike and Twist counts. Exactly eight Enemy Events are required before **Start Game** is enabled.
 
+On a new installation, the first Start Game opens a controlled three-turn training battle. It teaches drawing, Minion movement and escape, building, attacking a Minion, and attacking the Leader. Completing it is remembered; the real battle then starts with the player's setup selections and a normally shuffled deck.
+
 Installable Windows and Android builds are published on the repository's GitHub Releases page. Packaged builds are not stored with the source project; the GameMaker project is the source of truth for development.
 
 ## Documentation
@@ -48,6 +50,7 @@ Installable Windows and Android builds are published on the repository's GitHub 
 - `scripts/` — gameplay, state, UI, data, turn, and asset modules.
 - `rooms/` — GameMaker room definitions.
 - `datafiles/card_art/` — the authoritative game-ready artwork included in exported builds.
+- `sounds/` — GameMaker Sound Assets for effects and music.
 - `tools/` — development utilities.
 
 ## Artwork Workflow
@@ -59,6 +62,12 @@ To replace one image, overwrite its file in `datafiles/card_art/` without changi
 The optional `tools/extract_card_assets.py` utility crops the current workspace source sheets from `../card_assets/` directly into the authoritative folder. It no longer creates or synchronizes a second project copy.
 
 Run `python tools/verify_card_assets.py` after artwork changes. It verifies that every PNG is readable, every file has a GameMaker Included Files entry, and every artwork path used by the game exists.
+
+## Audio Workflow
+
+Sound effects and music are normal GameMaker Sound Assets under `sounds/`. Replace the audio file inside the matching `snd_*` or `mus_*` resource through GameMaker so its format and metadata stay synchronized. Short effects are preloaded; the two longer music loops stream through GameMaker's audio system.
+
+The current mobile interface officially targets landscape displays from 16:9 through 16:10. Taller tablet ratios require a future anchored-layout pass rather than stretching the existing 1280-wide interface.
 
 ## License
 

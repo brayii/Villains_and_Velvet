@@ -81,7 +81,7 @@ Every Minion Set must define each of the eight slots exactly once and must use a
 
 Add each complete Minion Set constructor to `make_minion_set_registry()`. It then appears independently in Battle Settings and may be combined with any Scenario.
 
-Selecting a Leader or Scenario restores the normal counts from both choices. If those defaults do not total eight, Start Game remains unavailable until the player opens the settings gear and adjusts the Enemy Events to a legal total.
+Selecting a Leader or Scenario restores the normal counts from both choices. If those defaults do not total eight, Start Game remains unavailable until the player opens **Battle Settings** and adjusts the Enemy Events to a legal total.
 
 ## Add a Minion
 
@@ -133,6 +133,12 @@ To implement a new behavior:
 5. Run `python tools/verify_card_assets.py`.
 
 The optional `tools/extract_card_assets.py` utility crops the current source sheets from the workspace's `../card_assets/` folder directly into `datafiles/card_art/`. It does not create a second project copy.
+
+## Add or Replace Audio
+
+Audio is stored as normal GameMaker Sound Assets under `sounds/`. Short effects use `snd_*` resources and are preloaded. Music uses `mus_*` resources and streams. Import or replace audio through GameMaker so sample format, duration, channel format, and compression metadata stay synchronized with the source file. Gameplay should reference the Sound Asset directly; do not add Included File audio or parse WAV data in GML.
+
+The guided training profile in `vv_tutorial.gml` deliberately uses fixed known content. New selectable Heroes, Minion Sets, Leaders, or Scenarios do not automatically replace its lesson cards. Change that profile only when intentionally redesigning and retesting the training sequence.
 
 ## Test the Content
 

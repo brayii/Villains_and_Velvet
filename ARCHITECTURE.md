@@ -9,6 +9,7 @@
 - `scripts/vv_enemy/vv_enemy.gml`: Enemy targeting, Minion entry and escape effects, Enemy attacks, Leader Strike, Twist, Overflow, and Enemy prompts.
 - `scripts/vv_player/vv_player.gml`: Player drawing and recycling, Build placement and swapping, attack totals, Hero abilities, and Player attacks.
 - `scripts/vv_turn/vv_turn.gml`: the seven turn steps, automatic timing, prompt continuation, and action-button commands.
+- `scripts/vv_tutorial/vv_tutorial.gml`: controlled training content, tutorial progression state, setup preservation, and training completion.
 - `scripts/vv_ui_shared/vv_ui_shared.gml`: shared UI initialization, typography, colors, drawing primitives, card rendering, and cleanup.
 - `scripts/vv_ui_setup/vv_ui_setup.gml`: battle-setup layout, selectors, Enemy Event controls, setup input helpers, and setup drawing.
 - `scripts/vv_ui_match/vv_ui_match.gml`: match input routing, card gestures, inspection, battlefield controls, and match drawing.
@@ -16,6 +17,8 @@
 - `scripts/vv_settings/vv_settings.gml`: versioned player preferences, validation, safe defaults, and independent settings persistence.
 - `scripts/vv_ai/vv_ai.gml`: snapshot-based Enemy target scoring, deterministic ranking, and Build-slot selection; Auto submits its selected slot through the normal Enemy combat command and never resolves attacks directly.
 - `scripts/vv_ai_data/vv_ai_data.gml`: versioned Enemy learning values and counters, field-level validation, safe recovery, dirty-only saving, and the confirmed developer reset entry point.
+
+GameMaker Sound Assets under `sounds/` own effects and music. Gameplay stores their resource IDs and uses the standard audio API; no module parses WAV headers or owns runtime audio buffers.
 
 ## Adding or Changing Content
 
@@ -82,23 +85,25 @@ Available Leader Strike definitions belong to the selected Leader, and available
 
 The selected Hero IDs are also separate from the available Hero definitions. `validate_hero_selection()` requires exactly three different IDs that exist in the available content. `refresh_setup_validation()` combines the Hero and Enemy Event checks, and `command_start_game_from_setup()` is the only setup command that starts a match.
 
-The setup screen is drawn by `vv_ui_setup.gml` and routed through the UI input entry point in `vv_ui_match.gml`; it does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
+The setup screen and its setup-specific input handler live in `vv_ui_setup.gml`. The shared UI entry point delegates there while setup is active; setup presentation does not decide legality. Touch controls send selection commands to `vv_state.gml`, which updates and validates the setup. The Start Game button reflects `setup_validation.valid` and cannot start an invalid match.
 
 The match menu pauses automatic turn resolution. Returning to Game Options abandons the current match only after confirmation. The Enemy Targeting preference can be changed from this menu without restarting the match. `vv_ui_reset_match_interaction()` clears touch, drag, popup, confirmation, and menu state whenever a match resets or the player returns to setup, preventing transient UI state from leaking into Play Again or the next battle.
 
-Player preferences are loaded by `vv_settings_init()` before setup begins. The versioned settings file stores only the Manual/Auto targeting preference and falls back to Manual when missing, invalid, or corrupt. It remains independent of match state and future learned AI data. Preference changes save immediately, while the controller Clean Up event retries any dirty settings save.
+Player preferences are loaded by `vv_settings_init()` before setup begins. The versioned settings file stores Auto/Manual targeting, audio state, guided-training completion, and one-time help flags. Field types and versions are validated before use. Missing, invalid, or corrupt settings return to safe defaults, including Auto targeting enabled. Settings remain independent of match state and learned AI data. Preference changes save immediately, while the controller Clean Up event retries any dirty settings save.
+
+The first battle uses the fixed profile owned by `vv_tutorial.gml`, not the player's selected content. The module temporarily preserves and replaces setup selections, prepares known training draws, tracks lesson completion, then restores the original selections before creating a fresh normal match. Tutorial instructions derive displayed combat values from the live training cards. Quitting training also restores the saved setup.
 
 Enemy learning data uses its own versioned `villains_and_velvet_ai_data.json` file. Missing, corrupt, or incompatible data returns only the AI values to safe defaults; an invalid individual field is repaired without discarding other valid fields. The stored Health weight and policy-learning counters remain reserved for later phases, while the conditional counters now supply the learned conditional targeting weight. Data is written only while dirty, and controller cleanup retries a failed save. `vv_ai_data_reset_enemy_learning(true)` is the developer/test reset entry point and deliberately leaves player settings and live match state alone.
 
 Passive conditional learning observes Player Attack in both Manual and Auto modes. Each Overpower or Relentless ability present when Player Attack begins receives one exposure only when the starting Attack can defeat a Minion. Defeating any Minion activates each exposed ability once for that attack step, even if later defeats trigger the bonus again. Completed observations update the persistent counters and derive the targeting weight as `(activations + 1) / (exposures + 2)`; incomplete or abandoned attack steps are discarded.
 
-Leader, Scenario, and Minion Set definitions are exposed through independent registries. Selecting a Leader or Scenario restores their recommended Enemy Event mix. The settings gear contains all content selectors, the three unique Hero slots, event customization, and Restore Defaults. The normal setup view remains artwork-focused.
+Leader, Scenario, and Minion Set definitions are exposed through independent registries. Selecting a Leader or Scenario restores their recommended Enemy Event mix. **Battle Settings** contains all content selectors, the three unique Hero slots, event customization, and Restore Defaults. The normal setup view remains artwork-focused.
 
 `validate_content_registries()` runs before setup selections are created. It rejects empty registries, duplicate or non-lowercase IDs, missing required fields, malformed Hero templates and Enemy Events, and incomplete Minion Sets. Invalid content reaches a safe setup error screen and cannot start a match.
 
 Validation also checks numeric ranges, integer copy counts, ability/effect entry shape, required parameters, and resolver-supported IDs before gameplay can use the content. Startup runs isolated malformed-content self-checks against cloned registries; a regression in these guards becomes a readable setup error instead of a later runtime failure. Reserved Leader ability/Special-move and Scenario setup-rule arrays must remain empty until their first real resolver is implemented.
 
-The normal setup view shows a short event summary. The settings gear opens the paged Enemy Event controls when the defaults need adjustment or the player wants a different legal mix. Hero slots also draw from the Hero registry and become browsable when more than three Heroes are available.
+The normal setup view shows a short event summary. **Battle Settings** opens the paged Enemy Event controls when the defaults need adjustment or the player wants a different legal mix. Hero slots also draw from the Hero registry and become browsable when more than three Heroes are available.
 
 ## Runtime Flow and Ownership
 
@@ -116,9 +121,9 @@ The development-only exhaustive oracle in `vv_ai.gml` evaluates every legal whol
 
 The deterministic baseline harness records match results, Leader HP, Leader damage per turn, guaranteed and conditional Build Attack removed, cards destroyed per enemy attack, and average greedy regret to the development output. `enemy_ai_start_seeded_playtest(seed)` starts a repeatable development match without adding seed controls to the player UI, and `enemy_ai_stop_seeded_playtest()` returns development play to normal randomness. Baseline collection and exhaustive regret measurement are disabled unless a development seed is active, so ordinary player matches remain randomly shuffled and pay no oracle cost.
 
-Seeded Auto playtests also evaluate fixed `W_C = 0.5` and learned `W_C` side by side against the same Build, Attack amount, and learned-value exhaustive oracle. The comparison simulates both complete greedy destruction sequences without modifying the match, records how often their sequences differ, and reports average regret for both policies. `W_H` remains fixed at `1.0` for production targeting and both comparison policies during this baseline phase.
+Seeded Auto playtests evaluate fixed and learned conditional/Health-weight policies side by side against the same Build, Attack amount, and learned-value exhaustive oracle. The comparison simulates complete destruction sequences without modifying the match and records regret and best-sequence matches for each policy.
 
-Auto reward measurement begins only after Enemy Steps 2 and 3, including all Escape, Enemy Event, entry-ability, and attack continuations, have finished. It compares that Leader HP with HP after the Player Build and Attack response, and uses the initial Enemy Deck length captured from the constructed match rather than a fixed deck-size constant. Non-terminal rewards use normalized Leader damage and remaining-deck context; final Enemy wins and losses override them with `+2` and `-2`. Measurements are written to development output for verification and feed the Auto-only reward baseline, but they do not update `W_H`. Manual turns, mode changes, and abandoned matches cancel pending Auto measurements.
+Auto reward measurement begins only after Enemy Steps 2 and 3, including all Escape, Enemy Event, entry-ability, and attack continuations, have finished. It compares that Leader HP with HP after the Player Build and Attack response, and uses the initial Enemy Deck length captured from the constructed match rather than a fixed deck-size constant. Non-terminal rewards use normalized Leader damage and remaining-deck context; final Enemy wins and losses override them with `+2` and `-2`. Eligible choices update the learned Health weight. Detailed reward messages are development-gated; Manual turns, mode changes, and abandoned matches cancel pending Auto measurements.
 
 Each eligible Auto reward computes Advantage from the old persistent reward EMA, applies any eligible policy update, then updates the EMA once with `beta = 0.05`. Eligible updates increment the Auto-turn counter; terminal Auto rewards also update the persisted Enemy win/loss counters. Manual outcomes and cancelled measurements change none of these values.
 
@@ -134,7 +139,7 @@ AI learning storage is a small versioned JSON record. Observations mark it dirty
 
 Future card abilities can expose shared evaluation metadata through ability parameters: `guaranteed_attack_self`, `guaranteed_attack_others`, `conditional_attack_self`, and `conditional_attack_others`. Targeting mechanics use `enemy_target_priority` and `enemy_destruction_cost_delta` through authoritative rules helpers shared by Manual resolution, Auto selection, and oracle simulation. These interfaces depend on stable effect data rather than display names, allowing supported mechanics to extend card data and shared rules without card-specific AI branches.
 
-The production AI configuration uses Auto targeting by default with deterministic selection and passive conditional-weight learning. Experimental Health-weight learning and bounded exploration remain compiled for controlled evaluation but are disabled in live production targeting until multi-content and physical-device evidence demonstrates a reliable improvement. The battlefield exposes the persistent Auto checkbox beside the game-menu gear so players can switch to Manual targeting without leaving the match.
+The production AI configuration uses Auto targeting by default with passive conditional and Health-weight learning. Bounded exploration remains compiled for controlled evaluation but is disabled in live production targeting. The battlefield exposes the persistent Auto checkbox beside the game-menu gear so players can switch to Manual targeting without leaving the match.
 
 Every sprite created by `sprite_add()` belongs exclusively to the `vv_assets` cache. Other modules keep sprite IDs for drawing but never delete them. Cleanup enumerates the cache once, deletes valid dynamic sprites, and clears the cached references.
 
