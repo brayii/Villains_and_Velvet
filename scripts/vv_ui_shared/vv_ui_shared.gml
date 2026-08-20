@@ -49,15 +49,7 @@ function vv_ui_init() {
     setup_advanced_events = false;
     setup_event_defaults_restored = false;
     debug_event_log = false;
-    tutorial_mode = false;
-    tutorial_escape_seen = false;
-    tutorial_minion_defeated = false;
-    tutorial_leader_attacked = false;
-    tutorial_final_leader_attacked = false;
-    tutorial_complete_prompt = false;
-    tutorial_escape_notice_timer = 0;
-    tutorial_entry_notice_timer = 0;
-    tutorial_move_notice_timer = 0;
+    vv_tutorial_init();
     escape_card_surface = -1;
 
     drag_threshold = 8;

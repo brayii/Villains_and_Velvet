@@ -709,7 +709,8 @@ else if (phase == "build") {
             ? "Leave both Minions in play.\nTap DONE ATTACKING."
             : (tutorial_minion_defeated
                 ? "Spend your remaining " + string(attack_left) + " Attack on the Leader."
-                : "Defeat a 6-HP Minion.\nYour unused Attack remains.")))
+                : "Defeat a " + string(vv_tutorial_target_hp())
+                    + "-HP Minion.\nYour unused Attack remains.")))
     : "ATTACK " + string(attack_left)
         + "\nTap a Minion or the Leader.\nToo little Attack is not spent.";
 else if (phase == "attack_complete_wait") instruction = attack_notice_text;
