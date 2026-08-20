@@ -9,6 +9,7 @@
 // Exploration stays gated until seeded evaluation demonstrates a production benefit.
 #macro ENEMY_AI_PRODUCTION_EXPLORATION false
 #macro VV_DEVELOPMENT_SELF_CHECKS false
+#macro ENEMY_AI_DEBUG_LOGS false
 #macro ENEMY_AI_TARGET_DELAY_FRAMES 45
 #macro ENEMY_AI_RESULT_DELAY_FRAMES 30
 
@@ -272,7 +273,7 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
     else if (_terminal_result < 0) ai_games_lost_auto++;
     vv_ai_data_mark_dirty();
     if (_terminal_result != 0) vv_ai_data_save_if_dirty();
-    show_debug_message("ENEMY AI REWARD | turn=" + string(turn_number)
+    if (ENEMY_AI_DEBUG_LOGS) show_debug_message("ENEMY AI REWARD | turn=" + string(turn_number)
         + " | hp_before=" + string(enemy_ai_reward_hp_before)
         + " | hp_end=" + string(leader_hp)
         + " | leader_damage=" + string(result.leader_damage)
@@ -415,8 +416,8 @@ function enemy_ai_baseline_begin_match() {
         leader_id: enemy_leader.id,
         scenario_id: enemy_scenario.id,
         minion_set_id: enemy_minion_set.id,
-        leader_strikes: array_length(enemy_event_selection.leader_strikes),
-        twists: array_length(enemy_event_selection.twists)
+        leader_strikes: enemy_event_group_total(enemy_event_selection.leader_strikes),
+        twists: enemy_event_group_total(enemy_event_selection.twists)
     };
 }
 

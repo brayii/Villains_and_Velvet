@@ -91,15 +91,17 @@ function validate_enemy_composition(_cards, _minion_set) {
     return minion_count == CORE_MINION_TOTAL && event_count == CORE_ENEMY_EVENT_SLOTS;
 }
 
-function enemy_event_selection_total(_selection) {
+function enemy_event_group_total(_selected_events) {
     var total = 0;
-    for (var strike_i = 0; strike_i < array_length(_selection.leader_strikes); strike_i++) {
-        total += _selection.leader_strikes[strike_i].copies;
-    }
-    for (var twist_i = 0; twist_i < array_length(_selection.twists); twist_i++) {
-        total += _selection.twists[twist_i].copies;
+    for (var event_i = 0; event_i < array_length(_selected_events); event_i++) {
+        total += _selected_events[event_i].copies;
     }
     return total;
+}
+
+function enemy_event_selection_total(_selection) {
+    return enemy_event_group_total(_selection.leader_strikes)
+        + enemy_event_group_total(_selection.twists);
 }
 
 function validate_enemy_event_group(_selected, _definitions) {
