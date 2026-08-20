@@ -1320,9 +1320,13 @@ function enemy_ai_run_release_self_checks() {
     var manual_settings = vv_settings_decode("{\"settings_version\":1,\"enemy_targeting_mode\":\"manual\"}");
     var auto_settings = vv_settings_decode("{\"settings_version\":1,\"enemy_targeting_mode\":\"auto\"}");
     var corrupt_settings = vv_settings_decode("not valid json");
+    var wrong_version_type = vv_settings_decode("{\"settings_version\":\"7\",\"enemy_targeting_mode\":\"auto\"}");
+    var fractional_version = vv_settings_decode("{\"settings_version\":6.5,\"enemy_targeting_mode\":\"auto\"}");
+    var wrong_bool_type = vv_settings_decode("{\"settings_version\":7,\"enemy_targeting_mode\":\"auto\",\"audio_enabled\":\"yes\"}");
     if (!manual_settings.valid || manual_settings.enemy_auto_play
     || !auto_settings.valid || !auto_settings.enemy_auto_play
-    || corrupt_settings.valid || !corrupt_settings.enemy_auto_play) {
+    || corrupt_settings.valid || !corrupt_settings.enemy_auto_play
+    || wrong_version_type.valid || fractional_version.valid || wrong_bool_type.valid) {
         return content_validation_result(false, "Enemy AI settings recovery release check failed.");
     }
 

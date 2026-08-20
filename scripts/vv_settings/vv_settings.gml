@@ -15,15 +15,30 @@ function vv_settings_defaults() {
     };
 }
 
+function vv_settings_bool_field_is_valid(_data, _name) {
+    return !variable_struct_exists(_data, _name)
+        || is_bool(variable_struct_get(_data, _name));
+}
+
 function vv_settings_decode(_text) {
     var defaults = vv_settings_defaults();
     try {
         var loaded = json_parse(_text);
         if (!is_struct(loaded)
         || !variable_struct_exists(loaded, "settings_version")
+        || !is_real(loaded.settings_version)
+        || loaded.settings_version != floor(loaded.settings_version)
         || loaded.settings_version < 1 || loaded.settings_version > defaults.settings_version
         || !variable_struct_exists(loaded, "enemy_targeting_mode")
-        || !is_string(loaded.enemy_targeting_mode)) {
+        || !is_string(loaded.enemy_targeting_mode)
+        || !vv_settings_bool_field_is_valid(loaded, "audio_enabled")
+        || !vv_settings_bool_field_is_valid(loaded, "guided_tutorial_complete")
+        || !vv_settings_bool_field_is_valid(loaded, "hint_turn_steps")
+        || !vv_settings_bool_field_is_valid(loaded, "hint_enemy_event")
+        || !vv_settings_bool_field_is_valid(loaded, "hint_build")
+        || !vv_settings_bool_field_is_valid(loaded, "hint_drag")
+        || !vv_settings_bool_field_is_valid(loaded, "hint_inspect")
+        || !vv_settings_bool_field_is_valid(loaded, "hint_attack")) {
             return {valid:false, enemy_auto_play:true};
         }
         var mode = string_lower(loaded.enemy_targeting_mode);
