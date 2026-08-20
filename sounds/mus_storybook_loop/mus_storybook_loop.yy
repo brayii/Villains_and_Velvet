@@ -1,0 +1,20 @@
+{
+  "$GMSound":"v2",
+  "%Name":"mus_storybook_loop",
+  "audioGroupId":{"name":"audiogroup_default","path":"audiogroups/audiogroup_default",},
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":0,
+  "conversionMode":0,
+  "duration":45.714286,
+  "exportDir":"",
+  "name":"mus_storybook_loop",
+  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":22050,
+  "soundFile":"mus_storybook_loop.wav",
+  "volume":1.0
+}

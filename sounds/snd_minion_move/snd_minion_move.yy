@@ -1,0 +1,20 @@
+{
+  "$GMSound":"v2",
+  "%Name":"snd_minion_move",
+  "audioGroupId":{"name":"audiogroup_default","path":"audiogroups/audiogroup_default",},
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":0,
+  "conversionMode":0,
+  "duration":0.42,
+  "exportDir":"",
+  "name":"snd_minion_move",
+  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "preload":true,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":22050,
+  "soundFile":"snd_minion_move.wav",
+  "volume":1.0
+}

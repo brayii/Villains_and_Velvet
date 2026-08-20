@@ -1,0 +1,20 @@
+{
+  "$GMSound":"v2",
+  "%Name":"snd_button_confirm",
+  "audioGroupId":{"name":"audiogroup_default","path":"audiogroups/audiogroup_default",},
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":0,
+  "conversionMode":0,
+  "duration":0.110023,
+  "exportDir":"",
+  "name":"snd_button_confirm",
+  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "preload":true,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":22050,
+  "soundFile":"snd_button_confirm.wav",
+  "volume":1.0
+}

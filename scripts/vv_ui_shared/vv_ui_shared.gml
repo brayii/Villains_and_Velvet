@@ -108,36 +108,20 @@ function vv_ui_reset_match_interaction() {
     battle_music_started = false;
 }
 
-function vv_feedback_load_sound(_filename) {
-    var loaded_buffer = buffer_load(working_directory + "audio/" + _filename + ".wav");
-    if (loaded_buffer < 0) return -1;
-    var audio_length = buffer_get_size(loaded_buffer) - 44;
-    var sound_buffer = buffer_create(audio_length, buffer_fixed, 1);
-    buffer_copy(loaded_buffer, 44, audio_length, sound_buffer, 0);
-    buffer_delete(loaded_buffer);
-    var sound_id = audio_create_buffer_sound(sound_buffer, buffer_s16, 22050, 0,
-        audio_length, audio_mono);
-    array_push(feedback_audio_buffers, sound_buffer);
-    array_push(feedback_audio_sounds, sound_id);
-    return sound_id;
-}
-
 function vv_feedback_audio_init() {
-    feedback_audio_buffers = [];
-    feedback_audio_sounds = [];
-    feedback_sound_pickup = vv_feedback_load_sound("card_pickup");
-    feedback_sound_drop = vv_feedback_load_sound("card_drop");
-    feedback_sound_button = vv_feedback_load_sound("button_confirm");
-    feedback_sound_hit = vv_feedback_load_sound("attack_hit");
-    feedback_sound_move = vv_feedback_load_sound("minion_move");
-    feedback_sound_event = vv_feedback_load_sound("event_reveal");
-    feedback_sound_leader_damage = vv_feedback_load_sound("leader_damage");
-    feedback_sound_destroy = vv_feedback_load_sound("destruction");
-    feedback_sound_heal = vv_feedback_load_sound("healing");
-    feedback_sound_victory = vv_feedback_load_sound("victory");
-    feedback_sound_defeat = vv_feedback_load_sound("defeat");
-    feedback_music = vv_feedback_load_sound("velvet_storybook_loop");
-    feedback_battle_music = vv_feedback_load_sound("velvet_battle_loop");
+    feedback_sound_pickup = snd_card_pickup;
+    feedback_sound_drop = snd_card_drop;
+    feedback_sound_button = snd_button_confirm;
+    feedback_sound_hit = snd_attack_hit;
+    feedback_sound_move = snd_minion_move;
+    feedback_sound_event = snd_event_reveal;
+    feedback_sound_leader_damage = snd_leader_damage;
+    feedback_sound_destroy = snd_destruction;
+    feedback_sound_heal = snd_healing;
+    feedback_sound_victory = snd_victory;
+    feedback_sound_defeat = snd_defeat;
+    feedback_music = mus_storybook_loop;
+    feedback_battle_music = mus_battle_loop;
     feedback_music_instance = -1;
     feedback_battle_music_instance = -1;
     feedback_music_mode = "setup";
@@ -153,19 +137,10 @@ function vv_feedback_audio_init() {
 }
 
 function vv_feedback_audio_cleanup() {
-    if (!variable_instance_exists(id, "feedback_audio_sounds")) return;
     if (feedback_music_instance >= 0) audio_stop_sound(feedback_music_instance);
     if (feedback_battle_music_instance >= 0) audio_stop_sound(feedback_battle_music_instance);
     feedback_music_instance = -1;
     feedback_battle_music_instance = -1;
-    for (var sound_i = 0; sound_i < array_length(feedback_audio_sounds); sound_i++) {
-        if (feedback_audio_sounds[sound_i] >= 0) audio_free_buffer_sound(feedback_audio_sounds[sound_i]);
-    }
-    for (var buffer_i = 0; buffer_i < array_length(feedback_audio_buffers); buffer_i++) {
-        if (buffer_exists(feedback_audio_buffers[buffer_i])) buffer_delete(feedback_audio_buffers[buffer_i]);
-    }
-    feedback_audio_sounds = [];
-    feedback_audio_buffers = [];
 }
 
 function vv_feedback_play(_sound) {

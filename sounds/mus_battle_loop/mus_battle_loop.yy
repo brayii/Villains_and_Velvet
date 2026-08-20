@@ -1,0 +1,20 @@
+{
+  "$GMSound":"v2",
+  "%Name":"mus_battle_loop",
+  "audioGroupId":{"name":"audiogroup_default","path":"audiogroups/audiogroup_default",},
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":0,
+  "conversionMode":0,
+  "duration":33.103447,
+  "exportDir":"",
+  "name":"mus_battle_loop",
+  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":22050,
+  "soundFile":"mus_battle_loop.wav",
+  "volume":1.0
+}

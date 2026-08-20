@@ -1,0 +1,20 @@
+{
+  "$GMSound":"v2",
+  "%Name":"snd_card_drop",
+  "audioGroupId":{"name":"audiogroup_default","path":"audiogroups/audiogroup_default",},
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":0,
+  "conversionMode":0,
+  "duration":0.2,
+  "exportDir":"",
+  "name":"snd_card_drop",
+  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "preload":true,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":22050,
+  "soundFile":"snd_card_drop.wav",
+  "volume":1.0
+}
