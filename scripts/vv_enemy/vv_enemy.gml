@@ -450,6 +450,12 @@ function begin_advance_phase() {
     if (advance_escape_pending) {
         log_add(advance_incoming_minion.name + " pushes " + advance_plan.escaping.name + " out of Area 2.");
         log_add(advance_plan.escaping.name + " begins its Escape effect.");
+        if (tutorial_mode && turn_number == 3) {
+            tutorial_pending_escape = advance_plan.escaping;
+            vv_tutorial_set_state(TutorialStep.T3_Area2Full, "result", "AREA 2 IS FULL",
+                "Red Panda cannot enter Area 2 while Corgi is there. Continue to watch the push.", true);
+            return;
+        }
         resolve_minion_escape(advance_plan.escaping);
         return;
     } else if (!is_undefined(minions[0])) {
@@ -514,8 +520,13 @@ function resolve_minion_entry(_minion) {
     entry_minion = _minion;
     entry_ability_index = 0;
     entry_has_attack_pattern = false;
+    if (tutorial_mode && turn_number <= 3) {
+        vv_tutorial_schedule(turn_number == 1 ? TutorialStep.T1_CorgiEntryWatch
+            : (turn_number == 2 ? TutorialStep.T2_RedPandaEntryWatch : TutorialStep.T3_BunnyEntryWatch),
+            _minion.name + " enters Area 1. It now makes its normal attack.", "entry");
+        return;
+    }
     continue_minion_entry();
-    vv_tutorial_after_enemy_entry(_minion);
 }
 
 function resolve_leader_strike(_card) {

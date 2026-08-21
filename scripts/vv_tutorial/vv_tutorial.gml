@@ -27,8 +27,7 @@ function vv_tutorial_profile() {
         scenario_id:"the_assault",
         minion_set_id:"velvet_menagerie",
         hero_ids:["goblin", "skeleton", "orc"],
-        hero_kinds:["Normal", "Normal", "Ability"],
-        minion_slot:"NA"
+        hero_kinds:["Normal", "Normal", "Ability"]
     };
 }
 
@@ -52,6 +51,33 @@ function vv_tutorial_init() {
     tutorial_enemy_attack_remaining = 0;
     tutorial_heal_before = 0;
     tutorial_heal_after = 0;
+    tutorial_pending_action = "";
+    tutorial_pending_frames = 0;
+    tutorial_pending_escape = undefined;
+}
+
+function vv_tutorial_schedule(_step, _body, _action) {
+    vv_tutorial_set_state(_step, "watch", "WATCH", _body, false);
+    tutorial_pending_action = _action;
+    tutorial_pending_frames = 35;
+    auto_timer = 0;
+}
+
+function vv_tutorial_update() {
+    if (!tutorial_mode || tutorial_pending_action == "") return;
+    if (tutorial_pending_frames > 0) { tutorial_pending_frames--; return; }
+    var action = tutorial_pending_action;
+    tutorial_pending_action = "";
+    if (action == "step2") do_step_2();
+    else if (action == "step3") do_step_3();
+    else if (action == "enemy_draw") draw_next_enemy_card();
+    else if (action == "finish_turn") finish_turn();
+    else if (action == "entry") continue_minion_entry();
+    else if (action == "escape") {
+        var escaping = tutorial_pending_escape;
+        tutorial_pending_escape = undefined;
+        resolve_minion_escape(escaping);
+    }
 }
 
 function vv_tutorial_set_state(_step, _kind, _heading, _body, _pause) {
@@ -120,6 +146,16 @@ function vv_tutorial_requires_drag() {
         || tutorial_step == TutorialStep.T3_Rebuild;
 }
 
+function vv_tutorial_build_attack_equation() {
+    var equation = "";
+    for (var build_i = 0; build_i < array_length(build); build_i++) {
+        if (is_undefined(build[build_i])) continue;
+        if (equation != "") equation += " + ";
+        equation += string(build[build_i].atk);
+    }
+    return equation + " = " + string(compute_attack_summary().total) + " BUILD ATTACK";
+}
+
 function vv_tutorial_enemy_target_for(_tutorial_turn, _build_snapshot, _attack_remaining, _source) {
     // Training controls only which legal target is chosen. Damage, priority,
     // remaining Attack, and destruction still use the normal combat commands.
@@ -165,9 +201,13 @@ function vv_tutorial_continue() {
             vv_tutorial_set_state(TutorialStep.T1_StartTurn, "action", "YOUR ACTION",
                 "Tap START TURN to draw\n3 Hero cards.", false);
             return true;
+        case TutorialStep.T1_InspectClose:
+            vv_tutorial_schedule(TutorialStep.T1_Step2Watch,
+                "Step 2 happens automatically.\nArea 1 is empty, so nothing moves.", "step2");
+            return true;
         case TutorialStep.T1_Step2Result:
-            vv_tutorial_set_state(TutorialStep.T1_CorgiReveal, "action", "YOUR ACTION",
-                "Tap ENEMY DRAW to reveal the first enemy.", false);
+            vv_tutorial_schedule(TutorialStep.T1_CorgiReveal,
+                "The Enemy now draws until a Minion appears.", "step3");
             return true;
         case TutorialStep.T1_CorgiEntryResult:
             begin_build();
@@ -179,18 +219,16 @@ function vv_tutorial_continue() {
                 "Step 6 now discards every card still in your Hand.", false);
             return true;
         case TutorialStep.T1_DiscardResult:
-            vv_tutorial_set_state(TutorialStep.T1_EndResult, "action", "YOUR ACTION",
-                "Tap END TURN. Your Build cards stay in play.", false);
+            vv_tutorial_schedule(TutorialStep.T1_EndResult,
+                "Step 7 ends the turn automatically.\nYour Build cards stay in play.", "finish_turn");
             return true;
         case TutorialStep.T2_DrawResult:
-            vv_tutorial_set_state(TutorialStep.T2_CorgiAdvanceWatch, "watch", "WATCH",
-                "Corgi moves from Area 1 to Area 2.", false);
-            do_step_2();
+            vv_tutorial_schedule(TutorialStep.T2_CorgiAdvanceWatch,
+                "Step 2 happens automatically.\nCorgi moves from Area 1 to Area 2.", "step2");
             return true;
         case TutorialStep.T2_CorgiAdvanceResult:
-            vv_tutorial_set_state(TutorialStep.T2_DirectAssaultRead, "read", "READ THIS CARD",
-                "Direct Assault makes the Velvet Queen attack for 8.", false);
-            do_step_3();
+            vv_tutorial_schedule(TutorialStep.T2_DirectAssaultRead,
+                "The Enemy now draws a card.", "step3");
             return true;
         case TutorialStep.T2_DirectAssaultRead:
             var strike = tutorial_pending_enemy_card;
@@ -207,8 +245,8 @@ function vv_tutorial_continue() {
                 "Enemy Event cards resolve, then Enemy Draw continues until a Minion appears.", true);
             return true;
         case TutorialStep.T2_EventDrawRule:
-            tutorial_pause = false;
-            draw_next_enemy_card();
+            vv_tutorial_schedule(TutorialStep.T2_RedPandaEntryWatch,
+                "Enemy Draw continues until a Minion appears.", "enemy_draw");
             return true;
         case TutorialStep.T2_RedPandaAttackResult:
             begin_build();
@@ -219,12 +257,20 @@ function vv_tutorial_continue() {
             vv_tutorial_set_state(TutorialStep.T2_EndResult, "watch", "WATCH",
                 "Step 6 discards cards left in Hand before the turn ends.", false);
             return true;
+        case TutorialStep.T2_EndResult:
+            vv_tutorial_schedule(TutorialStep.T2_EndResult,
+                "Step 7 ends the turn automatically.", "finish_turn");
+            return true;
         case TutorialStep.T3_PreEscapeReason:
-            vv_tutorial_set_state(TutorialStep.T3_AdvanceWatch, "watch", "WATCH",
-                "Red Panda advances and pushes Corgi into the escape portal.", false);
-            do_step_2();
+            vv_tutorial_schedule(TutorialStep.T3_AdvanceWatch,
+                "Step 2 happens automatically.\nRed Panda advances toward occupied Area 2.", "step2");
             return true;
         case TutorialStep.T3_Area2Full:
+            vv_tutorial_set_state(TutorialStep.T3_PushWatch, "watch", "WATCH",
+                "Red Panda pushes Corgi out of Area 2 and into the escape portal.\n\nContinue after watching the escape.", true);
+            vv_feedback_add_escape_fx(tutorial_pending_escape);
+            return true;
+        case TutorialStep.T3_PushWatch:
             vv_tutorial_set_state(TutorialStep.T3_EscapeResult, "result", "RESULT",
                 "Corgi escaped because Red Panda pushed it out of Area 2. A Minion never escapes merely by waiting there.", true);
             return true;
@@ -233,23 +279,19 @@ function vv_tutorial_continue() {
                 "Corgi's Escape effect heals the Enemy Leader. Escape effects happen after the Minion is pushed out.", true);
             return true;
         case TutorialStep.T3_EscapeEffectRead:
-            vv_tutorial_set_state(TutorialStep.T3_EscapeEffectResult, "result", "RESULT",
-                "Corgi healed the Leader from " + string(tutorial_heal_before) + " to "
-                    + string(tutorial_heal_after) + " Health.", true);
+            vv_tutorial_schedule(TutorialStep.T3_EscapeEffectWatch,
+                "Corgi's Escape effect now heals the Enemy Leader.", "escape");
             return true;
         case TutorialStep.T3_EscapeEffectResult:
             vv_tutorial_set_state(TutorialStep.T3_AdvanceResult, "result", "RESULT",
                 "Red Panda now occupies Area 2. Area 1 is empty and ready for the next Minion.", true);
             return true;
         case TutorialStep.T3_AdvanceResult:
-            vv_tutorial_set_state(TutorialStep.T3_ReinforcementsRead, "action", "YOUR ACTION",
-                "Tap ENEMY DRAW. The next Event shows why Area 2 matters.", false);
+            vv_tutorial_schedule(TutorialStep.T3_ReinforcementsRead,
+                "The Enemy now draws a card.\nThe next Event shows why Area 2 matters.", "step3");
             return true;
         case TutorialStep.T3_ReinforcementsRead:
-            if (is_undefined(tutorial_pending_enemy_card)) {
-                tutorial_pause = false;
-                do_step_3();
-            } else {
+            if (!is_undefined(tutorial_pending_enemy_card)) {
                 var twist = tutorial_pending_enemy_card;
                 tutorial_pending_enemy_card = undefined;
                 vv_tutorial_set_state(TutorialStep.T3_ReinforcementsWatch, "watch", "WATCH",
@@ -264,8 +306,8 @@ function vv_tutorial_continue() {
                 "The Event resolved. Enemy Draw continues until a Minion appears.", true);
             return true;
         case TutorialStep.T3_EventDrawReminder:
-            tutorial_pause = false;
-            draw_next_enemy_card();
+            vv_tutorial_schedule(TutorialStep.T3_BunnyEntryWatch,
+                "Enemy Draw continues until a Minion appears.", "enemy_draw");
             return true;
         case TutorialStep.T3_BunnyAttackResult:
             begin_build();
@@ -281,8 +323,8 @@ function vv_tutorial_continue() {
                 "Step 6 discards the cards still in your Hand.", false);
             return true;
         case TutorialStep.T3_DiscardResult:
-            vv_tutorial_set_state(TutorialStep.T3_EndResult, "action", "YOUR ACTION",
-                "Tap END TURN to finish training.", false);
+            vv_tutorial_schedule(TutorialStep.T3_EndResult,
+                "Step 7 ends the turn automatically.\nTraining is nearly complete.", "finish_turn");
             return true;
     }
     return false;
@@ -293,13 +335,13 @@ function vv_tutorial_pause_event_card(_card) {
     if (turn_number == 2 && _card.id == "direct_assault") {
         tutorial_pending_enemy_card = _card;
         vv_tutorial_set_state(TutorialStep.T2_DirectAssaultRead, "read", "READ THIS CARD",
-            "Direct Assault: The Velvet Queen attacks for 8. Tap CONTINUE when you are ready.", true);
+            "Leader Strikes come from the Enemy Leader.\n\nDIRECT ASSAULT\nThe Velvet Queen attacks for 8.\n\nContinue to watch it happen.", true);
         return true;
     }
     if (turn_number == 3 && _card.id == "reinforcements") {
         tutorial_pending_enemy_card = _card;
         vv_tutorial_set_state(TutorialStep.T3_ReinforcementsRead, "read", "READ THIS CARD",
-            "Reinforcements: the Minion in Area 2 attacks. Tap CONTINUE when ready.", true);
+            "Twists come from the selected Scenario.\n\nREINFORCEMENTS\nThe Minion in Area 2 attacks.\n\nContinue to watch it happen.", true);
         return true;
     }
     return false;
@@ -334,8 +376,8 @@ function vv_tutorial_card_inspected(_opened) {
         vv_tutorial_set_state(TutorialStep.T1_InspectOpen, "tip", "READ THIS CARD",
             "The enlarged card shows its Attack, Health, and ability. Tap outside it when you are ready.", false);
     } else if (!_opened && tutorial_step == TutorialStep.T1_InspectOpen) {
-        vv_tutorial_set_state(TutorialStep.T1_InspectClose, "action", "YOUR ACTION",
-            "Tap ADVANCE / ESCAPE. Area 1 is empty, so nothing moves.", false);
+        vv_tutorial_set_state(TutorialStep.T1_InspectClose, "result", "READY",
+            "You can inspect cards this way during battle. Continue to Step 2.", true);
     }
 }
 
@@ -349,8 +391,8 @@ function vv_tutorial_after_player_draw() {
     }
     if (turn_number == 3) {
         auto_timer = 0;
-        vv_tutorial_set_state(TutorialStep.T3_PreEscapeReason, "read", "READ THIS CARD",
-            "Both Minion Areas are full. Continue to watch what happens when Area 1 advances.", true);
+        vv_tutorial_set_state(TutorialStep.T3_PreEscapeReason, "result", "WHY THIS HAPPENED",
+            "Last turn you had 6 Attack.\nCorgi needed 8 and Red Panda needed 10.\nNeither could be defeated, so both stayed in play.\nNow both Minion Areas are occupied.", true);
         return;
     }
     if (turn_number != 1) return;
@@ -365,16 +407,18 @@ function vv_tutorial_after_advance() {
         "Area 1 was empty, so no Minion advanced or escaped.", true);
     else if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_CorgiAdvanceResult, "result", "RESULT",
         "Corgi moved to Area 2. A Minion in Area 2 escapes only when Area 1 pushes it out.", true);
-    else if (turn_number == 3) vv_tutorial_set_state(TutorialStep.T3_Area2Full, "result", "RESULT",
-        "Area 2 was full. Red Panda advanced from Area 1 and pushed Corgi into the escape portal.", true);
+    else if (turn_number == 3 && tutorial_step == TutorialStep.T3_EscapeEffectWatch) vv_tutorial_set_state(
+        TutorialStep.T3_EscapeEffectResult, "result", "RESULT",
+        "Corgi healed the Leader from " + string(tutorial_heal_before) + " to "
+            + string(tutorial_heal_after) + " Health.", true);
 }
 
 function vv_tutorial_after_turn_end() {
     if (!tutorial_mode) return;
     if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_StartTurn, "action", "YOUR ACTION",
-        "Tap START TURN to begin Turn 2.", false);
+        "Tap START NEXT TURN to begin Turn 2.", false);
     else if (turn_number == 3) vv_tutorial_set_state(TutorialStep.T3_StartTurn, "action", "YOUR ACTION",
-        "Tap START TURN to begin Turn 3.", false);
+        "Tap START NEXT TURN to begin Turn 3.", false);
     else if (turn_number == 4) {
         vv_tutorial_set_state(TutorialStep.Complete, "result", "TRAINING COMPLETE",
             "You are ready for a real battle.", true);
@@ -401,8 +445,8 @@ function vv_tutorial_after_hand_discard() {
     auto_timer = 0;
     if (turn_number == 1) vv_tutorial_set_state(TutorialStep.T1_DiscardResult, "result", "RESULT",
         "Step 6 discarded every card left in Hand. Build cards remain in play.", true);
-    else if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_EndResult, "action", "YOUR ACTION",
-        "Both Minions survived because 6 Attack could not defeat 8 or 10 Health. Tap END TURN.", false);
+    else if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_EndResult, "result", "RESULT",
+        "Both Minions survived because 6 Attack could not defeat 8 or 10 Health. Continue to end the turn.", true);
     else if (turn_number == 3) vv_tutorial_set_state(TutorialStep.T3_DiscardResult, "result", "RESULT",
         "Step 6 discarded the remaining Hand cards.", true);
 }
@@ -415,7 +459,9 @@ function vv_tutorial_after_enemy_entry(_minion) {
 
 function vv_tutorial_after_enemy_phase() {
     if (!tutorial_mode) return;
-    if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_RedPandaAttackResult, "result", "RESULT",
+    if (turn_number == 1) vv_tutorial_set_state(TutorialStep.T1_CorgiEntryResult,
+        "result", "RESULT", "Corgi entered Area 1 and attacked. Your Build was empty, so no Hero was lost.", true);
+    else if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_RedPandaAttackResult, "result", "RESULT",
         "Red Panda attacked for 8 and defeated the two remaining Heroes. Enemy Attack is spent only on full defeats.", true);
     else if (turn_number == 3) vv_tutorial_set_state(TutorialStep.T3_BunnyAttackResult, "result", "RESULT",
         "Bunny entered Area 1. Its 4 Attack could not defeat Guard or Fortress, so it ended unused.", true);
@@ -425,10 +471,11 @@ function vv_tutorial_after_build_move() {
     if (!tutorial_mode) return;
     if (turn_number == 1) {
         var filled = count_occupied_build();
-        if (filled == 1) vv_tutorial_set_state(TutorialStep.T1_DragHero2, "action", "YOUR ACTION", "Drag the next Hero into the glowing Build space.", false);
+        if (filled == 1) vv_tutorial_set_state(TutorialStep.T1_DragHero2, "action", "YOUR ACTION",
+            "Good! Heroes in your Build fight together. Their Attack values combine. Now drag the next Hero into the glowing space.", false);
         else if (filled == 2) vv_tutorial_set_state(TutorialStep.T1_DragHero3, "action", "YOUR ACTION", "Drag the final Hero into the glowing Build space.", false);
         else if (filled == 3) vv_tutorial_set_state(TutorialStep.T1_BuildReady, "action", "YOUR ACTION",
-            "Your Build has " + string(compute_attack_summary().total) + " Attack. Tap DONE BUILDING.", false);
+            vv_tutorial_build_attack_equation() + "\n\nTap DONE BUILDING.", false);
     } else if (turn_number == 2) {
         var filled2 = count_occupied_build();
         if (filled2 == 1) vv_tutorial_set_state(TutorialStep.T2_Rebuild2, "action", "YOUR ACTION", "Add the second Guard card.", false);
@@ -540,18 +587,6 @@ function vv_tutorial_take_player_card(_deck, _hero_id, _kind) {
     return undefined;
 }
 
-function vv_tutorial_take_minion(_deck, _slot) {
-    for (var card_i = 0; card_i < array_length(_deck); card_i++) {
-        var candidate = _deck[card_i];
-        if (candidate.card_type == "minion" && candidate.minion_slot == _slot) {
-            var card = _deck[card_i];
-            array_delete(_deck, card_i, 1);
-            return card;
-        }
-    }
-    return undefined;
-}
-
 function vv_tutorial_take_enemy_card(_deck, _id) {
     for (var card_i = 0; card_i < array_length(_deck); card_i++) {
         if (_deck[card_i].id == _id) {
@@ -609,6 +644,9 @@ function vv_tutorial_configure_match() {
     tutorial_enemy_attack_remaining = 0;
     tutorial_heal_before = leader_hp;
     tutorial_heal_after = leader_hp;
+    tutorial_pending_action = "";
+    tutorial_pending_frames = 0;
+    tutorial_pending_escape = undefined;
     vv_tutorial_set_state(TutorialStep.Intro, "result", "GUIDED TRAINING",
         "This battle teaches the turn\none step at a time.\n\nFollow the highlighted action.\n\nWATCH means the game is showing\nyou something automatically.\n\nNothing will advance while you\nare reading a training message.", true);
 }

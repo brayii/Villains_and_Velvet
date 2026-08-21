@@ -16,7 +16,7 @@ function resume_after_prompts() {
                 if (tutorial_mode) {
                     tutorial_escape_seen = true;
                 }
-                vv_feedback_add_escape_fx(minions[0]);
+                if (!tutorial_mode) vv_feedback_add_escape_fx(minions[0]);
                 retire_minion(0, "finishes escaping");
             }
             minions[0] = advance_incoming_minion;

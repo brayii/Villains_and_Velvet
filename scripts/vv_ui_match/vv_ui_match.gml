@@ -206,6 +206,25 @@ function ui_draw_guided_coach() {
     for (var target_i = 0; target_i < array_length(target_rects); target_i++) {
         ui_draw_guided_target(target_rects[target_i]);
     }
+    if (tutorial_step == TutorialStep.T1_HoldHero) {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_center_shadow("HOLD", hand_rects[0].x + hand_rects[0].w / 2,
+            hand_rects[0].y - 15, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
+    }
+    if (vv_tutorial_requires_drag() && array_length(target_rects) >= 2) {
+        var from_rect = target_rects[0], to_rect = target_rects[1];
+        var x1 = from_rect.x + from_rect.w / 2, y1 = from_rect.y + from_rect.h / 2;
+        var x2 = to_rect.x + to_rect.w / 2, y2 = to_rect.y + to_rect.h / 2;
+        var arrow_dir = point_direction(x1, y1, x2, y2);
+        draw_set_color(COL_GOLD); draw_set_alpha(0.9);
+        draw_line_width(x1, y1, x2, y2, 5);
+        draw_triangle(x2, y2,
+            x2 + lengthdir_x(18, arrow_dir + 150), y2 + lengthdir_y(18, arrow_dir + 150),
+            x2 + lengthdir_x(18, arrow_dir - 150), y2 + lengthdir_y(18, arrow_dir - 150), false);
+        draw_center_shadow("DRAG", (x1 + x2) / 2, (y1 + y2) / 2 - 15, COL_GOLD);
+        draw_set_alpha(1); vv_ui_set_font(UI_FONT_BODY);
+    }
     if (show_leader_target) {
         vv_ui_set_font(UI_FONT_SMALL);
         draw_center_shadow("ATTACK LEADER", leader_rect.x + leader_rect.w - 78,
@@ -427,8 +446,7 @@ function vv_ui_handle_input() {
 
     if (point_in_rect(pointer_x, pointer_y, action_rect)) {
         action_press_timer = 5;
-        var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack"
-            || (tutorial_mode && (phase == "step2_ready" || phase == "step3_ready" || phase == "end_ready"));
+        var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
         var action_phase_before = phase;
         var tutorial_build_blocked = tutorial_mode && phase == "build" && turn_number == 1
             && count_occupied_build() < 3;
@@ -907,8 +925,7 @@ if (show_build_attack || show_attack_left) {
 }
 
 var button_enabled = prompt_mode == "" && action_cooldown <= 0
-    && (phase == "step1_ready" || phase == "build" || phase == "attack"
-        || (tutorial_mode && (phase == "step2_ready" || phase == "step3_ready" || phase == "end_ready")))
+    && (phase == "step1_ready" || phase == "build" || phase == "attack")
     && vv_tutorial_action_allowed();
 var confirming_build = phase == "build" && build_finish_confirm;
 var confirming_attack = phase == "attack" && attack_finish_confirm;
@@ -923,9 +940,6 @@ if ((enemy_auto_play || tutorial_mode) && enemy_ai_visual_stage == "result") but
 else if (prompt_mode == "enemy_attack" && enemy_auto_play) button_text = "ENEMY TARGETING...";
 else if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
-else if (tutorial_mode && phase == "step2_ready") button_text = "ADVANCE / ESCAPE";
-else if (tutorial_mode && phase == "step3_ready") button_text = "ENEMY DRAW";
-else if (tutorial_mode && phase == "end_ready") button_text = "END TURN";
 else if (phase == "build") button_text = confirming_build ? "CONFIRM BUILD" : "DONE BUILDING";
 else if (phase == "attack") button_text = confirming_attack ? "CONFIRM END" : "DONE ATTACKING";
 else button_text = "RESOLVING...";
