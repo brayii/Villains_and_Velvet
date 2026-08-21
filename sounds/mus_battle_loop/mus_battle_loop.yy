@@ -10,7 +10,7 @@
   "duration":33.103447,
   "exportDir":"",
   "name":"mus_battle_loop",
-  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "parent":{"name":"Music","path":"folders/Sounds/Music.yy"},
   "preload":false,
   "resourceType":"GMSound",
   "resourceVersion":"2.0",

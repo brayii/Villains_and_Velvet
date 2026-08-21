@@ -10,7 +10,7 @@
   "duration":0.550023,
   "exportDir":"",
   "name":"snd_event_reveal",
-  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "parent":{"name":"Effects","path":"folders/Sounds/Effects.yy"},
   "preload":true,
   "resourceType":"GMSound",
   "resourceVersion":"2.0",

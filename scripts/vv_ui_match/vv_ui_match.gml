@@ -7,13 +7,13 @@ function ui_card_at_point(_pointer_x, _pointer_y) {
     if (point_in_rect(_pointer_x, _pointer_y, leader_rect)) {
         return {type:"leader", index:0, card:enemy_leader};
     }
-    for (var hand_i = 0; hand_i < 3; hand_i++) {
+    for (var hand_i = 0; hand_i < CORE_HAND_SIZE; hand_i++) {
         if (point_in_rect(_pointer_x, _pointer_y, hand_rects[hand_i])
         && hand_i < array_length(hand) && !is_undefined(hand[hand_i])) {
             return {type:"hand", index:hand_i, card:hand[hand_i]};
         }
     }
-    for (var build_i = 0; build_i < 3; build_i++) {
+    for (var build_i = 0; build_i < CORE_BUILD_SIZE; build_i++) {
         if (point_in_rect(_pointer_x, _pointer_y, build_rects[build_i]) && !is_undefined(build[build_i])) {
             return {type:"build", index:build_i, card:build[build_i]};
         }
@@ -68,10 +68,10 @@ function ui_run_card_tap(_type, _index) {
 }
 
 function ui_drag_target_at_point(_pointer_x, _pointer_y) {
-    for (var hand_i = 0; hand_i < 3; hand_i++) {
+    for (var hand_i = 0; hand_i < CORE_HAND_SIZE; hand_i++) {
         if (point_in_rect(_pointer_x, _pointer_y, hand_rects[hand_i])) return {type:"hand", index:hand_i};
     }
-    for (var build_i = 0; build_i < 3; build_i++) {
+    for (var build_i = 0; build_i < CORE_BUILD_SIZE; build_i++) {
         if (point_in_rect(_pointer_x, _pointer_y, build_rects[build_i])) return {type:"build", index:build_i};
     }
     return undefined;
@@ -148,7 +148,7 @@ function ui_draw_guided_coach() {
     || tutorial_step == TutorialStep.T3_EndResult) {
         array_push(target_rects, action_rect);
     } else if (tutorial_step == TutorialStep.T3_Rebuild) {
-        for (var th = 0; th < 3; th++) {
+        for (var th = 0; th < CORE_BUILD_SIZE; th++) {
             if (!is_undefined(hand[th]) && hand[th].hero == "goblin") array_push(target_rects, hand_rects[th]);
             if (is_undefined(build[th])) array_push(target_rects, build_rects[th]);
         }
@@ -166,13 +166,13 @@ function ui_draw_guided_coach() {
     } else if (phase == "build" && turn_number == 1) {
         array_push(target_rects, action_rect);
         if (selected_hand < 0) {
-            for (var hand_i = 0; hand_i < 3; hand_i++) {
+            for (var hand_i = 0; hand_i < CORE_HAND_SIZE; hand_i++) {
                 if (hand_i < array_length(hand) && !is_undefined(hand[hand_i])) {
                     array_push(target_rects, hand_rects[hand_i]);
                 }
             }
         } else {
-            for (var build_i = 0; build_i < 3; build_i++) array_push(target_rects, build_rects[build_i]);
+            for (var build_i = 0; build_i < CORE_BUILD_SIZE; build_i++) array_push(target_rects, build_rects[build_i]);
         }
     } else if (phase == "build") {
         array_push(target_rects, action_rect);
@@ -327,7 +327,7 @@ function vv_ui_handle_input() {
 
     if (!setup_active && !game_over && pointer_pressed) {
         if (phase == "build" && selected_hand >= 0) {
-            for (var empty_build_i = 0; empty_build_i < 3; empty_build_i++) {
+            for (var empty_build_i = 0; empty_build_i < CORE_BUILD_SIZE; empty_build_i++) {
                 if (point_in_rect(pointer_x, pointer_y, build_rects[empty_build_i])) {
                     var placed_card = command_select_build(empty_build_i);
                     if (placed_card) {
@@ -660,7 +660,7 @@ draw_center_shadow("←", 755, 186, COL_ACCENT);
 
 // Build and Hand.
 draw_center_shadow("BUILD AREA", 640, 297, COL_MUTED);
-for (var build_i = 0; build_i < 3; build_i++) {
+for (var build_i = 0; build_i < CORE_BUILD_SIZE; build_i++) {
     var legal_build = (prompt_mode != "" && prompt_build_is_legal(build_i))
         || (phase == "build" && prompt_mode == "" && selected_hand >= 0)
         || ui_drag_target_is_legal("build", build_i);
@@ -673,7 +673,7 @@ for (var build_i = 0; build_i < 3; build_i++) {
 }
 
 draw_center_shadow("HAND", 640, 512, COL_MUTED);
-for (var hand_i = 0; hand_i < 3; hand_i++) {
+for (var hand_i = 0; hand_i < CORE_HAND_SIZE; hand_i++) {
     var hand_card = hand_i < array_length(hand) ? hand[hand_i] : undefined;
     var legal_hand = ((prompt_mode == "destroy_hand" && hand_i < array_length(hand)
         && !is_undefined(hand_card))
@@ -688,7 +688,7 @@ for (var hand_i = 0; hand_i < 3; hand_i++) {
 
 var choice_reminder_stage = vv_required_choice_stage();
 if (choice_reminder_stage > 0) {
-    for (var reminder_build_i = 0; reminder_build_i < 3; reminder_build_i++) {
+    for (var reminder_build_i = 0; reminder_build_i < CORE_BUILD_SIZE; reminder_build_i++) {
         if (prompt_build_is_legal(reminder_build_i)) {
             ui_draw_guided_target(build_rects[reminder_build_i]);
             if (choice_reminder_stage >= 2) ui_draw_guided_target({
@@ -696,7 +696,7 @@ if (choice_reminder_stage > 0) {
                 w:build_rects[reminder_build_i].w + 10, h:build_rects[reminder_build_i].h + 10});
         }
     }
-    for (var reminder_hand_i = 0; reminder_hand_i < 3; reminder_hand_i++) {
+    for (var reminder_hand_i = 0; reminder_hand_i < CORE_HAND_SIZE; reminder_hand_i++) {
         var reminder_hand_legal = (prompt_mode == "destroy_hand"
             && !is_undefined(hand[reminder_hand_i]))
             || (prompt_mode == "enemy_attack_hand"
@@ -754,7 +754,7 @@ else if (phase == "start_resolving") instruction = step_number == 2
 else if (phase == "build") {
     if (build_finish_confirm) {
         var empty_build_spaces = 0;
-        for (var warning_build_i = 0; warning_build_i < 3; warning_build_i++) {
+        for (var warning_build_i = 0; warning_build_i < CORE_BUILD_SIZE; warning_build_i++) {
             if (is_undefined(build[warning_build_i])) empty_build_spaces++;
         }
         if (!build_changed && empty_build_spaces > 0) build_confirm_heading = "NO CHANGES · EMPTY SPACES";

@@ -107,6 +107,8 @@ The normal setup view shows a short event summary. **Battle Settings** opens the
 
 ## Runtime Flow and Ownership
 
+The GameMaker resource tree mirrors the source ownership: **Scripts** contains Core, Gameplay, AI, and Interface groups; **Sounds** contains Music and Effects; Objects and Rooms have their own top-level groups. These are IDE organization groups only. The repository paths remain stable so existing resource references and packaging behavior do not change.
+
 `obj_controller` owns the live match variables. Its Create event builds the current content definitions, initializes setup state and the UI, and loads initial artwork without constructing a match. `command_start_game_from_setup()` validates the selections and is the only setup path that calls `reset_game()`. The Step event advances timers and routes taps. The Draw GUI event delegates the full screen to `vv_ui_draw_game()`. The Clean Up event releases dynamic fonts through `vv_ui_cleanup()` and dynamic sprites through `vv_assets_cleanup()`.
 
 Rules that need a player choice set `prompt_mode`, `prompt_value`, and `prompt_source`, then return. The UI highlights only legal targets. After a valid command clears the prompt, `resume_after_prompts()` continues queued Enemy attacks or the suspended turn action. New prompt-producing rules must preserve this pause-and-resume pattern.

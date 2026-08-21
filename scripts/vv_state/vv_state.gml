@@ -15,7 +15,7 @@ function log_add(_text) {
 
 function count_occupied_build() {
     var count = 0;
-    for (var count_i = 0; count_i < 3; count_i++) {
+    for (var count_i = 0; count_i < CORE_BUILD_SIZE; count_i++) {
         if (!is_undefined(build[count_i])) count++;
     }
     return count;
@@ -697,8 +697,8 @@ function reset_game() {
     enemy_ai_reward_init_match(array_length(enemy_deck));
     enemy_ai_policy_cancel_turn();
     enemy_used = [];
-    hand = [undefined, undefined, undefined];
-    build = [undefined, undefined, undefined];
+    hand = array_create(CORE_HAND_SIZE, undefined);
+    build = array_create(CORE_BUILD_SIZE, undefined);
     minions = [undefined, undefined]; // 0 = Area 2, 1 = Area 1
     revealed_enemy_card = undefined;
     enemy_draw_number = 0;

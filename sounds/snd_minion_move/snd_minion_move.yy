@@ -10,7 +10,7 @@
   "duration":0.42,
   "exportDir":"",
   "name":"snd_minion_move",
-  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "parent":{"name":"Effects","path":"folders/Sounds/Effects.yy"},
   "preload":true,
   "resourceType":"GMSound",
   "resourceVersion":"2.0",

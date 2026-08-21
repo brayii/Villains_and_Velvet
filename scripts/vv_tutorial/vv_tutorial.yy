@@ -4,7 +4,7 @@
   "isCompatibility":false,
   "isDnD":false,
   "name":"vv_tutorial",
-  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "parent":{"name":"Gameplay","path":"folders/Scripts/Gameplay.yy"},
   "resourceType":"GMScript",
   "resourceVersion":"2.0"
 }

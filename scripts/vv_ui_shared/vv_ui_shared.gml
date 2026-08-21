@@ -1,5 +1,13 @@
 /// UI layout, drawing, hit testing, and input routing.
 
+#macro VV_DRAG_THRESHOLD 8
+#macro VV_TAP_MOVE_LIMIT 6
+#macro VV_INSPECT_HOLD_FRAMES 30
+#macro VV_CHOICE_REMINDER_SECONDS 5
+#macro VV_CHOICE_URGENT_SECONDS 10
+#macro VV_ESCAPE_FX_FRAMES 90
+#macro VV_TUTORIAL_WATCH_FRAMES 60
+
 function vv_ui_init() {
     COL_BG = make_color_rgb(15, 22, 33);
     COL_PANEL = make_color_rgb(29, 40, 56);
@@ -25,7 +33,7 @@ function vv_ui_init() {
     minion_rects = [{x:560, y:50, w:170, h:245}, {x:780, y:50, w:170, h:245}];
     build_rects = [];
     hand_rects = [];
-    for (var layout_i = 0; layout_i < 3; layout_i++) {
+    for (var layout_i = 0; layout_i < CORE_BUILD_SIZE; layout_i++) {
         array_push(build_rects, {x:240 + layout_i * 245, y:305, w:240, h:200});
         array_push(hand_rects, {x:240 + layout_i * 245, y:520, w:240, h:195});
     }
@@ -55,9 +63,9 @@ function vv_ui_init() {
     vv_tutorial_init();
     escape_card_surface = -1;
 
-    drag_threshold = 8;
-    tap_move_limit = 6;
-    inspect_hold_frames = 30;
+    drag_threshold = VV_DRAG_THRESHOLD;
+    tap_move_limit = VV_TAP_MOVE_LIMIT;
+    inspect_hold_frames = VV_INSPECT_HOLD_FRAMES;
     vv_feedback_audio_init();
     vv_ui_reset_match_interaction();
 }
@@ -103,8 +111,8 @@ function vv_required_choice_update() {
 
 function vv_required_choice_stage() {
     if (!vv_required_choice_is_manual()) return 0;
-    if (required_choice_frames >= room_speed * 10) return 2;
-    if (required_choice_frames >= room_speed * 5) return 1;
+    if (required_choice_frames >= room_speed * VV_CHOICE_URGENT_SECONDS) return 2;
+    if (required_choice_frames >= room_speed * VV_CHOICE_REMINDER_SECONDS) return 1;
     return 0;
 }
 
@@ -205,7 +213,7 @@ function vv_feedback_update_music_context() {
 
 function vv_feedback_card_present(_card) {
     if (is_undefined(_card)) return false;
-    for (var present_i = 0; present_i < 3; present_i++) {
+    for (var present_i = 0; present_i < CORE_BUILD_SIZE; present_i++) {
         if (build[present_i] == _card) return true;
         if (present_i < array_length(hand) && hand[present_i] == _card) return true;
     }
@@ -227,14 +235,15 @@ function vv_feedback_add_escape_fx(_card) {
         }
     }
     array_push(feedback_fx, {card:_card, rect:minion_rects[0], kind:"escape",
-        timer:90, duration:90, escape_heal:escape_heal});
+        timer:VV_ESCAPE_FX_FRAMES, duration:VV_ESCAPE_FX_FRAMES, escape_heal:escape_heal});
     vv_feedback_play(feedback_sound_move);
 }
 
 function vv_feedback_add_tutorial_push_fx(_escaping, _incoming) {
     if (is_undefined(_escaping) || is_undefined(_incoming)) return;
     array_push(feedback_fx, {card:_escaping, incoming:_incoming, rect:minion_rects[0],
-        end_rect:minion_rects[0], kind:"tutorial_push", timer:90, duration:90, escape_heal:0});
+        end_rect:minion_rects[0], kind:"tutorial_push", timer:VV_ESCAPE_FX_FRAMES,
+        duration:VV_ESCAPE_FX_FRAMES, escape_heal:0});
     vv_feedback_play(feedback_sound_move);
 }
 
@@ -316,7 +325,7 @@ function vv_feedback_update() {
             amount:abs(hp_change), timer:24, duration:24});
         vv_feedback_play(hp_change > 0 ? feedback_sound_heal : feedback_sound_leader_damage);
     }
-    for (var old_build_i = 0; old_build_i < 3; old_build_i++) {
+    for (var old_build_i = 0; old_build_i < CORE_BUILD_SIZE; old_build_i++) {
         if (!is_undefined(feedback_build[old_build_i]) && !vv_feedback_card_present(feedback_build[old_build_i])) {
             vv_feedback_add_card_fx(feedback_build[old_build_i], build_rects[old_build_i], "destroy");
             vv_feedback_play(feedback_sound_destroy);

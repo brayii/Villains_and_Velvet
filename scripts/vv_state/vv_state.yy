@@ -4,7 +4,7 @@
   "isCompatibility":false,
   "isDnD":false,
   "name":"vv_state",
-  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "parent":{"name":"Core","path":"folders/Scripts/Core.yy"},
   "resourceType":"GMScript",
   "resourceVersion":"2.0"
 }

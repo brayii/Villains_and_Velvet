@@ -4,7 +4,7 @@
   "isCompatibility":false,
   "isDnD":false,
   "name":"vv_ui_shared",
-  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "parent":{"name":"Interface","path":"folders/Scripts/Interface.yy"},
   "resourceType":"GMScript",
   "resourceVersion":"2.0"
 }

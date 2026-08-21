@@ -4,6 +4,8 @@
 
 // Permanent core deck structure. Content supplies the cards that fill these slots.
 #macro CORE_HERO_COUNT 3
+#macro CORE_HAND_SIZE 3
+#macro CORE_BUILD_SIZE 3
 #macro CORE_HERO_NORMAL_COPIES 7
 #macro CORE_HERO_ABILITY_COPIES 5
 #macro CORE_HERO_SPECIAL_COPIES 3

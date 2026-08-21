@@ -89,7 +89,7 @@ function begin_build() {
 
 function finish_build() {
     var empty_build_spaces = 0;
-    for (var build_check_i = 0; build_check_i < 3; build_check_i++) {
+    for (var build_check_i = 0; build_check_i < CORE_BUILD_SIZE; build_check_i++) {
         if (is_undefined(build[build_check_i])) empty_build_spaces++;
     }
     if ((!build_changed || empty_build_spaces > 0) && !build_finish_confirm) {

@@ -680,11 +680,6 @@ function enemy_ai_rank_build_with_weights(_build_snapshot, _conditional_weight, 
     return ranked;
 }
 
-function enemy_ai_rank_build(_build_snapshot) {
-    return enemy_ai_rank_build_with_weights(_build_snapshot,
-        enemy_ai_conditional_weight(), enemy_ai_health_weight());
-}
-
 function enemy_ai_choose_target_with_weights(_current_state, _conditional_weight, _health_weight) {
     if (!is_struct(_current_state)
     || !variable_struct_exists(_current_state, "build_snapshot")
@@ -890,11 +885,6 @@ _initial_evaluation, _final_snapshot, _conditional_weight) {
     return guaranteed_removed + _conditional_weight * conditional_removed;
 }
 
-function enemy_ai_oracle_sequence_value(_initial_evaluation, _final_snapshot) {
-    return enemy_ai_oracle_sequence_value_with_weight(
-        _initial_evaluation, _final_snapshot, enemy_ai_conditional_weight());
-}
-
 function enemy_ai_copy_sequence(_source_sequence) {
     var copied_sequence = [];
     for (var sequence_i = 0; sequence_i < array_length(_source_sequence); sequence_i++) {
@@ -968,12 +958,6 @@ _policy_health_weight, _value_conditional_weight) {
         final_snapshot: simulated_build,
         attack_remaining: simulated_attack
     };
-}
-
-function enemy_ai_oracle_greedy_sequence(_build_snapshot, _attack_remaining) {
-    var conditional_weight = enemy_ai_conditional_weight();
-    return enemy_ai_oracle_greedy_sequence_with_weights(_build_snapshot, _attack_remaining,
-        conditional_weight, enemy_ai_health_weight(), conditional_weight);
 }
 
 function enemy_ai_oracle_exploration_sequence_with_weights(

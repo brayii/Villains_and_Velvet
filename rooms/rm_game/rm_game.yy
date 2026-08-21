@@ -17,8 +17,8 @@
   ],
   "name":"rm_game",
   "parent":{
-    "name":"VillainsAndVelvet",
-    "path":"VillainsAndVelvet.yyp",
+    "name":"Rooms",
+    "path":"folders/Rooms.yy",
   },
   "parentRoom":null,
   "physicsSettings":{

@@ -11,8 +11,8 @@
   "name":"obj_controller",
   "overriddenProperties":[],
   "parent":{
-    "name":"VillainsAndVelvet",
-    "path":"VillainsAndVelvet.yyp",
+    "name":"Objects",
+    "path":"folders/Objects.yy",
   },
   "parentObjectId":null,
   "persistent":false,

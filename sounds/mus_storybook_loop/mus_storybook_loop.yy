@@ -10,7 +10,7 @@
   "duration":45.714286,
   "exportDir":"",
   "name":"mus_storybook_loop",
-  "parent":{"name":"VillainsAndVelvet","path":"VillainsAndVelvet.yyp"},
+  "parent":{"name":"Music","path":"folders/Sounds/Music.yy"},
   "preload":false,
   "resourceType":"GMSound",
   "resourceVersion":"2.0",

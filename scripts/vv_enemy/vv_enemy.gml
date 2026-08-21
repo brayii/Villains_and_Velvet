@@ -25,7 +25,7 @@ function enemy_target_is_legal(_index, _amount) {
 }
 
 function enemy_has_legal_target(_amount) {
-    for (var target_i = 0; target_i < 3; target_i++) {
+    for (var target_i = 0; target_i < CORE_BUILD_SIZE; target_i++) {
         if (enemy_target_is_legal(target_i, _amount)) return true;
     }
     return false;
@@ -33,7 +33,7 @@ function enemy_has_legal_target(_amount) {
 
 function enemy_legal_build_target_count(_amount) {
     var count = 0;
-    for (var target_i = 0; target_i < 3; target_i++) {
+    for (var target_i = 0; target_i < CORE_BUILD_SIZE; target_i++) {
         if (enemy_target_is_legal(target_i, _amount)) count++;
     }
     return count;
@@ -65,8 +65,8 @@ function enemy_legal_hand_target_count(_amount) {
 
 function draw_full_assault_hand() {
     if (!full_assault_hand_needs_refill(hand)) return;
-    hand = [undefined, undefined, undefined];
-    for (var draw_slot = 0; draw_slot < 3; draw_slot++) {
+    hand = array_create(CORE_HAND_SIZE, undefined);
+    for (var draw_slot = 0; draw_slot < CORE_HAND_SIZE; draw_slot++) {
         recycle_player_deck();
         if (array_length(player_deck) > 0) hand[draw_slot] = array_pop(player_deck);
     }
@@ -83,7 +83,7 @@ function full_assault_hand_needs_refill(_hand) {
 function lowest_build_indices() {
     var result = [];
     var lowest_hp = 9999;
-    for (var low_i = 0; low_i < 3; low_i++) if (!is_undefined(build[low_i])) {
+    for (var low_i = 0; low_i < CORE_BUILD_SIZE; low_i++) if (!is_undefined(build[low_i])) {
         if (build[low_i].hp < lowest_hp) {
             lowest_hp = build[low_i].hp;
             result = [low_i];
@@ -93,7 +93,7 @@ function lowest_build_indices() {
 }
 
 function prompt_build_is_legal(_index) {
-    if (_index < 0 || _index > 2 || is_undefined(build[_index])) return false;
+    if (_index < 0 || _index >= CORE_BUILD_SIZE || is_undefined(build[_index])) return false;
     if (prompt_mode == "enemy_attack") return enemy_target_is_legal(_index, prompt_value);
     if (prompt_mode == "disrupt" || prompt_mode == "full_assault_disrupt") return true;
     if (prompt_mode == "shatter" || prompt_mode == "full_assault_shatter") {

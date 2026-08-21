@@ -15,8 +15,8 @@ function draw_player_hand() {
             if (!is_undefined(hand[old_hand_i])) array_push(player_discard, hand[old_hand_i]);
         }
     }
-    hand = [undefined, undefined, undefined];
-    for (var draw_slot = 0; draw_slot < 3; draw_slot++) {
+    hand = array_create(CORE_HAND_SIZE, undefined);
+    for (var draw_slot = 0; draw_slot < CORE_HAND_SIZE; draw_slot++) {
         recycle_player_deck();
         if (array_length(player_deck) > 0) hand[draw_slot] = array_pop(player_deck);
     }
@@ -129,7 +129,7 @@ function command_select_hand(_index) {
 
 function command_select_build(_index) {
     if (vv_tutorial_requires_drag()) return false;
-    if (phase != "build" || _index < 0 || _index > 2) return false;
+    if (phase != "build" || _index < 0 || _index >= CORE_BUILD_SIZE) return false;
     if (selected_hand >= 0 && selected_hand < array_length(hand) && !is_undefined(hand[selected_hand])) {
         var hand_card = hand[selected_hand];
         if (is_undefined(build[_index])) {
@@ -162,7 +162,8 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
     if (phase != "build" || prompt_mode != "") return false;
     if (_source_area != "hand" && _source_area != "build") return false;
     if (_target_area != "hand" && _target_area != "build") return false;
-    if (_source_index < 0 || _source_index >= 3 || _target_index < 0 || _target_index >= 3) return false;
+    if (_source_index < 0 || _source_index >= CORE_HAND_SIZE
+    || _target_index < 0 || _target_index >= CORE_BUILD_SIZE) return false;
     if (_source_area == _target_area) return false;
     if (!vv_tutorial_build_drop_allowed(_source_area, _source_index, _target_area, _target_index)) return false;
 

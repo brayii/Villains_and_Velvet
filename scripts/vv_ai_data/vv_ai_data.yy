@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"vv_ai_data",
   "parent":{
-    "name":"VillainsAndVelvet",
-    "path":"VillainsAndVelvet.yyp",
+    "name":"AI",
+    "path":"folders/Scripts/AI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

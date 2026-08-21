@@ -60,7 +60,7 @@ function vv_tutorial_init() {
 function vv_tutorial_schedule(_step, _body, _action) {
     vv_tutorial_set_state(_step, "watch", "WATCH", _body, false);
     tutorial_pending_action = _action;
-    tutorial_pending_frames = max(60, room_speed);
+    tutorial_pending_frames = max(VV_TUTORIAL_WATCH_FRAMES, room_speed);
     auto_timer = 0;
 }
 
@@ -462,12 +462,6 @@ function vv_tutorial_after_hand_discard() {
         "Step 6 discarded the remaining Hand cards.", true);
 }
 
-function vv_tutorial_after_enemy_entry(_minion) {
-    if (!tutorial_mode) return;
-    if (turn_number == 1 && _minion.id == "corgi") vv_tutorial_set_state(TutorialStep.T1_CorgiEntryResult,
-        "result", "RESULT", "Corgi entered Area 1 and attacked. Your Build was empty, so no Hero was lost.", true);
-}
-
 function vv_tutorial_after_enemy_phase() {
     if (!tutorial_mode) return;
     if (turn_number == 1) vv_tutorial_set_state(TutorialStep.T1_CorgiEntryResult,
@@ -476,7 +470,8 @@ function vv_tutorial_after_enemy_phase() {
         minions[1].name + " attacked for " + string(minions[1].atk)
             + " and defeated the two remaining Heroes. Enemy Attack is spent only on full defeats.", true);
     else if (turn_number == 3) vv_tutorial_set_state(TutorialStep.T3_BunnyAttackResult, "result", "RESULT",
-        "Bunny entered Area 1. Its 4 Attack could not defeat Guard or Fortress, so it ended unused.", true);
+        minions[1].name + " entered Area 1. Its " + string(minions[1].atk)
+            + " Attack could not defeat Guard or Fortress, so it ended unused.", true);
 }
 
 function vv_tutorial_after_build_move() {
