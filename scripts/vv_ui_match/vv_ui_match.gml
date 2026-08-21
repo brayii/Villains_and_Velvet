@@ -771,7 +771,9 @@ draw_glass_panel(context_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.70);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 draw_set_color(COL_GOLD);
-draw_text(1000, 27, "STEP " + string(step_number) + " — " + phase_names[step_number - 1]);
+vv_ui_set_font(UI_FONT_SMALL);
+draw_text_ext(1000, 27, "STEP " + string(step_number) + " — "
+    + phase_names[step_number - 1], 14, 250);
 vv_ui_set_font(UI_FONT_SMALL);
 draw_set_color(COL_MUTED);
 draw_text(1000, 51, "TURN STEPS");
@@ -785,14 +787,14 @@ draw_set_alpha(1);
 vv_ui_set_font(UI_FONT_BODY);
 
 // Short current instruction remains separate from the permanent step list.
-if (build_finish_confirm && phase == "build") {
+if (!tutorial_pause && build_finish_confirm && phase == "build") {
     var build_warning_rect = {x:985, y:199, w:280, h:105};
     draw_glass_panel(build_warning_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.48);
     draw_set_color(COL_GOLD);
     draw_text_ext(1000, 214, build_confirm_heading, 18, 250);
     draw_set_color(COL_TEXT);
     draw_text_ext(1000, 244, instruction, 18, 250);
-} else if ((attack_finish_confirm && phase == "attack") || phase == "attack_complete_wait") {
+} else if (!tutorial_pause && ((attack_finish_confirm && phase == "attack") || phase == "attack_complete_wait")) {
     var attack_warning_rect = {x:985, y:199, w:280, h:105};
     draw_glass_panel(attack_warning_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.48);
     draw_set_color(COL_GOLD);
@@ -805,7 +807,7 @@ if (build_finish_confirm && phase == "build") {
         ? attack_notice_text
         : "Confirm the end of your Attack step or attack a target.";
     draw_text_ext(1000, 244, attack_warning_text, 18, 250);
-} else {
+} else if (!tutorial_pause) {
     var instruction_panel = {x:985, y:199, w:280, h:116};
     draw_glass_panel(instruction_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.52);
     draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
@@ -818,7 +820,7 @@ if (selected_hand >= 0 && selected_hand < array_length(hand)) detail_card = hand
 else if (selected_build >= 0 && selected_build < 3) detail_card = build[selected_build];
 else detail_card = detail_card_selected;
 
-if (!is_undefined(detail_card)) {
+if (!tutorial_pause && !is_undefined(detail_card)) {
     var detail_panel = {x:985, y:326, w:280, h:162};
     draw_glass_panel(detail_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.84);
     draw_set_halign(fa_left);
@@ -920,15 +922,20 @@ if (tutorial_mode && tutorial_pause && !tutorial_complete_prompt) {
             draw_set_alpha(1);
             draw_enemy_reveal(revealed_enemy_card, {x:475, y:80, w:330, h:510});
         }
-        var lesson_panel = {x:985, y:198, w:280, h:190};
+        var lesson_panel = {x:985, y:229, w:280, h:305};
+        tutorial_continue_rect = {x:1000, y:466, w:250, h:56};
         draw_glass_panel(lesson_panel, make_color_rgb(24, 33, 46), COL_GOLD, 0.94);
         vv_ui_set_font(UI_FONT_SMALL);
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_top);
         draw_set_color(COL_GOLD);
-        draw_text(1000, 214, tutorial_heading);
+        draw_text(1000, 242, tutorial_heading);
         vv_ui_set_font(UI_FONT_BODY);
         draw_set_color(COL_TEXT);
-        draw_text_ext(1000, 246, tutorial_body, 19, 250);
+        draw_text_ext(1000, 270, tutorial_body, 18, 250);
         draw_panel(tutorial_continue_rect, COL_ACCENT, COL_TEXT);
+        draw_set_halign(fa_center);
+        draw_set_valign(fa_middle);
         draw_center("CONTINUE", tutorial_continue_rect.x + tutorial_continue_rect.w / 2,
             tutorial_continue_rect.y + tutorial_continue_rect.h / 2, COL_BG);
     }
