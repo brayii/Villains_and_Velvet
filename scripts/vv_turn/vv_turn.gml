@@ -8,6 +8,7 @@ function resume_after_prompts() {
     if (start_queued_attack()) return;
     var action = resume_action;
     resume_action = "";
+    if (vv_tutorial_resume_intercept(action)) return;
     if (action == "finish_advance") {
         var completed_escape = advance_escape_pending;
         if (!is_undefined(advance_incoming_minion)) {
@@ -45,6 +46,7 @@ function resume_after_prompts() {
         selected_build = -1;
         log_add("Step 3 complete: a Minion is in Area 1. Build your attack.");
         validate_state("Enemy Draw complete");
+        vv_tutorial_after_enemy_phase();
     } else if (action == "continue_full_assault") {
         continue_full_assault();
     }
@@ -135,6 +137,7 @@ function complete_attack_step() {
     phase = "step6_ready";
     auto_timer = 40;
     log_add("Attack complete. Discarding the cards left in your Hand.");
+    vv_tutorial_after_attack_complete();
 }
 
 function finish_attack() {
@@ -173,6 +176,7 @@ function finish_turn() {
         step_number = 1;
         phase = "step1_ready";
         log_add("Turn " + string(turn_number) + " ready. Tap START NEXT TURN.");
+        vv_tutorial_after_turn_end();
     }
     vv_ai_data_save_if_dirty();
     validate_state("End Turn");

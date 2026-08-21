@@ -47,6 +47,7 @@ function vv_tutorial_init() {
     tutorial_heading = "";
     tutorial_body = "";
     tutorial_message_kind = "";
+    tutorial_pending_enemy_card = undefined;
 }
 
 function vv_tutorial_set_state(_step, _kind, _heading, _body, _pause) {
@@ -63,6 +64,12 @@ function vv_tutorial_blocks_automatic_progress() {
 
 function vv_tutorial_action_allowed() {
     if (!tutorial_mode) return true;
+    if (turn_number == 2) {
+        if (phase == "step1_ready") return tutorial_step == TutorialStep.T2_StartTurn;
+        if (phase == "build") return tutorial_step == TutorialStep.T2_BuildReady;
+        if (phase == "attack") return tutorial_step == TutorialStep.T2_DoneAttacking;
+        return true;
+    }
     if (turn_number != 1) return true;
     if (phase == "step1_ready") return tutorial_step == TutorialStep.T1_StartTurn;
     if (phase == "step2_ready") return tutorial_step == TutorialStep.T1_InspectClose;
@@ -72,7 +79,13 @@ function vv_tutorial_action_allowed() {
 }
 
 function vv_tutorial_build_drop_allowed(_source_area, _source_index, _target_area, _target_index) {
-    if (!tutorial_mode || turn_number != 1) return true;
+    if (!tutorial_mode) return true;
+    if (turn_number == 2) {
+        var expected2 = count_occupied_build();
+        return _source_area == "hand" && _target_area == "build"
+            && _source_index == expected2 && _target_index == expected2;
+    }
+    if (turn_number != 1) return true;
     var expected = count_occupied_build();
     return _source_area == "hand" && _target_area == "build"
         && _source_index == expected && _target_index == expected;
@@ -101,6 +114,70 @@ function vv_tutorial_continue() {
             vv_tutorial_set_state(TutorialStep.T1_EndResult, "action", "YOUR ACTION",
                 "Tap END TURN. Your Build cards stay in play.", false);
             return true;
+        case TutorialStep.T2_DrawResult:
+            vv_tutorial_set_state(TutorialStep.T2_CorgiAdvanceWatch, "watch", "WATCH",
+                "Corgi moves from Area 1 to Area 2.", false);
+            do_step_2();
+            return true;
+        case TutorialStep.T2_CorgiAdvanceResult:
+            vv_tutorial_set_state(TutorialStep.T2_DirectAssaultRead, "read", "READ THIS CARD",
+                "Direct Assault makes the Velvet Queen attack for 8.", false);
+            do_step_3();
+            return true;
+        case TutorialStep.T2_DirectAssaultRead:
+            var strike = tutorial_pending_enemy_card;
+            tutorial_pending_enemy_card = undefined;
+            vv_tutorial_set_state(TutorialStep.T2_DirectAssaultWatch, "watch", "WATCH",
+                "The Queen attacks. Guard must be targeted first.", false);
+            resolve_leader_strike(strike);
+            resume_action = "continue_enemy_draw";
+            resume_after_prompts();
+            return true;
+        case TutorialStep.T2_DirectAssaultResult:
+            vv_tutorial_set_state(TutorialStep.T2_EventDrawRule, "tip", "TIP",
+                "Enemy Event cards resolve, then Enemy Draw continues until a Minion appears.", true);
+            return true;
+        case TutorialStep.T2_EventDrawRule:
+            tutorial_pause = false;
+            draw_next_enemy_card();
+            return true;
+        case TutorialStep.T2_RedPandaAttackResult:
+            begin_build();
+            vv_tutorial_set_state(TutorialStep.T2_Rebuild1, "action", "YOUR ACTION",
+                "Rebuild with the glowing Guard card.", false);
+            return true;
+        case TutorialStep.T2_BothMinionsRemainResult:
+            vv_tutorial_set_state(TutorialStep.T2_EndResult, "action", "YOUR ACTION",
+                "Tap END TURN. Both Minions remain in their Areas.", false);
+            return true;
+    }
+    return false;
+}
+
+function vv_tutorial_pause_event_card(_card) {
+    if (!tutorial_mode) return false;
+    if (turn_number == 2 && _card.id == "direct_assault") {
+        tutorial_pending_enemy_card = _card;
+        vv_tutorial_set_state(TutorialStep.T2_DirectAssaultRead, "read", "READ THIS CARD",
+            "Direct Assault: The Velvet Queen attacks for 8. Tap CONTINUE when you are ready.", true);
+        return true;
+    }
+    if (turn_number == 3 && _card.id == "reinforcements") {
+        tutorial_pending_enemy_card = _card;
+        vv_tutorial_set_state(TutorialStep.T3_ReinforcementsRead, "read", "READ THIS CARD",
+            "Reinforcements: the Minion in Area 2 attacks. Tap CONTINUE when ready.", true);
+        return true;
+    }
+    return false;
+}
+
+function vv_tutorial_resume_intercept(_action) {
+    if (!tutorial_mode) return false;
+    if (_action == "continue_enemy_draw" && tutorial_step == TutorialStep.T2_DirectAssaultWatch) {
+        resume_action = "";
+        vv_tutorial_set_state(TutorialStep.T2_DirectAssaultResult, "result", "RESULT",
+            "The 8-Attack strike defeated Guard first. The remaining Attack could not defeat another Hero.", true);
+        return true;
     }
     return false;
 }
@@ -117,7 +194,14 @@ function vv_tutorial_card_inspected(_opened) {
 }
 
 function vv_tutorial_after_player_draw() {
-    if (!tutorial_mode || turn_number != 1) return;
+    if (!tutorial_mode) return;
+    if (turn_number == 2) {
+        auto_timer = 0;
+        vv_tutorial_set_state(TutorialStep.T2_DrawResult, "result", "RESULT",
+            "You drew two Guard cards and one Fortress. These priority Heroes protect your Build.", true);
+        return;
+    }
+    if (turn_number != 1) return;
     auto_timer = 0;
     vv_tutorial_set_state(TutorialStep.T1_HoldHero, "action", "YOUR ACTION",
         "Press and hold the glowing Hero card to inspect it.", false);
@@ -127,12 +211,26 @@ function vv_tutorial_after_advance() {
     if (!tutorial_mode) return;
     if (turn_number == 1) vv_tutorial_set_state(TutorialStep.T1_Step2Result, "result", "RESULT",
         "Area 1 was empty, so no Minion advanced or escaped.", true);
+    else if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_CorgiAdvanceResult, "result", "RESULT",
+        "Corgi moved to Area 2. A Minion in Area 2 escapes only when Area 1 pushes it out.", true);
+}
+
+function vv_tutorial_after_turn_end() {
+    if (!tutorial_mode) return;
+    if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_StartTurn, "action", "YOUR ACTION",
+        "Tap START TURN to begin Turn 2.", false);
 }
 
 function vv_tutorial_after_enemy_entry(_minion) {
     if (!tutorial_mode) return;
     if (turn_number == 1 && _minion.id == "corgi") vv_tutorial_set_state(TutorialStep.T1_CorgiEntryResult,
         "result", "RESULT", "Corgi entered Area 1 and attacked. Your Build was empty, so no Hero was lost.", true);
+}
+
+function vv_tutorial_after_enemy_phase() {
+    if (!tutorial_mode) return;
+    if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_RedPandaAttackResult, "result", "RESULT",
+        "Red Panda attacked for 8 and defeated the two remaining Heroes. Enemy Attack is spent only on full defeats.", true);
 }
 
 function vv_tutorial_after_build_move() {
@@ -142,12 +240,29 @@ function vv_tutorial_after_build_move() {
         if (filled == 1) vv_tutorial_set_state(TutorialStep.T1_DragHero2, "action", "YOUR ACTION", "Drag the next Hero into the glowing Build space.", false);
         else if (filled == 2) vv_tutorial_set_state(TutorialStep.T1_DragHero3, "action", "YOUR ACTION", "Drag the final Hero into the glowing Build space.", false);
         else if (filled == 3) vv_tutorial_set_state(TutorialStep.T1_BuildReady, "action", "YOUR ACTION", "Your Build has 11 Attack. Tap DONE BUILDING.", false);
+    } else if (turn_number == 2) {
+        var filled2 = count_occupied_build();
+        if (filled2 == 1) vv_tutorial_set_state(TutorialStep.T2_Rebuild2, "action", "YOUR ACTION", "Add the second Guard card.", false);
+        else if (filled2 == 2) vv_tutorial_set_state(TutorialStep.T2_Rebuild3, "action", "YOUR ACTION", "Add Fortress to complete the protected Build.", false);
+        else if (filled2 == 3) vv_tutorial_set_state(TutorialStep.T2_BuildReady, "action", "YOUR ACTION", "This Build has 6 Attack. Tap DONE BUILDING.", false);
     }
 }
 
 function vv_tutorial_after_attack_started() {
     if (tutorial_mode && turn_number == 1) vv_tutorial_set_state(TutorialStep.T1_AttackLeader, "action", "YOUR ACTION",
         "Corgi needs 8 Attack, but first learn to strike the Leader. Tap the glowing Leader.", false);
+    else if (tutorial_mode && turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_NotEnoughAttack, "action", "YOUR ACTION",
+        "You have 6 Attack. Tap either Minion to see why it cannot be defeated.", false);
+}
+
+function vv_tutorial_after_failed_minion_attack() {
+    if (tutorial_mode && turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_DoneAttacking, "action", "YOUR ACTION",
+        "Your 6 Attack was not spent. Tap DONE ATTACKING, then confirm that you want to keep it unused.", false);
+}
+
+function vv_tutorial_after_attack_complete() {
+    if (tutorial_mode && turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_BothMinionsRemainResult, "result", "RESULT",
+        "Corgi and Red Panda survive because neither could be fully defeated.", true);
 }
 
 function vv_tutorial_after_leader_attack() {
@@ -253,9 +368,9 @@ function vv_tutorial_configure_match() {
         vv_tutorial_take_player_card(player_deck, "goblin", "Normal"),
         vv_tutorial_take_player_card(player_deck, "skeleton", "Normal"),
         vv_tutorial_take_player_card(player_deck, "orc", "Normal"),
+        vv_tutorial_take_player_card(player_deck, "orc", "Special"),
         vv_tutorial_take_player_card(player_deck, "orc", "Ability"),
-        vv_tutorial_take_player_card(player_deck, "orc", "Ability"),
-        vv_tutorial_take_player_card(player_deck, "orc", "Special")
+        vv_tutorial_take_player_card(player_deck, "orc", "Ability")
     ];
     for (var later_i = 0; later_i < array_length(later_cards); later_i++) {
         if (!is_undefined(later_cards[later_i])) array_push(player_deck, later_cards[later_i]);

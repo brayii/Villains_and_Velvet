@@ -126,6 +126,20 @@ function ui_draw_guided_coach() {
     } else if (tutorial_step == TutorialStep.T1_AttackLeader) {
         array_push(target_rects, leader_rect);
         show_leader_target = true;
+    } else if (tutorial_step == TutorialStep.T2_StartTurn
+    || tutorial_step == TutorialStep.T2_BuildReady
+    || tutorial_step == TutorialStep.T2_DoneAttacking
+    || tutorial_step == TutorialStep.T2_EndResult) {
+        array_push(target_rects, action_rect);
+    } else if (tutorial_step == TutorialStep.T2_Rebuild1
+    || tutorial_step == TutorialStep.T2_Rebuild2
+    || tutorial_step == TutorialStep.T2_Rebuild3) {
+        var guide_slot2 = count_occupied_build();
+        array_push(target_rects, hand_rects[guide_slot2]);
+        array_push(target_rects, build_rects[guide_slot2]);
+    } else if (tutorial_step == TutorialStep.T2_NotEnoughAttack) {
+        if (!is_undefined(minions[0])) array_push(target_rects, minion_rects[0]);
+        if (!is_undefined(minions[1])) array_push(target_rects, minion_rects[1]);
     } else if (phase == "step1_ready") {
         array_push(target_rects, action_rect);
     } else if (tutorial_entry_notice_timer > 0) {

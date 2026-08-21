@@ -585,6 +585,7 @@ function draw_next_enemy_card() {
         revealed_enemy_card = enemy_card;
         revealed_enemy_draw_number = enemy_draw_number;
         array_push(enemy_used, enemy_card);
+        if (vv_tutorial_pause_event_card(enemy_card)) return;
         resolve_leader_strike(enemy_card);
         resume_action = "continue_enemy_draw";
         resume_after_prompts();
@@ -592,6 +593,7 @@ function draw_next_enemy_card() {
         revealed_enemy_card = enemy_card;
         revealed_enemy_draw_number = enemy_draw_number;
         array_push(enemy_used, enemy_card);
+        if (vv_tutorial_pause_event_card(enemy_card)) return;
         resolve_twist(enemy_card);
         if (resume_action != "continue_full_assault") resume_action = "continue_enemy_draw";
         resume_after_prompts();

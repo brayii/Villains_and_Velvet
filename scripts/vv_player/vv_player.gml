@@ -192,7 +192,7 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
 
 function command_attack_minion(_index) {
     if (phase != "attack" || _index < 0 || _index > 1 || is_undefined(minions[_index])) return false;
-    if (tutorial_mode && (turn_number < 3 || !tutorial_escape_seen)) {
+    if (tutorial_mode && turn_number == 1) {
         log_add("Training: leave the Minions in place to learn how escaping works.");
         return false;
     }
@@ -216,6 +216,7 @@ function command_attack_minion(_index) {
         log_add("You need " + string(minions[_index].hp) + " Attack to defeat "
             + minions[_index].name + ", but you only have " + string(attack_left)
             + ". Your Attack was not spent.");
+        vv_tutorial_after_failed_minion_attack();
     }
     validate_state("Player attacks Minion");
     if (attack_left <= 0 && !game_over) show_attack_completion("ALL ATTACK USED", "Attack step complete.");
