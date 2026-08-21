@@ -162,6 +162,7 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
     if (_target_area != "hand" && _target_area != "build") return false;
     if (_source_index < 0 || _source_index >= 3 || _target_index < 0 || _target_index >= 3) return false;
     if (_source_area == _target_area) return false;
+    if (!vv_tutorial_build_drop_allowed(_source_area, _source_index, _target_area, _target_index)) return false;
 
     var source_card = _source_area == "hand" ? hand[_source_index] : build[_source_index];
     if (is_undefined(source_card)) return false;
@@ -185,6 +186,7 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
         log_add("Swapped " + source_card.name + " with " + target_card.name + ".");
     }
     validate_state("Card drag and drop");
+    vv_tutorial_after_build_move();
     return true;
 }
 
@@ -249,6 +251,7 @@ function command_attack_leader() {
     enemy_ai_baseline_record_leader_damage(actual_damage);
     attack_left = 0;
     log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
+    vv_tutorial_after_leader_attack();
     if (leader_hp == 0) {
         enemy_ai_conditional_learning_finish_attack();
         enemy_ai_reward_finish_player_response(-1);

@@ -31,6 +31,7 @@ function resume_after_prompts() {
         auto_timer = tutorial_mode && !is_undefined(minions[0]) ? 110 : (completed_escape ? 100 : 50);
         log_add("Next: Enemy Draw.");
         validate_state("Advance/Escape complete");
+        vv_tutorial_after_advance();
     } else if (action == "continue_enemy_draw") {
         phase = "enemy_event_reveal_wait";
         // The first event stays up long enough to read its one-time instruction.
@@ -55,6 +56,7 @@ function do_step_1() {
     log_add("— TURN " + string(turn_number) + " —");
     log_add("Step 1 — Draw three Player cards.");
     draw_player_hand();
+    vv_tutorial_after_player_draw();
     step_number = 2;
     phase = "step2_ready";
     auto_timer = 50;
@@ -111,6 +113,7 @@ function begin_attack() {
         copy_build_snapshot(build), attack_left, minions);
     attack_finish_confirm = false;
     phase = "attack";
+    vv_tutorial_after_attack_started();
     log_add("Step 5 — Player Attack: " + string(attack_left) + ".");
     if (attack_left <= 0) show_attack_completion("NO ATTACK AVAILABLE", "Attack step skipped.");
 }
@@ -177,6 +180,7 @@ function finish_turn() {
 
 function command_action() {
     if (game_over || prompt_mode != "") return false;
+    if (!vv_tutorial_action_allowed()) return false;
     if (phase == "step1_ready") do_step_1();
     else if (phase == "step2_ready") do_step_2();
     else if (phase == "step3_ready") do_step_3();

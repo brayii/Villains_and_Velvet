@@ -512,6 +512,7 @@ function resolve_minion_entry(_minion) {
     entry_ability_index = 0;
     entry_has_attack_pattern = false;
     continue_minion_entry();
+    vv_tutorial_after_enemy_entry(_minion);
 }
 
 function resolve_leader_strike(_card) {

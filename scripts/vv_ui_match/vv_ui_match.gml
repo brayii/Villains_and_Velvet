@@ -109,7 +109,24 @@ function ui_draw_guided_coach() {
     if (tutorial_step == TutorialStep.Intro) return;
     var target_rects = [];
     var show_leader_target = false;
-    if (phase == "step1_ready") {
+    if (tutorial_step == TutorialStep.T1_StartTurn
+    || tutorial_step == TutorialStep.T1_InspectClose
+    || tutorial_step == TutorialStep.T1_CorgiReveal
+    || tutorial_step == TutorialStep.T1_BuildReady
+    || tutorial_step == TutorialStep.T1_EndResult) {
+        array_push(target_rects, action_rect);
+    } else if (tutorial_step == TutorialStep.T1_HoldHero) {
+        array_push(target_rects, hand_rects[0]);
+    } else if (tutorial_step == TutorialStep.T1_DragHero1
+    || tutorial_step == TutorialStep.T1_DragHero2
+    || tutorial_step == TutorialStep.T1_DragHero3) {
+        var guide_slot = count_occupied_build();
+        array_push(target_rects, hand_rects[guide_slot]);
+        array_push(target_rects, build_rects[guide_slot]);
+    } else if (tutorial_step == TutorialStep.T1_AttackLeader) {
+        array_push(target_rects, leader_rect);
+        show_leader_target = true;
+    } else if (phase == "step1_ready") {
         array_push(target_rects, action_rect);
     } else if (tutorial_entry_notice_timer > 0) {
         array_push(target_rects, minion_rects[1]);
@@ -194,6 +211,7 @@ function vv_ui_handle_input() {
         if (pointer_pressed) {
             card_popup = undefined;
             card_popup_type = "";
+            vv_tutorial_card_inspected(false);
         }
         return;
     }
@@ -300,11 +318,11 @@ function vv_ui_handle_input() {
                 pointer_card_value = undefined;
                 pointer_hold_frames = 0;
                 vv_settings_mark_hint("inspect");
+                vv_tutorial_card_inspected(true);
                 return;
             }
         }
         if (pointer_held && phase == "build" && prompt_mode == ""
-        && !(tutorial_mode && turn_number > 1)
         && (pointer_card_type == "hand" || pointer_card_type == "build")) {
             if (pointer_max_distance >= drag_threshold && !drag_active) {
                 drag_active = true;
