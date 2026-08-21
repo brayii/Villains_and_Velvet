@@ -2,7 +2,7 @@
 
 function vv_settings_defaults() {
     return {
-        settings_version: 8,
+        settings_version: 9,
         enemy_targeting_mode: "auto",
         audio_enabled: true,
         guided_tutorial_complete: false,
@@ -51,7 +51,7 @@ function vv_settings_decode(_text) {
             upgraded:version != defaults.settings_version,
             enemy_auto_play:mode == "auto",
             audio_enabled:version >= 3 && variable_struct_exists(loaded, "audio_enabled") ? loaded.audio_enabled : true,
-            guided_tutorial_complete:version >= 8
+            guided_tutorial_complete:version >= 9
                 && variable_struct_exists(loaded, "guided_tutorial_complete")
                 ? loaded.guided_tutorial_complete : false,
             hint_turn_steps:version >= 4 && variable_struct_exists(loaded, "hint_turn_steps") ? loaded.hint_turn_steps : false,
@@ -68,7 +68,7 @@ function vv_settings_decode(_text) {
 
 function vv_settings_init() {
     settings_filename = "villains_and_velvet_settings.json";
-    settings_version = 8;
+    settings_version = 9;
     settings_dirty = true;
     enemy_auto_play = true;
     audio_enabled = true;

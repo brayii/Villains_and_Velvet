@@ -790,15 +790,16 @@ function enemy_ai_choose_hand_target(_attack_remaining) {
 
 function enemy_ai_schedule_current_target() {
     var targets_hand = prompt_mode == "enemy_attack_hand";
-    if (!enemy_auto_play || (prompt_mode != "enemy_attack" && !targets_hand) || setup_active
+    if ((!enemy_auto_play && !tutorial_mode) || (prompt_mode != "enemy_attack" && !targets_hand) || setup_active
     || game_over || match_menu_active || enemy_ai_visual_stage != "") return false;
 
     var current_state = {
         build_snapshot: copy_build_snapshot(build),
         attack_remaining: prompt_value
     };
-    var selected_slot = targets_hand
-        ? enemy_ai_choose_hand_target(prompt_value) : enemy_ai_choose_target(current_state);
+    var selected_slot = targets_hand ? enemy_ai_choose_hand_target(prompt_value)
+        : vv_tutorial_enemy_target(current_state.build_snapshot, prompt_value, prompt_source);
+    if (selected_slot < 0 && !targets_hand) selected_slot = enemy_ai_choose_target(current_state);
     if (selected_slot < 0) {
         return targets_hand ? command_end_enemy_hand_attack_if_blocked()
             : command_end_enemy_attack_if_blocked();
@@ -870,7 +871,8 @@ function enemy_ai_update_auto_targeting() {
         if (enemy_ai_visual_timer <= 0) enemy_ai_cancel_pending_targeting();
         return true;
     }
-    if (enemy_auto_play && (prompt_mode == "enemy_attack" || prompt_mode == "enemy_attack_hand")) {
+    if ((enemy_auto_play || tutorial_mode)
+    && (prompt_mode == "enemy_attack" || prompt_mode == "enemy_attack_hand")) {
         enemy_ai_schedule_current_target();
         return true;
     }

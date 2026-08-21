@@ -107,6 +107,7 @@ function prompt_build_is_legal(_index) {
 
 function destroy_build_card(_index, _source) {
     if (is_undefined(build[_index])) return;
+    vv_tutorial_note_destroyed_build_card(build[_index]);
     log_add(build[_index].name + " destroyed by " + _source + ".");
     array_push(player_discard, build[_index]);
     build[_index] = undefined;
@@ -346,10 +347,12 @@ function command_end_enemy_hand_attack_if_blocked() {
 }
 
 function heal_leader(_amount) {
+    var heal_before = leader_hp;
     var healing_room = enemy_leader.max_hp - leader_hp;
     var healed = min(_amount, healing_room);
     var overflow = _amount - healed;
     leader_hp += healed;
+    vv_tutorial_note_leader_heal(heal_before, leader_hp);
     log_add("Leader heals " + string(healed) + " HP (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
     if (overflow > 0) {
         log_add(string(overflow) + " excess healing becomes Overflow Attack.");
@@ -648,6 +651,7 @@ function command_prompt_build(_index) {
     if (prompt_mode == "enemy_attack") {
         enemy_ai_baseline_record_destroyed_card(copy_build_snapshot(build), _index);
         prompt_value -= card_enemy_destruction_cost(build[_index]);
+        vv_tutorial_note_enemy_attack_remaining(prompt_value);
         destroy_build_card(_index, "enemy Attack");
         if (prompt_value > 0 && enemy_has_legal_target(prompt_value)) {
             log_add(string(prompt_value) + " Attack remains. Choose another highlighted target.");

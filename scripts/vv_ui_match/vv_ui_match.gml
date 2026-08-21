@@ -107,6 +107,7 @@ function ui_draw_guided_target(_rect) {
 function ui_draw_guided_coach() {
     if (!tutorial_mode || tutorial_complete_prompt) return;
     if (tutorial_step == TutorialStep.Intro) return;
+    if (tutorial_pause || tutorial_message_kind == "watch") return;
     var target_rects = [];
     var show_leader_target = false;
     if (tutorial_step == TutorialStep.T1_StartTurn
@@ -129,6 +130,7 @@ function ui_draw_guided_coach() {
     } else if (tutorial_step == TutorialStep.T2_StartTurn
     || tutorial_step == TutorialStep.T2_BuildReady
     || tutorial_step == TutorialStep.T2_DoneAttacking
+    || tutorial_step == TutorialStep.T2_ConfirmEnd
     || tutorial_step == TutorialStep.T2_EndResult) {
         array_push(target_rects, action_rect);
     } else if (tutorial_step == TutorialStep.T2_Rebuild1
@@ -253,7 +255,7 @@ function vv_ui_handle_input() {
         return;
     }
 
-    if (pointer_pressed && !setup_active && !game_over && !match_menu_active
+    if (pointer_pressed && !tutorial_mode && !setup_active && !game_over && !match_menu_active
     && point_in_rect(pointer_x, pointer_y, auto_toggle_hit_rect())) {
         vv_settings_toggle_enemy_auto();
         return;
@@ -299,6 +301,8 @@ function vv_ui_handle_input() {
         }
         return;
     }
+
+    if (vv_tutorial_blocks_player_input()) return;
 
     if (!setup_active && !game_over && pointer_pressed) {
         if (phase == "build" && selected_hand >= 0) {
@@ -534,14 +538,15 @@ function draw_card_popup() {
 }
 
 function draw_auto_checkbox(_rect) {
+    var auto_display = tutorial_mode || enemy_auto_play;
     draw_set_alpha(0.28);
     draw_set_color(COL_PANEL);
     draw_rectangle(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, false);
     draw_set_alpha(0.85);
-    draw_set_color(enemy_auto_play ? COL_ACCENT : COL_EDGE);
+    draw_set_color(auto_display ? COL_ACCENT : COL_EDGE);
     draw_rectangle(_rect.x, _rect.y, _rect.x + _rect.w, _rect.y + _rect.h, true);
     draw_set_alpha(1);
-    if (enemy_auto_play) {
+    if (auto_display) {
         draw_set_color(COL_ACCENT);
         draw_line_width(_rect.x + 11, _rect.y + 24,
             _rect.x + 20, _rect.y + 33, 4);
@@ -551,7 +556,8 @@ function draw_auto_checkbox(_rect) {
     draw_set_halign(fa_left);
     draw_set_valign(fa_middle);
     draw_set_color(COL_TEXT);
-    draw_text(_rect.x + _rect.w + 8, _rect.y + _rect.h / 2, "AUTO");
+    draw_text(_rect.x + _rect.w + 8, _rect.y + _rect.h / 2,
+        tutorial_mode ? "TRAINING" : "AUTO");
 }
 
 function draw_escape_portal() {
@@ -638,7 +644,7 @@ for (var build_i = 0; build_i < 3; build_i++) {
         || (phase == "build" && prompt_mode == "" && selected_hand >= 0)
         || ui_drag_target_is_legal("build", build_i);
     var visible_build_card = ui_drag_hides_card("build", build_i) ? undefined : build[build_i];
-    var auto_selected = enemy_auto_play && enemy_ai_visual_stage == "targeting"
+    var auto_selected = (enemy_auto_play || tutorial_mode) && enemy_ai_visual_stage == "targeting"
         && enemy_ai_pending_zone == "build"
         && enemy_ai_selected_slot == build_i;
     draw_card(visible_build_card, ui_card_visual_rect("build", build_i, build_rects[build_i]),
@@ -653,7 +659,7 @@ for (var hand_i = 0; hand_i < 3; hand_i++) {
         || (prompt_mode == "enemy_attack_hand" && enemy_hand_target_is_legal(hand_i, prompt_value)));
     legal_hand = legal_hand || ui_drag_target_is_legal("hand", hand_i);
     if (ui_drag_hides_card("hand", hand_i)) hand_card = undefined;
-    var auto_hand_selected = enemy_auto_play && enemy_ai_visual_stage == "targeting"
+    var auto_hand_selected = (enemy_auto_play || tutorial_mode) && enemy_ai_visual_stage == "targeting"
         && enemy_ai_pending_zone == "hand" && enemy_ai_selected_slot == hand_i;
     draw_card(hand_card, ui_card_visual_rect("hand", hand_i, hand_rects[hand_i]),
         selected_hand == hand_i || auto_hand_selected, legal_hand);
@@ -736,9 +742,9 @@ else if (phase == "enemy_event_reveal_wait") instruction = "Enemy Event resolved
 else if (phase == "enemy_event_gap_wait") instruction = "Drawing the next Enemy card...";
 if (prompt_mode == "enemy_attack") {
     instruction = prompt_source + "\nAttack remaining: " + string(prompt_value) + "\n"
-        + (enemy_auto_play && enemy_ai_visual_stage == "targeting"
+        + ((enemy_auto_play || tutorial_mode) && enemy_ai_visual_stage == "targeting"
             ? "Target: " + build[enemy_ai_selected_slot].name
-            : (enemy_auto_play ? "Enemy is choosing a target."
+            : ((enemy_auto_play || tutorial_mode) ? "Enemy is choosing a target."
             : (build_has_priority() ? "Choose a highlighted Guard or Fortress." : "Choose a card this Attack can defeat.")));
 }
 if (prompt_mode == "enemy_attack_hand") {
@@ -748,8 +754,13 @@ if (prompt_mode == "enemy_attack_hand") {
             : (enemy_auto_play ? "Enemy is choosing a Hand target."
             : "Choose a Hand card this Attack can defeat."));
 }
-if (enemy_auto_play && enemy_ai_visual_stage == "result") {
+if ((enemy_auto_play || tutorial_mode) && enemy_ai_visual_stage == "result") {
     instruction = enemy_ai_result_heading + "\n" + enemy_ai_result_text;
+}
+if (tutorial_mode && !tutorial_pause && tutorial_heading != "") {
+    instruction = tutorial_heading + "\n" + tutorial_body;
+    if (prompt_mode == "enemy_attack") instruction += "\n\n" + prompt_source
+        + "\nAttack remaining: " + string(prompt_value);
 }
 var phase_names = [
     "DRAW CARDS", "ADVANCE / ESCAPE", "ENEMY DRAW / ATTACK", "BUILD",
@@ -856,7 +867,7 @@ var action_draw_rect = action_press_timer > 0
     : action_rect;
 draw_panel(action_draw_rect, button_fill, button_outline);
 var button_text = "";
-if (enemy_auto_play && enemy_ai_visual_stage == "result") button_text = "ATTACK RESOLVED";
+if ((enemy_auto_play || tutorial_mode) && enemy_ai_visual_stage == "result") button_text = "ATTACK RESOLVED";
 else if (prompt_mode == "enemy_attack" && enemy_auto_play) button_text = "ENEMY TARGETING...";
 else if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
@@ -902,6 +913,13 @@ if (tutorial_mode && tutorial_pause && !tutorial_complete_prompt) {
         draw_panel(begin_rect, COL_ACCENT, COL_TEXT);
         draw_center("BEGIN TRAINING", 640, begin_rect.y + begin_rect.h / 2, COL_BG);
     } else {
+        if (tutorial_message_kind == "read" && !is_undefined(revealed_enemy_card)) {
+            draw_set_alpha(0.55);
+            draw_set_color(COL_BG);
+            draw_rectangle(225, 70, 965, 650, false);
+            draw_set_alpha(1);
+            draw_enemy_reveal(revealed_enemy_card, {x:475, y:80, w:330, h:510});
+        }
         var lesson_panel = {x:985, y:198, w:280, h:190};
         draw_glass_panel(lesson_panel, make_color_rgb(24, 33, 46), COL_GOLD, 0.94);
         vv_ui_set_font(UI_FONT_SMALL);

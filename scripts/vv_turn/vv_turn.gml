@@ -143,6 +143,7 @@ function complete_attack_step() {
 function finish_attack() {
     if (attack_left > 0 && !attack_finish_confirm) {
         attack_finish_confirm = true;
+        vv_tutorial_after_attack_confirmation();
         return;
     }
     complete_attack_step();
@@ -158,6 +159,7 @@ function do_step_6() {
     phase = "end_ready";
     auto_timer = 40;
     log_add("Discard complete. Ending turn.");
+    vv_tutorial_after_hand_discard();
 }
 
 function finish_turn() {

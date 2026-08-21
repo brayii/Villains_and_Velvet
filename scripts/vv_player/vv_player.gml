@@ -206,12 +206,13 @@ function command_attack_minion(_index) {
     && (tutorial_step != TutorialStep.T3_AttackBunny || minions[_index].id != "bunny")) return false;
     attack_finish_confirm = false;
     if (attack_left >= minions[_index].hp) {
-        attack_left -= minions[_index].hp;
+        var defeat_cost = minions[_index].hp;
+        attack_left -= defeat_cost;
         var defeated_name = minions[_index].name;
         enemy_ai_conditional_learning_note_minion_defeated();
         retire_minion(_index, "is defeated");
         if (tutorial_mode) tutorial_minion_defeated = true;
-        vv_tutorial_after_minion_defeated();
+        vv_tutorial_after_minion_defeated(defeat_cost);
         if (kill_bonus > 0) {
             attack_left += kill_bonus;
             log_add("Defeating " + defeated_name + " activates your card abilities: +"
@@ -257,7 +258,7 @@ function command_attack_leader() {
     enemy_ai_baseline_record_leader_damage(actual_damage);
     attack_left = 0;
     log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
-    vv_tutorial_after_leader_attack();
+    vv_tutorial_after_leader_attack(damage);
     if (leader_hp == 0) {
         enemy_ai_conditional_learning_finish_attack();
         enemy_ai_reward_finish_player_response(-1);

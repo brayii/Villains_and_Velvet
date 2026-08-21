@@ -1,5 +1,7 @@
 // Automatic progress pauses for the full card gesture, including the first touch.
 vv_ai_data_update();
+// Tutorial reading pauses rules, not the escape/card feedback being explained.
+if (vv_tutorial_blocks_automatic_progress()) vv_feedback_update();
 var card_gesture_active = !is_undefined(card_popup)
     || pointer_card_down;
 var opening_match_menu = false;
