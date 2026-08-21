@@ -15,6 +15,11 @@ available_heroes = make_hero_definitions();
 content_registry_validation = validate_content_registries(
     available_leaders, available_scenarios, available_minion_sets, available_heroes);
 if (content_registry_validation.valid) {
+    var tutorial_self_checks = vv_tutorial_run_self_checks(
+        available_leaders, available_scenarios, available_minion_sets, available_heroes);
+    if (!tutorial_self_checks.valid) content_registry_validation = tutorial_self_checks;
+}
+if (content_registry_validation.valid) {
     var ai_release_self_checks = enemy_ai_run_release_self_checks();
     if (!ai_release_self_checks.valid) content_registry_validation = ai_release_self_checks;
 }

@@ -123,6 +123,7 @@ function vv_tutorial_continue() {
                 "Tap ENEMY DRAW to reveal the first enemy.", false);
             return true;
         case TutorialStep.T1_CorgiEntryResult:
+            begin_build();
             vv_tutorial_set_state(TutorialStep.T1_DragHero1, "action", "YOUR ACTION",
                 "Drag the glowing Hero into the glowing Build space.", false);
             return true;
@@ -509,6 +510,42 @@ function vv_tutorial_target_hp() {
         if (!is_undefined(minions[minion_i])) return minions[minion_i].hp;
     }
     return 0;
+}
+
+function vv_tutorial_run_self_checks(_leaders, _scenarios, _minion_sets, _heroes) {
+    var profile = vv_tutorial_profile();
+    var leader_i = vv_tutorial_find_content_index(_leaders, profile.leader_id);
+    var scenario_i = vv_tutorial_find_content_index(_scenarios, profile.scenario_id);
+    var set_i = vv_tutorial_find_content_index(_minion_sets, profile.minion_set_id);
+    if (leader_i < 0 || scenario_i < 0 || set_i < 0
+    || !validate_hero_selection(_heroes, profile.hero_ids)) {
+        return content_validation_result(false, "Tutorial content selection check failed.");
+    }
+    var goblin = find_hero_definition(_heroes, "goblin");
+    var skeleton = find_hero_definition(_heroes, "skeleton");
+    var orc = find_hero_definition(_heroes, "orc");
+    if (is_undefined(goblin) || is_undefined(skeleton) || is_undefined(orc)
+    || goblin.normal.atk != 5 || goblin.normal.hp != 3
+    || skeleton.normal.atk != 4 || skeleton.normal.hp != 4
+    || orc.ability.atk != 2 || orc.ability.hp != 6
+    || orc.special.atk != 2 || orc.special.hp != 8) {
+        return content_validation_result(false, "Tutorial Hero sequence check failed.");
+    }
+    var set_cards = _minion_sets[set_i].minion_slots;
+    var bunny_ok = false, corgi_ok = false, panda_ok = false;
+    for (var slot_i = 0; slot_i < array_length(set_cards); slot_i++) {
+        var minion = set_cards[slot_i].card;
+        if (minion.id == "bunny") bunny_ok = minion.atk == 4 && minion.hp == 6;
+        if (minion.id == "corgi") corgi_ok = minion.atk == 6 && minion.hp == 8;
+        if (minion.id == "red_panda") panda_ok = minion.atk == 8 && minion.hp == 10;
+    }
+    if (!bunny_ok || !corgi_ok || !panda_ok
+    || _leaders[leader_i].leader_strikes[0].card.id != "direct_assault"
+    || _scenarios[scenario_i].twists[0].card.id != "reinforcements"
+    || TutorialStep.Complete <= TutorialStep.T3_EndResult) {
+        return content_validation_result(false, "Tutorial Enemy sequence check failed.");
+    }
+    return content_validation_result(true, "");
 }
 
 function vv_tutorial_complete() {
