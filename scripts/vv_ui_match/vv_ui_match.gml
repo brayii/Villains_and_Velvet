@@ -653,9 +653,10 @@ draw_card(vv_feedback_hides_minion(0) ? undefined : minions[0],
 if (!is_undefined(revealed_enemy_card)) {
     if (!vv_feedback_hides_minion(1)) draw_enemy_reveal(revealed_enemy_card,
         ui_card_visual_rect("reveal", 0, minion_rects[1]));
-} else draw_card(minions[1], ui_card_visual_rect("minion", 1, minion_rects[1]), false, false);
+} else draw_card(vv_feedback_hides_minion(1) ? undefined : minions[1],
+    ui_card_visual_rect("minion", 1, minion_rects[1]), false, false);
 draw_center_shadow("←", 755, 186, COL_ACCENT);
-    if (vv_feedback_has_fx_kind("escape")) draw_escape_portal();
+    if (vv_feedback_has_fx_kind("escape") || vv_feedback_has_fx_kind("tutorial_push")) draw_escape_portal();
 
 // Build and Hand.
 draw_center_shadow("BUILD AREA", 640, 297, COL_MUTED);
