@@ -1,5 +1,26 @@
 /// Controlled first-battle training. Normal setup selections are restored afterward.
 
+enum TutorialStep {
+    Intro, T1_StartTurn, T1_HoldHero, T1_InspectOpen, T1_InspectClose,
+    T1_Step2Watch, T1_Step2Result, T1_CorgiReveal, T1_CorgiEntryWatch,
+    T1_CorgiEntryResult, T1_DragHero1, T1_DragHero2, T1_DragHero3,
+    T1_BuildReady, T1_AttackLeader, T1_AttackLeaderResult, T1_DiscardResult,
+    T1_EndResult, T2_StartTurn, T2_DrawResult, T2_CorgiAdvanceWatch,
+    T2_CorgiAdvanceResult, T2_DirectAssaultRead, T2_DirectAssaultWatch,
+    T2_DirectAssaultResult, T2_EventDrawRule, T2_RedPandaEntryWatch,
+    T2_RedPandaAttackWatch, T2_RedPandaAttackResult, T2_Rebuild1,
+    T2_Rebuild2, T2_Rebuild3, T2_BuildReady, T2_NotEnoughAttack,
+    T2_DoneAttacking, T2_ConfirmEnd, T2_BothMinionsRemainResult,
+    T2_EndResult, T3_StartTurn, T3_PreEscapeReason, T3_AdvanceWatch,
+    T3_Area2Full, T3_PushWatch, T3_EscapeResult, T3_EscapeEffectRead,
+    T3_EscapeEffectWatch, T3_EscapeEffectResult, T3_AdvanceResult,
+    T3_ReinforcementsRead, T3_ReinforcementsWatch, T3_ReinforcementsResult,
+    T3_EventDrawReminder, T3_BunnyEntryWatch, T3_BunnyAttackWatch,
+    T3_BunnyAttackResult, T3_Rebuild, T3_BuildReady, T3_AttackBunny,
+    T3_AttackBunnyResult, T3_AttackLeader, T3_AttackLeaderResult,
+    T3_DiscardWatch, T3_DiscardResult, T3_EndResult, Complete
+}
+
 function vv_tutorial_profile() {
     return {
         leader_id:"velvet_queen",
@@ -21,6 +42,34 @@ function vv_tutorial_init() {
     tutorial_complete_prompt = false;
     tutorial_entry_notice_timer = 0;
     tutorial_move_notice_timer = 0;
+    tutorial_step = TutorialStep.Intro;
+    tutorial_pause = false;
+    tutorial_heading = "";
+    tutorial_body = "";
+    tutorial_message_kind = "";
+}
+
+function vv_tutorial_set_state(_step, _kind, _heading, _body, _pause) {
+    tutorial_step = _step;
+    tutorial_message_kind = _kind;
+    tutorial_heading = _heading;
+    tutorial_body = _body;
+    tutorial_pause = _pause;
+}
+
+function vv_tutorial_blocks_automatic_progress() {
+    return tutorial_mode && tutorial_pause;
+}
+
+function vv_tutorial_continue() {
+    if (!tutorial_mode || !tutorial_pause) return false;
+    switch (tutorial_step) {
+        case TutorialStep.Intro:
+            vv_tutorial_set_state(TutorialStep.T1_StartTurn, "action", "YOUR ACTION",
+                "Tap START TURN to draw\n3 Hero cards.", false);
+            return true;
+    }
+    return false;
 }
 
 function vv_tutorial_find_content_index(_registry, _content_id) {
@@ -124,6 +173,8 @@ function vv_tutorial_configure_match() {
     tutorial_complete_prompt = false;
     tutorial_entry_notice_timer = 0;
     tutorial_move_notice_timer = 0;
+    vv_tutorial_set_state(TutorialStep.Intro, "result", "GUIDED TRAINING",
+        "This battle teaches the turn\none step at a time.\n\nFollow the highlighted action.\n\nWATCH means the game is showing\nyou something automatically.\n\nNothing will advance while you\nare reading a training message.", true);
 }
 
 function vv_tutorial_target_hp() {

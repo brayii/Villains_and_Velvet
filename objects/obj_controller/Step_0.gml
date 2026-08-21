@@ -15,5 +15,5 @@ if (!card_gesture_active && !setup_active && !game_over
 }
 
 if (!card_gesture_active && !match_menu_active && !opening_match_menu
-&& !toggling_auto) vv_turn_update();
+&& !toggling_auto && !vv_tutorial_blocks_automatic_progress()) vv_turn_update();
 vv_ui_handle_input();

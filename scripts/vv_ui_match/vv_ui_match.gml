@@ -106,6 +106,7 @@ function ui_draw_guided_target(_rect) {
 
 function ui_draw_guided_coach() {
     if (!tutorial_mode || tutorial_complete_prompt) return;
+    if (tutorial_step == TutorialStep.Intro) return;
     var target_rects = [];
     var show_leader_target = false;
     if (phase == "step1_ready") {
@@ -240,6 +241,14 @@ function vv_ui_handle_input() {
             quit_match_confirm = true;
         } else if (point_in_rect(pointer_x, pointer_y, menu_exit_rect)) {
             game_end();
+        }
+        return;
+    }
+
+    if (tutorial_mode && tutorial_pause) {
+        if (pointer_pressed && point_in_rect(pointer_x, pointer_y, tutorial_continue_rect)) {
+            vv_feedback_play(feedback_sound_button);
+            vv_tutorial_continue();
         }
         return;
     }
@@ -822,6 +831,37 @@ if (pointer_card_down && drag_active && !is_undefined(pointer_card_value)) {
 }
 
 draw_card_popup();
+
+if (tutorial_mode && tutorial_pause && !tutorial_complete_prompt) {
+    if (tutorial_step == TutorialStep.Intro) {
+        draw_set_alpha(0.72);
+        draw_set_color(COL_BG);
+        draw_rectangle(0, 0, 1280, ui_canvas_height, false);
+        draw_set_alpha(1);
+        var intro_panel = {x:375, y:115, w:530, h:500};
+        draw_glass_panel(intro_panel, make_color_rgb(24, 33, 46), COL_GOLD, 0.97);
+        vv_ui_set_font(UI_FONT_TITLE);
+        draw_center(tutorial_heading, 640, 165, COL_GOLD);
+        vv_ui_set_font(UI_FONT_BODY);
+        draw_center(tutorial_body, 640, 330, COL_TEXT);
+        var begin_rect = {x:500, y:520, w:280, h:62};
+        tutorial_continue_rect = begin_rect;
+        draw_panel(begin_rect, COL_ACCENT, COL_TEXT);
+        draw_center("BEGIN TRAINING", 640, begin_rect.y + begin_rect.h / 2, COL_BG);
+    } else {
+        var lesson_panel = {x:985, y:198, w:280, h:190};
+        draw_glass_panel(lesson_panel, make_color_rgb(24, 33, 46), COL_GOLD, 0.94);
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_set_color(COL_GOLD);
+        draw_text(1000, 214, tutorial_heading);
+        vv_ui_set_font(UI_FONT_BODY);
+        draw_set_color(COL_TEXT);
+        draw_text_ext(1000, 246, tutorial_body, 19, 250);
+        draw_panel(tutorial_continue_rect, COL_ACCENT, COL_TEXT);
+        draw_center("CONTINUE", tutorial_continue_rect.x + tutorial_continue_rect.w / 2,
+            tutorial_continue_rect.y + tutorial_continue_rect.h / 2, COL_BG);
+    }
+}
 
 if (tutorial_complete_prompt) {
     draw_set_alpha(0.82);

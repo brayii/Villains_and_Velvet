@@ -44,6 +44,7 @@ function vv_ui_init() {
     result_options_rect = {x:490, y:466, w:300, h:54};
     result_exit_rect = {x:490, y:532, w:300, h:54};
     tutorial_real_match_rect = {x:470, y:530, w:340, h:62};
+    tutorial_continue_rect = {x:1000, y:612, w:250, h:62};
     setup_strike_page = 0;
     setup_twist_page = 0;
     setup_advanced_events = false;
