@@ -169,11 +169,13 @@ function vv_tutorial_enemy_target_for(_tutorial_turn, _build_snapshot, _attack_r
     }
     if (_tutorial_turn == 2 && string_pos("Red Panda", _source) > 0) {
         var lowest_i = -1;
-        var lowest_hp = 9999;
+        var lowest_cost = 9999;
         for (var old_i = 0; old_i < array_length(_build_snapshot); old_i++) {
+            var destruction_cost = is_undefined(_build_snapshot[old_i])
+                ? 9999 : card_enemy_destruction_cost(_build_snapshot[old_i]);
             if (enemy_target_is_legal_in_build(_build_snapshot, old_i, _attack_remaining)
-            && _build_snapshot[old_i].hp < lowest_hp) {
-                lowest_hp = _build_snapshot[old_i].hp;
+            && destruction_cost < lowest_cost) {
+                lowest_cost = destruction_cost;
                 lowest_i = old_i;
             }
         }

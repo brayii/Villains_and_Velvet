@@ -88,6 +88,10 @@ function enemy_ai_reward_init_match(_enemy_deck_initial_size) {
 }
 
 function enemy_ai_reward_begin_player_response() {
+    if (tutorial_mode) {
+        enemy_ai_reward_cancel_turn();
+        return;
+    }
     enemy_ai_reward_turn_active = enemy_ai_turn_attack_observation_count > 0
         && enemy_ai_policy_turn_number == turn_number;
     enemy_ai_reward_hp_before = leader_hp;
@@ -167,7 +171,7 @@ function enemy_ai_normalized_cost_delta(_candidate_costs, _chosen_index) {
 }
 
 function enemy_ai_make_decision_record(_current_state, _selected_slot) {
-    if (!ENEMY_AI_PRODUCTION_HEALTH_LEARNING) return undefined;
+    if (tutorial_mode || !ENEMY_AI_PRODUCTION_HEALTH_LEARNING) return undefined;
     var ranked = enemy_ai_rank_build_with_weights(_current_state.build_snapshot,
         enemy_ai_conditional_weight(), enemy_ai_health_weight());
     var candidates = [];
@@ -239,6 +243,11 @@ function enemy_ai_policy_reward_should_update(_meaningful_choice_count) {
 
 /// _terminal_result: +1 Enemy win, -1 Enemy loss, 0 non-terminal.
 function enemy_ai_reward_finish_player_response(_terminal_result) {
+    if (tutorial_mode) {
+        enemy_ai_policy_cancel_turn();
+        enemy_ai_reward_cancel_turn();
+        return false;
+    }
     if (!enemy_ai_reward_measurement_is_eligible(enemy_ai_reward_turn_active,
     enemy_ai_turn_attack_observation_count > 0,
     enemy_ai_reward_turn_number, turn_number)) {
@@ -333,6 +342,10 @@ function enemy_ai_count_exposed_conditional_abilities(_build_snapshot, _attack_a
 }
 
 function enemy_ai_conditional_learning_begin_attack(_build_snapshot, _attack_amount, _minion_snapshot) {
+    if (tutorial_mode) {
+        enemy_ai_conditional_learning_reset_attack();
+        return;
+    }
     conditional_learning_exposed_count = enemy_ai_count_exposed_conditional_abilities(
         _build_snapshot, _attack_amount, _minion_snapshot);
     conditional_learning_activated = false;
@@ -340,6 +353,7 @@ function enemy_ai_conditional_learning_begin_attack(_build_snapshot, _attack_amo
 }
 
 function enemy_ai_conditional_learning_note_minion_defeated() {
+    if (tutorial_mode) return;
     if (conditional_learning_attack_active && conditional_learning_exposed_count > 0) {
         conditional_learning_activated = true;
     }
@@ -359,6 +373,10 @@ _exposures, _activations, _exposed_count, _activated) {
 }
 
 function enemy_ai_conditional_learning_finish_attack() {
+    if (tutorial_mode) {
+        enemy_ai_conditional_learning_reset_attack();
+        return false;
+    }
     if (!conditional_learning_attack_active) return false;
     conditional_learning_attack_active = false;
     if (conditional_learning_exposed_count <= 0) return false;
@@ -650,8 +668,8 @@ _conditional_weight, _health_weight) {
 }
 
 function enemy_ai_candidate_ranks_before(_left, _right) {
-    if (_left.score != _right.score) return _left.score > _right.score;
-    if (_left.guaranteed_threat != _right.guaranteed_threat) {
+    if (!enemy_ai_scores_are_close(_left.score, _right.score)) return _left.score > _right.score;
+    if (!enemy_ai_scores_are_close(_left.guaranteed_threat, _right.guaranteed_threat)) {
         return _left.guaranteed_threat > _right.guaranteed_threat;
     }
     if (_left.destruction_cost != _right.destruction_cost) {
@@ -752,7 +770,7 @@ function enemy_ai_cancel_pending_targeting() {
 function enemy_ai_pending_target_is_current() {
     var targets_hand = enemy_ai_pending_zone == "hand";
     var pending_cards = targets_hand ? hand : build;
-    return enemy_auto_play && !setup_active && !game_over && !match_menu_active
+    return (enemy_auto_play || tutorial_mode) && !setup_active && !game_over && !match_menu_active
         && enemy_ai_visual_stage == "targeting"
         && prompt_mode == (targets_hand ? "enemy_attack_hand" : "enemy_attack")
         && enemy_attack_prompt_id == enemy_ai_pending_prompt_id
@@ -768,11 +786,13 @@ function enemy_ai_pending_target_is_current() {
 
 function enemy_ai_choose_hand_target_in_hand(_hand, _attack_remaining) {
     var selected = -1;
-    var lowest_health = 999999;
+    var lowest_cost = 999999;
     for (var hand_i = 0; hand_i < array_length(_hand); hand_i++) {
+        var destruction_cost = is_undefined(_hand[hand_i])
+            ? 999999 : card_enemy_destruction_cost(_hand[hand_i]);
         if (enemy_hand_target_is_legal_in_hand(_hand, hand_i, _attack_remaining)
-        && _hand[hand_i].hp < lowest_health) {
-            lowest_health = _hand[hand_i].hp;
+        && destruction_cost < lowest_cost) {
+            lowest_cost = destruction_cost;
             selected = hand_i;
         }
     }
@@ -1220,6 +1240,14 @@ function enemy_ai_run_selection_self_checks(_hero_definitions) {
     if (enemy_ai_choose_target_with_weights(state,
     check_conditional_weight, ENEMY_AI_HEALTH_WEIGHT) != 1) {
         return content_validation_result(false, "Enemy AI valid-ranked-fallback check failed.");
+    }
+
+    var protected_low_hp = card_player("test_protected", "Protected", "Ability", 1, 2,
+        [ability_entry("test_cost", "", "", {enemy_destruction_cost_delta:5})], "", "", 0);
+    var plain_higher_hp = card_player("test_plain", "Plain", "Normal", 1, 4,
+        [], "", "", 0);
+    if (enemy_ai_choose_hand_target_in_hand([protected_low_hp, plain_higher_hp], 8) != 1) {
+        return content_validation_result(false, "Enemy AI Hand destruction-cost check failed.");
     }
 
     state.build_snapshot = [undefined, undefined, undefined];

@@ -1,7 +1,10 @@
 {
   "$GMSound":"v2",
   "%Name":"mus_battle_loop",
-  "audioGroupId":{"name":"audiogroup_default","path":"audiogroups/audiogroup_default",},
+  "audioGroupId":{
+    "name":"audiogroup_default",
+    "path":"audiogroups/audiogroup_default",
+  },
   "bitDepth":1,
   "channelFormat":0,
   "compression":0,
@@ -10,11 +13,14 @@
   "duration":33.103447,
   "exportDir":"",
   "name":"mus_battle_loop",
-  "parent":{"name":"Music","path":"folders/Sounds/Music.yy"},
+  "parent":{
+    "name":"Music",
+    "path":"folders/Sounds/Music.yy",
+  },
   "preload":false,
   "resourceType":"GMSound",
   "resourceVersion":"2.0",
   "sampleRate":22050,
   "soundFile":"mus_battle_loop.wav",
-  "volume":1.0
+  "volume":1.0,
 }
