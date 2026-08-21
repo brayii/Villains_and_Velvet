@@ -665,6 +665,30 @@ for (var hand_i = 0; hand_i < 3; hand_i++) {
         selected_hand == hand_i || auto_hand_selected, legal_hand);
 }
 
+var choice_reminder_stage = vv_required_choice_stage();
+if (choice_reminder_stage > 0) {
+    for (var reminder_build_i = 0; reminder_build_i < 3; reminder_build_i++) {
+        if (prompt_build_is_legal(reminder_build_i)) {
+            ui_draw_guided_target(build_rects[reminder_build_i]);
+            if (choice_reminder_stage >= 2) ui_draw_guided_target({
+                x:build_rects[reminder_build_i].x - 5, y:build_rects[reminder_build_i].y - 5,
+                w:build_rects[reminder_build_i].w + 10, h:build_rects[reminder_build_i].h + 10});
+        }
+    }
+    for (var reminder_hand_i = 0; reminder_hand_i < 3; reminder_hand_i++) {
+        var reminder_hand_legal = (prompt_mode == "destroy_hand"
+            && !is_undefined(hand[reminder_hand_i]))
+            || (prompt_mode == "enemy_attack_hand"
+                && enemy_hand_target_is_legal(reminder_hand_i, prompt_value));
+        if (reminder_hand_legal) {
+            ui_draw_guided_target(hand_rects[reminder_hand_i]);
+            if (choice_reminder_stage >= 2) ui_draw_guided_target({
+                x:hand_rects[reminder_hand_i].x - 5, y:hand_rects[reminder_hand_i].y - 5,
+                w:hand_rects[reminder_hand_i].w + 10, h:hand_rects[reminder_hand_i].h + 10});
+        }
+    }
+}
+
 // Presentation-only feedback is drawn after the stable board, so rules and hit targets never move.
 vv_feedback_draw();
 
@@ -757,6 +781,10 @@ if (prompt_mode == "enemy_attack_hand") {
 if ((enemy_auto_play || tutorial_mode) && enemy_ai_visual_stage == "result") {
     instruction = enemy_ai_result_heading + "\n" + enemy_ai_result_text;
 }
+if (choice_reminder_stage > 0) {
+    instruction = (choice_reminder_stage >= 2 ? "ACTION REQUIRED" : "YOUR CHOICE")
+        + "\n" + prompt_source + "\nTap a glowing card to continue.";
+}
 if (tutorial_mode && !tutorial_pause && tutorial_heading != "") {
     instruction = tutorial_heading + "\n" + tutorial_body;
     if (prompt_mode == "enemy_attack") instruction += "\n\n" + prompt_source
@@ -809,8 +837,13 @@ if (!tutorial_pause && build_finish_confirm && phase == "build") {
     draw_text_ext(1000, 244, attack_warning_text, 18, 250);
 } else if (!tutorial_pause) {
     var instruction_panel = {x:985, y:199, w:280, h:116};
-    draw_glass_panel(instruction_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.52);
-    draw_set_color(prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT);
+    var reminder_panel_color = choice_reminder_stage > 0 ? make_color_rgb(42, 35, 24)
+        : make_color_rgb(24, 33, 46);
+    var reminder_edge_color = choice_reminder_stage > 0 ? COL_GOLD : COL_EDGE;
+    draw_glass_panel(instruction_panel, reminder_panel_color, reminder_edge_color,
+        choice_reminder_stage > 0 ? 0.72 : 0.52);
+    draw_set_color(choice_reminder_stage > 0 ? COL_GOLD
+        : (prompt_mode == "enemy_attack" ? COL_DANGER : COL_TEXT));
     draw_text_ext(1000, 211, instruction, 18, 250);
 }
 

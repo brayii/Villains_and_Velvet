@@ -207,6 +207,7 @@ function vv_turn_update() {
     if (action_press_timer > 0) action_press_timer--;
     vv_feedback_update();
     if (setup_active) return;
+    vv_required_choice_update();
     if (action_cooldown > 0) action_cooldown--;
     if (enemy_ai_update_auto_targeting()) return;
     if (auto_timer > 0 && prompt_mode == "" && !game_over) {

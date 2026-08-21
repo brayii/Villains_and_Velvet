@@ -50,6 +50,8 @@ function vv_ui_init() {
     setup_advanced_events = false;
     setup_event_defaults_restored = false;
     debug_event_log = false;
+    required_choice_key = "";
+    required_choice_frames = 0;
     vv_tutorial_init();
     escape_card_surface = -1;
 
@@ -77,8 +79,39 @@ function vv_ui_set_font(_font) {
     draw_set_font(_font >= 0 && font_exists(_font) ? _font : -1);
 }
 
+function vv_required_choice_is_manual() {
+    if (prompt_mode == "") return false;
+    // Ordinary auto-targeted attacks already show their own targeting sequence.
+    if ((prompt_mode == "enemy_attack" || prompt_mode == "enemy_attack_hand")
+    && (enemy_auto_play || tutorial_mode)) return false;
+    return true;
+}
+
+function vv_required_choice_update() {
+    if (!vv_required_choice_is_manual()) {
+        required_choice_key = "";
+        required_choice_frames = 0;
+        return;
+    }
+    var next_key = prompt_mode + "|" + prompt_source + "|" + string(prompt_value)
+        + "|" + string(escape_cards_remaining);
+    if (next_key != required_choice_key) {
+        required_choice_key = next_key;
+        required_choice_frames = 0;
+    } else required_choice_frames++;
+}
+
+function vv_required_choice_stage() {
+    if (!vv_required_choice_is_manual()) return 0;
+    if (required_choice_frames >= room_speed * 10) return 2;
+    if (required_choice_frames >= room_speed * 5) return 1;
+    return 0;
+}
+
 function vv_ui_reset_match_interaction() {
     enemy_ai_cancel_pending_targeting();
+    required_choice_key = "";
+    required_choice_frames = 0;
     pointer_card_down = false;
     pointer_card_type = "";
     pointer_card_index = -1;
