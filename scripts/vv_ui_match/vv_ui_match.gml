@@ -856,6 +856,18 @@ draw_text(997, 574, "T" + string(turn_number)
     + " · ENEMY " + string(array_length(enemy_deck)));
 vv_ui_set_font(UI_FONT_BODY);
 
+// Player Attack remains visible after instructions change and until End Turn clears it.
+if (phase == "attack" || phase == "attack_complete_wait"
+|| phase == "step6_ready" || phase == "end_ready") {
+    var attack_value_rect = {x:1025, y:602, w:235, h:22};
+    draw_glass_panel(attack_value_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.72);
+    vv_ui_set_font(UI_FONT_SMALL);
+    draw_center("ATTACK LEFT: " + string(attack_left),
+        attack_value_rect.x + attack_value_rect.w / 2,
+        attack_value_rect.y + attack_value_rect.h / 2, COL_GOLD);
+    vv_ui_set_font(UI_FONT_BODY);
+}
+
 var button_enabled = prompt_mode == "" && action_cooldown <= 0
     && (phase == "step1_ready" || phase == "build" || phase == "attack"
         || (tutorial_mode && (phase == "step2_ready" || phase == "step3_ready" || phase == "end_ready")))
