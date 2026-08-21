@@ -69,6 +69,12 @@ Sound effects and music are normal GameMaker Sound Assets under `sounds/`. Repla
 
 The current mobile interface officially targets landscape displays from 16:9 through 16:10. Taller tablet ratios require a future anchored-layout pass rather than stretching the existing 1280-wide interface.
 
+## Application Icon Workflow
+
+The editable application-icon source is `options/icons/source/villains_and_velvet_icon.png`. Windows uses the generated multi-resolution file under `options/windows/icons/`. Android uses the standard and adaptive launcher images under `options/android/`.
+
+Application icons are platform-option assets, not Sprite resources. They therefore do not appear under the GameMaker Scripts, Sounds, Objects, or Rooms resource groups. Do not add the application icon as an unused in-game Sprite.
+
 ## License
 
 No license has been specified. Unless and until a license is added, the code and artwork remain under their respective owners' default copyright.
