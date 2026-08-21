@@ -856,13 +856,18 @@ draw_text(997, 574, "T" + string(turn_number)
     + " · ENEMY " + string(array_length(enemy_deck)));
 vv_ui_set_font(UI_FONT_BODY);
 
-// Player Attack remains visible after instructions change and until End Turn clears it.
-if (phase == "attack" || phase == "attack_complete_wait"
-|| phase == "step6_ready" || phase == "end_ready") {
+// Show the live Build total before attacking, then keep remaining Attack visible
+// after instructions change and until End Turn clears it.
+var show_build_attack = phase == "build" || phase == "step5_ready";
+var show_attack_left = phase == "attack" || phase == "attack_complete_wait"
+    || phase == "step6_ready" || phase == "end_ready";
+if (show_build_attack || show_attack_left) {
     var attack_value_rect = {x:1025, y:602, w:235, h:22};
     draw_glass_panel(attack_value_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.72);
     vv_ui_set_font(UI_FONT_SMALL);
-    draw_center("ATTACK LEFT: " + string(attack_left),
+    var visible_attack = show_build_attack ? compute_attack_summary().total : attack_left;
+    var attack_label = show_build_attack ? "BUILD ATTACK: " : "ATTACK LEFT: ";
+    draw_center(attack_label + string(visible_attack),
         attack_value_rect.x + attack_value_rect.w / 2,
         attack_value_rect.y + attack_value_rect.h / 2, COL_GOLD);
     vv_ui_set_font(UI_FONT_BODY);
