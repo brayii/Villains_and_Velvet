@@ -231,6 +231,28 @@ function vv_feedback_add_escape_fx(_card) {
     vv_feedback_play(feedback_sound_move);
 }
 
+function vv_feedback_add_tutorial_push_fx(_escaping, _incoming) {
+    if (is_undefined(_escaping) || is_undefined(_incoming)) return;
+    array_push(feedback_fx, {card:_escaping, incoming:_incoming, rect:minion_rects[0],
+        end_rect:minion_rects[0], kind:"tutorial_push", timer:90, duration:90, escape_heal:0});
+    vv_feedback_play(feedback_sound_move);
+}
+
+function vv_feedback_tutorial_push_ready() {
+    for (var fx_i = 0; fx_i < array_length(feedback_fx); fx_i++) {
+        if (feedback_fx[fx_i].kind == "tutorial_push") return feedback_fx[fx_i].timer <= 1;
+    }
+    return true;
+}
+
+function vv_feedback_tutorial_push_has_incoming(_card) {
+    for (var fx_i = 0; fx_i < array_length(feedback_fx); fx_i++) {
+        var fx = feedback_fx[fx_i];
+        if (fx.kind == "tutorial_push" && fx.incoming == _card) return true;
+    }
+    return false;
+}
+
 function vv_feedback_has_card_fx(_card, _kind) {
     for (var fx_i = 0; fx_i < array_length(feedback_fx); fx_i++) {
         if (feedback_fx[fx_i].card == _card && feedback_fx[fx_i].kind == _kind) return true;
@@ -272,7 +294,8 @@ function vv_feedback_update() {
         feedback_phase_timer = 28;
         vv_feedback_play(feedback_sound_button);
     }
-    if (feedback_minions[1] == minions[0] && !is_undefined(minions[0])) {
+    if (feedback_minions[1] == minions[0] && !is_undefined(minions[0])
+    && !vv_feedback_tutorial_push_has_incoming(minions[0])) {
         var move_duration = tutorial_mode ? 60 : 22;
         array_push(feedback_fx, {card:minions[0], rect:minion_rects[1], end_rect:minion_rects[0],
             kind:"move", timer:move_duration, duration:move_duration});
@@ -301,7 +324,8 @@ function vv_feedback_update() {
     }
     for (var old_minion_i = 0; old_minion_i < 2; old_minion_i++) {
         if (!is_undefined(feedback_minions[old_minion_i]) && !vv_feedback_card_present(feedback_minions[old_minion_i])) {
-            if (!vv_feedback_has_card_fx(feedback_minions[old_minion_i], "escape")) {
+            if (!vv_feedback_has_card_fx(feedback_minions[old_minion_i], "escape")
+            && !vv_feedback_has_card_fx(feedback_minions[old_minion_i], "tutorial_push")) {
                 vv_feedback_add_card_fx(feedback_minions[old_minion_i], minion_rects[old_minion_i], "destroy");
                 vv_feedback_play(feedback_sound_hit);
             }
@@ -312,7 +336,11 @@ function vv_feedback_update() {
 
     for (var fx_i = array_length(feedback_fx) - 1; fx_i >= 0; fx_i--) {
         feedback_fx[fx_i].timer--;
-        if (feedback_fx[fx_i].timer <= 0) array_delete(feedback_fx, fx_i, 1);
+        if (feedback_fx[fx_i].timer <= 0) {
+            if (feedback_fx[fx_i].kind == "tutorial_push"
+            && !is_undefined(tutorial_pending_escape)) feedback_fx[fx_i].timer = 1;
+            else array_delete(feedback_fx, fx_i, 1);
+        }
     }
     if (feedback_phase_timer > 0) feedback_phase_timer--;
     vv_feedback_snapshot();
@@ -326,7 +354,14 @@ function vv_feedback_draw() {
             var move_rect = {x:lerp(fx.rect.x, fx.end_rect.x, progress),
                 y:lerp(fx.rect.y, fx.end_rect.y, progress), w:fx.rect.w, h:fx.rect.h};
             draw_card(fx.card, move_rect, true, false);
-        } else if (fx.kind == "escape") {
+        } else if (fx.kind == "escape" || fx.kind == "tutorial_push") {
+            if (fx.kind == "tutorial_push") {
+                var push_progress = min(1, progress / 0.72);
+                var incoming_rect = {x:lerp(minion_rects[1].x, minion_rects[0].x, push_progress),
+                    y:lerp(minion_rects[1].y, minion_rects[0].y, push_progress),
+                    w:minion_rects[1].w, h:minion_rects[1].h};
+                draw_card(fx.incoming, incoming_rect, true, false);
+            }
             if (!surface_exists(escape_card_surface)) {
                 escape_card_surface = surface_create(round(fx.rect.w), round(fx.rect.h));
             }
@@ -401,6 +436,7 @@ function vv_feedback_hides_minion(_index) {
         var hide_fx = feedback_fx[hide_i];
         if (_index == 0 && hide_fx.kind == "move") return true;
         if (_index == 1 && hide_fx.kind == "reveal") return true;
+        if (hide_fx.kind == "tutorial_push") return true;
     }
     return false;
 }

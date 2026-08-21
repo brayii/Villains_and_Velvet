@@ -51,6 +51,7 @@ function vv_tutorial_init() {
     tutorial_enemy_attack_remaining = 0;
     tutorial_heal_before = 0;
     tutorial_heal_after = 0;
+    tutorial_last_attack = 0;
     tutorial_pending_action = "";
     tutorial_pending_frames = 0;
     tutorial_pending_escape = undefined;
@@ -59,7 +60,7 @@ function vv_tutorial_init() {
 function vv_tutorial_schedule(_step, _body, _action) {
     vv_tutorial_set_state(_step, "watch", "WATCH", _body, false);
     tutorial_pending_action = _action;
-    tutorial_pending_frames = 35;
+    tutorial_pending_frames = max(60, room_speed);
     auto_timer = 0;
 }
 
@@ -268,9 +269,10 @@ function vv_tutorial_continue() {
         case TutorialStep.T3_Area2Full:
             vv_tutorial_set_state(TutorialStep.T3_PushWatch, "watch", "WATCH",
                 "Red Panda pushes Corgi out of Area 2 and into the escape portal.\n\nContinue after watching the escape.", true);
-            vv_feedback_add_escape_fx(tutorial_pending_escape);
+            vv_feedback_add_tutorial_push_fx(tutorial_pending_escape, advance_incoming_minion);
             return true;
         case TutorialStep.T3_PushWatch:
+            if (!vv_feedback_tutorial_push_ready()) return false;
             vv_tutorial_set_state(TutorialStep.T3_EscapeResult, "result", "RESULT",
                 "Corgi escaped because Red Panda pushed it out of Area 2. A Minion never escapes merely by waiting there.", true);
             return true;
@@ -316,7 +318,8 @@ function vv_tutorial_continue() {
             return true;
         case TutorialStep.T3_AttackBunnyResult:
             vv_tutorial_set_state(TutorialStep.T3_AttackLeader, "action", "YOUR ACTION",
-                "Bunny is defeated. Use your remaining 3 Attack on the Leader.", false);
+                "Bunny is defeated. Use your remaining " + string(attack_left)
+                    + " Attack on the Leader.", false);
             return true;
         case TutorialStep.T3_AttackLeaderResult:
             vv_tutorial_set_state(TutorialStep.T3_DiscardWatch, "watch", "WATCH",
@@ -335,7 +338,9 @@ function vv_tutorial_pause_event_card(_card) {
     if (turn_number == 2 && _card.id == "direct_assault") {
         tutorial_pending_enemy_card = _card;
         vv_tutorial_set_state(TutorialStep.T2_DirectAssaultRead, "read", "READ THIS CARD",
-            "Leader Strikes come from the Enemy Leader.\n\nDIRECT ASSAULT\nThe Velvet Queen attacks for 8.\n\nContinue to watch it happen.", true);
+            "Leader Strikes come from the Enemy Leader.\n\nDIRECT ASSAULT\n"
+                + enemy_leader.name + " attacks for " + string(enemy_leader.attack)
+                + ".\n\nContinue to watch it happen.", true);
         return true;
     }
     if (turn_number == 3 && _card.id == "reinforcements") {
@@ -363,8 +368,8 @@ function vv_tutorial_resume_intercept(_action) {
         var twist_destroyed = array_length(tutorial_destroyed_cards) > 0
             ? tutorial_destroyed_cards[array_length(tutorial_destroyed_cards) - 1] : "one priority Hero";
         vv_tutorial_set_state(TutorialStep.T3_ReinforcementsResult, "result", "RESULT",
-            "Red Panda attacked from Area 2 and defeated " + twist_destroyed
-                + ". Its full 8 Attack was spent on that card.", true);
+            minions[0].name + " attacked from Area 2 and defeated " + twist_destroyed
+                + ". Its full " + string(minions[0].atk) + " Attack was spent on that card.", true);
         return true;
     }
     return false;
@@ -392,7 +397,10 @@ function vv_tutorial_after_player_draw() {
     if (turn_number == 3) {
         auto_timer = 0;
         vv_tutorial_set_state(TutorialStep.T3_PreEscapeReason, "result", "WHY THIS HAPPENED",
-            "Last turn you had 6 Attack.\nCorgi needed 8 and Red Panda needed 10.\nNeither could be defeated, so both stayed in play.\nNow both Minion Areas are occupied.", true);
+            "Last turn you had " + string(tutorial_last_attack) + " Attack.\n"
+                + minions[0].name + " needed " + string(minions[0].hp) + " and "
+                + minions[1].name + " needed " + string(minions[1].hp)
+                + ".\nNeither could be defeated, so both stayed in play.\nNow both Minion Areas are occupied.", true);
         return;
     }
     if (turn_number != 1) return;
@@ -437,7 +445,8 @@ function vv_tutorial_note_enemy_attack_remaining(_amount) {
 
 function vv_tutorial_after_attack_confirmation() {
     if (tutorial_mode && turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_ConfirmEnd,
-        "action", "YOUR ACTION", "6 Attack remains unused. Tap CONFIRM END to give it up.", false);
+        "action", "YOUR ACTION", string(attack_left)
+            + " Attack remains unused. Tap CONFIRM END to give it up.", false);
 }
 
 function vv_tutorial_after_hand_discard() {
@@ -446,7 +455,9 @@ function vv_tutorial_after_hand_discard() {
     if (turn_number == 1) vv_tutorial_set_state(TutorialStep.T1_DiscardResult, "result", "RESULT",
         "Step 6 discarded every card left in Hand. Build cards remain in play.", true);
     else if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_EndResult, "result", "RESULT",
-        "Both Minions survived because 6 Attack could not defeat 8 or 10 Health. Continue to end the turn.", true);
+        "Both Minions survived because " + string(tutorial_last_attack) + " Attack could not defeat "
+            + string(minions[0].hp) + " or " + string(minions[1].hp)
+            + " Health. Continue to end the turn.", true);
     else if (turn_number == 3) vv_tutorial_set_state(TutorialStep.T3_DiscardResult, "result", "RESULT",
         "Step 6 discarded the remaining Hand cards.", true);
 }
@@ -462,7 +473,8 @@ function vv_tutorial_after_enemy_phase() {
     if (turn_number == 1) vv_tutorial_set_state(TutorialStep.T1_CorgiEntryResult,
         "result", "RESULT", "Corgi entered Area 1 and attacked. Your Build was empty, so no Hero was lost.", true);
     else if (turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_RedPandaAttackResult, "result", "RESULT",
-        "Red Panda attacked for 8 and defeated the two remaining Heroes. Enemy Attack is spent only on full defeats.", true);
+        minions[1].name + " attacked for " + string(minions[1].atk)
+            + " and defeated the two remaining Heroes. Enemy Attack is spent only on full defeats.", true);
     else if (turn_number == 3) vv_tutorial_set_state(TutorialStep.T3_BunnyAttackResult, "result", "RESULT",
         "Bunny entered Area 1. Its 4 Attack could not defeat Guard or Fortress, so it ended unused.", true);
 }
@@ -490,11 +502,16 @@ function vv_tutorial_after_build_move() {
 
 function vv_tutorial_after_attack_started() {
     if (tutorial_mode && turn_number == 1) vv_tutorial_set_state(TutorialStep.T1_AttackLeader, "action", "YOUR ACTION",
-        "Corgi needs 8 Attack, but first learn to strike the Leader. Tap the glowing Leader.", false);
-    else if (tutorial_mode && turn_number == 2) vv_tutorial_set_state(TutorialStep.T2_NotEnoughAttack, "action", "YOUR ACTION",
-        "You have " + string(attack_left) + " Attack. Tap either Minion to compare it with that Minion's Health.", false);
+        minions[1].name + " needs " + string(minions[1].hp)
+            + " Attack, but first learn to strike the Leader. Tap the glowing Leader.", false);
+    else if (tutorial_mode && turn_number == 2) {
+        tutorial_last_attack = attack_left;
+        vv_tutorial_set_state(TutorialStep.T2_NotEnoughAttack, "action", "YOUR ACTION",
+            "You have " + string(attack_left) + " Attack. Tap either Minion to compare it with that Minion's Health.", false);
+    }
     else if (tutorial_mode && turn_number == 3) vv_tutorial_set_state(TutorialStep.T3_AttackBunny, "action", "YOUR ACTION",
-        "Tap Bunny in Area 1. It costs 6 Attack to defeat.", false);
+        "Tap " + minions[1].name + " in Area 1. It costs " + string(minions[1].hp)
+            + " Attack to defeat.", false);
 }
 
 function vv_tutorial_after_failed_minion_attack() {
@@ -644,6 +661,7 @@ function vv_tutorial_configure_match() {
     tutorial_enemy_attack_remaining = 0;
     tutorial_heal_before = leader_hp;
     tutorial_heal_after = leader_hp;
+    tutorial_last_attack = 0;
     tutorial_pending_action = "";
     tutorial_pending_frames = 0;
     tutorial_pending_escape = undefined;

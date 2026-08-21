@@ -315,6 +315,8 @@ function vv_ui_handle_input() {
 
     if (tutorial_mode && tutorial_pause) {
         if (pointer_pressed && point_in_rect(pointer_x, pointer_y, tutorial_continue_rect)) {
+            if (tutorial_step == TutorialStep.T3_PushWatch
+            && !vv_feedback_tutorial_push_ready()) return;
             vv_feedback_play(feedback_sound_button);
             vv_tutorial_continue();
         }
@@ -997,11 +999,16 @@ if (tutorial_mode && tutorial_pause && !tutorial_complete_prompt) {
         vv_ui_set_font(UI_FONT_BODY);
         draw_set_color(COL_TEXT);
         draw_text_ext(1000, 270, tutorial_body, 18, 250);
-        draw_panel(tutorial_continue_rect, COL_ACCENT, COL_TEXT);
+        var tutorial_continue_ready = tutorial_step != TutorialStep.T3_PushWatch
+            || vv_feedback_tutorial_push_ready();
+        draw_panel(tutorial_continue_rect, tutorial_continue_ready ? COL_ACCENT : COL_PANEL,
+            tutorial_continue_ready ? COL_TEXT : COL_EDGE);
         draw_set_halign(fa_center);
         draw_set_valign(fa_middle);
-        draw_center("CONTINUE", tutorial_continue_rect.x + tutorial_continue_rect.w / 2,
-            tutorial_continue_rect.y + tutorial_continue_rect.h / 2, COL_BG);
+        draw_center(tutorial_continue_ready ? "CONTINUE" : "WATCHING...",
+            tutorial_continue_rect.x + tutorial_continue_rect.w / 2,
+            tutorial_continue_rect.y + tutorial_continue_rect.h / 2,
+            tutorial_continue_ready ? COL_BG : COL_MUTED);
     }
 }
 
