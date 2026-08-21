@@ -140,6 +140,21 @@ function ui_draw_guided_coach() {
     } else if (tutorial_step == TutorialStep.T2_NotEnoughAttack) {
         if (!is_undefined(minions[0])) array_push(target_rects, minion_rects[0]);
         if (!is_undefined(minions[1])) array_push(target_rects, minion_rects[1]);
+    } else if (tutorial_step == TutorialStep.T3_StartTurn
+    || tutorial_step == TutorialStep.T3_ReinforcementsRead
+    || tutorial_step == TutorialStep.T3_BuildReady
+    || tutorial_step == TutorialStep.T3_EndResult) {
+        array_push(target_rects, action_rect);
+    } else if (tutorial_step == TutorialStep.T3_Rebuild) {
+        for (var th = 0; th < 3; th++) {
+            if (!is_undefined(hand[th]) && hand[th].hero == "goblin") array_push(target_rects, hand_rects[th]);
+            if (is_undefined(build[th])) array_push(target_rects, build_rects[th]);
+        }
+    } else if (tutorial_step == TutorialStep.T3_AttackBunny) {
+        if (!is_undefined(minions[1]) && minions[1].id == "bunny") array_push(target_rects, minion_rects[1]);
+    } else if (tutorial_step == TutorialStep.T3_AttackLeader) {
+        array_push(target_rects, leader_rect);
+        show_leader_target = true;
     } else if (phase == "step1_ready") {
         array_push(target_rects, action_rect);
     } else if (tutorial_entry_notice_timer > 0) {
@@ -408,7 +423,8 @@ function vv_ui_handle_input() {
 
     if (point_in_rect(pointer_x, pointer_y, action_rect)) {
         action_press_timer = 5;
-        var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack";
+        var player_action_phase = phase == "step1_ready" || phase == "build" || phase == "attack"
+            || (tutorial_mode && (phase == "step2_ready" || phase == "step3_ready" || phase == "end_ready"));
         var action_phase_before = phase;
         var tutorial_build_blocked = tutorial_mode && phase == "build" && turn_number == 1
             && count_occupied_build() < 3;
@@ -828,7 +844,9 @@ draw_text(997, 574, "T" + string(turn_number)
 vv_ui_set_font(UI_FONT_BODY);
 
 var button_enabled = prompt_mode == "" && action_cooldown <= 0
-    && (phase == "step1_ready" || phase == "build" || phase == "attack");
+    && (phase == "step1_ready" || phase == "build" || phase == "attack"
+        || (tutorial_mode && (phase == "step2_ready" || phase == "step3_ready" || phase == "end_ready")))
+    && vv_tutorial_action_allowed();
 var confirming_build = phase == "build" && build_finish_confirm;
 var confirming_attack = phase == "attack" && attack_finish_confirm;
 var button_fill = button_enabled ? ((confirming_build || confirming_attack) ? COL_GOLD : COL_ACCENT) : COL_PANEL;
@@ -842,6 +860,9 @@ if (enemy_auto_play && enemy_ai_visual_stage == "result") button_text = "ATTACK 
 else if (prompt_mode == "enemy_attack" && enemy_auto_play) button_text = "ENEMY TARGETING...";
 else if (prompt_mode != "") button_text = "SELECT HIGHLIGHTED CARD";
 else if (phase == "step1_ready") button_text = turn_number == 1 ? "START TURN" : "START NEXT TURN";
+else if (tutorial_mode && phase == "step2_ready") button_text = "ADVANCE / ESCAPE";
+else if (tutorial_mode && phase == "step3_ready") button_text = "ENEMY DRAW";
+else if (tutorial_mode && phase == "end_ready") button_text = "END TURN";
 else if (phase == "build") button_text = confirming_build ? "CONFIRM BUILD" : "DONE BUILDING";
 else if (phase == "attack") button_text = confirming_attack ? "CONFIRM END" : "DONE ATTACKING";
 else button_text = "RESOLVING...";

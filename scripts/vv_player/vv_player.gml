@@ -102,6 +102,7 @@ function compute_attack_summary() {
 }
 
 function command_select_hand(_index) {
+    if (vv_tutorial_requires_drag()) return false;
     if (phase != "build" || _index < 0 || _index >= array_length(hand) || is_undefined(hand[_index])) return false;
     if (selected_build >= 0 && !is_undefined(build[selected_build])) {
         var build_card = build[selected_build];
@@ -127,6 +128,7 @@ function command_select_hand(_index) {
 }
 
 function command_select_build(_index) {
+    if (vv_tutorial_requires_drag()) return false;
     if (phase != "build" || _index < 0 || _index > 2) return false;
     if (selected_hand >= 0 && selected_hand < array_length(hand) && !is_undefined(hand[selected_hand])) {
         var hand_card = hand[selected_hand];
@@ -200,6 +202,8 @@ function command_attack_minion(_index) {
         log_add("Training: now use your remaining Attack on the highlighted Leader.");
         return false;
     }
+    if (tutorial_mode && turn_number == 3
+    && (tutorial_step != TutorialStep.T3_AttackBunny || minions[_index].id != "bunny")) return false;
     attack_finish_confirm = false;
     if (attack_left >= minions[_index].hp) {
         attack_left -= minions[_index].hp;
@@ -207,6 +211,7 @@ function command_attack_minion(_index) {
         enemy_ai_conditional_learning_note_minion_defeated();
         retire_minion(_index, "is defeated");
         if (tutorial_mode) tutorial_minion_defeated = true;
+        vv_tutorial_after_minion_defeated();
         if (kill_bonus > 0) {
             attack_left += kill_bonus;
             log_add("Defeating " + defeated_name + " activates your card abilities: +"
@@ -264,7 +269,5 @@ function command_attack_leader() {
     }
     if (attack_left <= 0 && !game_over) show_attack_completion("ALL ATTACK USED", "Attack step complete.");
     validate_state("Player attacks Leader");
-    if (tutorial_mode && tutorial_escape_seen && tutorial_minion_defeated
-    && tutorial_leader_attacked && tutorial_final_leader_attacked) tutorial_complete_prompt = true;
     return true;
 }
