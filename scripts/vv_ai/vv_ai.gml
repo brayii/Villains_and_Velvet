@@ -141,7 +141,8 @@ function enemy_ai_attack_observation_flags(_zone, _candidate_count) {
 }
 
 function enemy_ai_record_attack_observation(_zone, _candidate_count) {
-    if (!enemy_auto_play || enemy_ai_policy_turn_number != turn_number) return false;
+    if (tutorial_mode || !enemy_auto_play
+    || enemy_ai_policy_turn_number != turn_number) return false;
     var flags = enemy_ai_attack_observation_flags(_zone, _candidate_count);
     enemy_ai_turn_attack_observation_count++;
     ai_attack_observation_count++;
@@ -878,7 +879,8 @@ function enemy_ai_update_auto_targeting() {
         return true;
     }
     if (enemy_ai_visual_stage == "result") {
-        if (!enemy_auto_play || setup_active || game_over || match_menu_active) {
+        if ((!enemy_auto_play && !tutorial_mode)
+        || setup_active || game_over || match_menu_active) {
             enemy_ai_cancel_pending_targeting();
             return true;
         }
