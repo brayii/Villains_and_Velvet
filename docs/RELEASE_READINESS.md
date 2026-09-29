@@ -36,8 +36,11 @@ publisher decisions below are entered. Do not replace them with guessed values.
 
 Repository checks cannot replace packaging and store delivery. Before release:
 
-1. Install the exact Android SDK, NDK, Build Tools, Platform Tools, and bundled
-   OpenJDK documented for the installed GameMaker runtime.
+1. Point GameMaker at the verified local toolchain and confirm its preferences
+   still use these paths after IDE or runtime updates:
+   - SDK: `D:\Android\Sdk`
+   - NDK: `D:\Android\Sdk\ndk\30.0.15729638`
+   - JDK: `D:\Android\Android Studio\jbr`
 2. Compile Android VM and YYC from a clean build state.
 3. Produce a production-signed AAB with a securely backed-up keystore.
 4. Upload to Google Play Internal Testing and install the Play-delivered build.
@@ -48,6 +51,25 @@ Repository checks cannot replace packaging and store delivery. Before release:
 The current interface is deliberately documented as supporting 16:9 through
 16:10. Wider device coverage requires layout work and physical-device testing;
 changing the canvas cap alone would only create unused space or distortion.
+
+## Verified local Android toolchain
+
+The development machine was checked on September 29, 2026. No Android install is
+needed for the current GameMaker LTS 2026 requirements:
+
+- Android Studio Quail 2 family (`261.25134.95.0-AI`) is installed at
+  `D:\Android\Android Studio`.
+- Android API 36 and 36.1 are installed.
+- Android Build Tools 37.0.0 are installed.
+- Android Platform Tools 37.0.1 are installed.
+- Android NDK 30.0.15729638 is installed.
+- Android Studio's bundled JBR is OpenJDK 21.0.10.
+
+The current shell also contains stale compatibility variables pointing at
+`C:\Users\angel\AppData\Local\Android\Sdk` and `D:\NVPACK\android-ndk-r14b`.
+Build scripts should set `ANDROID_SDK_HOME` and `ANDROID_NDK_ROOT` to the verified
+D: paths when those legacy variables are consulted. `ANDROID_HOME`,
+`ANDROID_SDK_ROOT`, and `ANDROID_NDK_HOME` already point to the verified installs.
 
 ## Authoritative Android references
 
