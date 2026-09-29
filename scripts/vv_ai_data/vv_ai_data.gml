@@ -168,14 +168,17 @@ function vv_ai_data_load() {
     if (!file_exists(ai_data_filename)) return false;
 
     var data_text = "";
+    var data_file = -1;
     try {
-        var data_file = file_text_open_read(ai_data_filename);
+        data_file = file_text_open_read(ai_data_filename);
         while (!file_text_eof(data_file)) {
             data_text += file_text_read_string(data_file);
             file_text_readln(data_file);
         }
         file_text_close(data_file);
+        data_file = -1;
     } catch (_error) {
+        if (data_file >= 0) file_text_close(data_file);
         return false;
     }
 
@@ -187,15 +190,18 @@ function vv_ai_data_load() {
 
 function vv_ai_data_save_if_dirty() {
     if (!ai_data_dirty) return true;
+    var data_file = -1;
     try {
-        var data_file = file_text_open_write(ai_data_filename);
+        data_file = file_text_open_write(ai_data_filename);
         file_text_write_string(data_file, json_stringify(vv_ai_data_current()));
         file_text_close(data_file);
+        data_file = -1;
         ai_data_dirty = false;
         ai_data_dirty_frames = 0;
         ai_data_write_count++;
         return true;
     } catch (_error) {
+        if (data_file >= 0) file_text_close(data_file);
         ai_data_dirty = true;
         // Back off before retrying. Otherwise, after a delayed save fails once,
         // every following Step frame attempts another write.

@@ -98,14 +98,17 @@ function vv_settings_load() {
     if (!file_exists(settings_filename)) return false;
 
     var settings_text = "";
+    var settings_file = -1;
     try {
-        var settings_file = file_text_open_read(settings_filename);
+        settings_file = file_text_open_read(settings_filename);
         while (!file_text_eof(settings_file)) {
             settings_text += file_text_read_string(settings_file);
             file_text_readln(settings_file);
         }
         file_text_close(settings_file);
+        settings_file = -1;
     } catch (_error) {
+        if (settings_file >= 0) file_text_close(settings_file);
         return false;
     }
 
@@ -139,13 +142,16 @@ function vv_settings_save_if_dirty() {
         hint_inspect: hint_inspect,
         hint_attack: hint_attack
     };
+    var settings_file = -1;
     try {
-        var settings_file = file_text_open_write(settings_filename);
+        settings_file = file_text_open_write(settings_filename);
         file_text_write_string(settings_file, json_stringify(settings_data));
         file_text_close(settings_file);
+        settings_file = -1;
         settings_dirty = false;
         return true;
     } catch (_error) {
+        if (settings_file >= 0) file_text_close(settings_file);
         settings_dirty = true;
         return false;
     }
