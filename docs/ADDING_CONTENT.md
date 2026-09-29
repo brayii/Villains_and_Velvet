@@ -132,7 +132,7 @@ To implement a new behavior:
 4. Reference it from content with a runtime path beginning `card_art/`; do not include `datafiles/` in the runtime path.
 5. Run `python tools/verify_card_assets.py`.
 
-The optional `tools/extract_card_assets.py` utility crops the current source sheets from the workspace's `../card_assets/` folder directly into `datafiles/card_art/`. It does not create a second project copy.
+The optional `tools/extract_card_assets.py` utility crops the current source sheets from the workspace's `../assets/source-art/` folder directly into `datafiles/card_art/`. It does not create a second project copy.
 
 ## Add or Replace Audio
 

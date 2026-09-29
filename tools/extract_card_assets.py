@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = PROJECT_ROOT.parent
-SOURCE = WORKSPACE_ROOT / "card_assets"
+SOURCE = WORKSPACE_ROOT / "assets" / "source-art"
 OUTPUT = PROJECT_ROOT / "datafiles" / "card_art"
 
 
@@ -67,7 +67,7 @@ def make_preview(files: list[Path], output_file: Path) -> None:
 
 def main() -> None:
     created = []
-    created += extract(SOURCE / "heros" / "hero_set_1.png", OUTPUT / "heroes", HERO_CROPS)
+    created += extract(SOURCE / "heroes" / "hero_set_1.png", OUTPUT / "heroes", HERO_CROPS)
     created += extract(SOURCE / "enemies" / "enemy_set_1.png", OUTPUT / "enemies", ENEMY_CROPS)
 
     background_dir = OUTPUT / "backgrounds"

@@ -59,7 +59,7 @@ Keep each playable image only in `datafiles/card_art/`. GameMaker's Included Fil
 
 To replace one image, overwrite its file in `datafiles/card_art/` without changing the filename. To add an image, place it there, add it to GameMaker's Included Files, and reference its `card_art/...` path in the card definition.
 
-The optional `tools/extract_card_assets.py` utility crops the current workspace source sheets from `../card_assets/` directly into the authoritative folder. It no longer creates or synchronizes a second project copy.
+The optional `tools/extract_card_assets.py` utility crops the current workspace source sheets from `../assets/source-art/` directly into the authoritative folder. It no longer creates or synchronizes a second project copy.
 
 Run `python tools/verify_card_assets.py` after artwork changes. It verifies that every PNG is readable, every file has a GameMaker Included Files entry, and any artwork path used by the game exists.
 
