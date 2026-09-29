@@ -7,9 +7,9 @@ function vv_assets_init() {
 }
 
 function art_cache_key(_file) {
-    var key = string_replace_all(_file, "/", "_");
-    key = string_replace_all(key, ".", "_");
-    return key;
+    // Different paths must never collapse to the same struct key.
+    // MD5 is used only as a stable struct-safe key, not for security.
+    return "art_" + md5_string_utf8(_file);
 }
 
 function get_art_sprite(_file) {

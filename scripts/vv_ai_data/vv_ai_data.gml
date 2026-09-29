@@ -197,6 +197,9 @@ function vv_ai_data_save_if_dirty() {
         return true;
     } catch (_error) {
         ai_data_dirty = true;
+        // Back off before retrying. Otherwise, after a delayed save fails once,
+        // every following Step frame attempts another write.
+        ai_data_dirty_frames = 0;
         return false;
     }
 }

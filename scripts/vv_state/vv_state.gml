@@ -662,7 +662,9 @@ function validate_state(_context) {
     var enemy_total = array_length(enemy_cards);
     var valid_player_composition = validate_player_composition(player_cards);
     var valid_enemy_composition = validate_enemy_composition(enemy_cards, enemy_minion_set);
-    var valid_spaces = array_length(hand) == 3 && array_length(build) == 3 && array_length(minions) == 2;
+    var valid_spaces = array_length(hand) == CORE_HAND_SIZE
+        && array_length(build) == CORE_BUILD_SIZE
+        && array_length(minions) == 2;
     var valid = valid_player_composition && valid_enemy_composition
         && leader_hp >= 0 && leader_hp <= enemy_leader.max_hp
         && attack_left >= 0 && valid_spaces;

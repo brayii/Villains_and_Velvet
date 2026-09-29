@@ -58,6 +58,10 @@ Temporary Items
 *.resource_order
 *.old
 
+# Python development-tool caches
+__pycache__/
+*.py[cod]
+
 # GMRT build directory
 Build
 

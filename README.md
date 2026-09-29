@@ -63,6 +63,8 @@ The optional `tools/extract_card_assets.py` utility crops the current workspace 
 
 Run `python tools/verify_card_assets.py` after artwork changes. It verifies that every PNG is readable, every file has a GameMaker Included Files entry, and any artwork path used by the game exists.
 
+Run `python tools/verify_project_structure.py` after source or resource-tree changes. It checks project and resource-order consistency, missing resources, Script parent groups, duplicate global functions, Script metadata pairs, and critical cleanup and retry invariants.
+
 ## Build Artifact Cleanup
 
 Local verification and build runs write their scratch directories into `.build_temp/`. Because each run picks a new directory name, that tree grows without bound. Once it is large, Git commands that walk the work tree start failing with `Filename too long` warnings, since deep Android build intermediates exceed the legacy Windows path limit.

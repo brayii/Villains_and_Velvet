@@ -18,6 +18,8 @@
 - `scripts/vv_ai/vv_ai.gml`: snapshot-based Enemy target scoring, deterministic ranking, and Build-slot selection; Auto submits its selected slot through the normal Enemy combat command and never resolves attacks directly.
 - `scripts/vv_ai_data/vv_ai_data.gml`: versioned Enemy learning values and counters, field-level validation, safe recovery, dirty-only saving, and the confirmed developer reset entry point.
 
+`vv_ai.gml` also contains the seeded evaluator, exhaustive oracle, and AI self-checks because the live development baseline calls those helpers while a seeded playtest is active. They remain behind development entry points and flags; splitting them without changing that dependency would only move the same compiled code between Script resources.
+
 GameMaker Sound Assets under `sounds/` own effects and music. Gameplay stores their resource IDs and uses the standard audio API; no module parses WAV headers or owns runtime audio buffers.
 
 ## Adding or Changing Content
@@ -157,8 +159,9 @@ Display names never select behavior. Gameplay checks `abilities[]`, `escape_effe
 
 After a content or structural change:
 
-1. run `python tools/verify_card_assets.py` when artwork or artwork paths changed;
-2. compile the GameMaker project;
-3. open the setup screen and start a match;
-4. exercise the changed rule or content; and
-5. confirm the Player and Enemy deck-composition checks remain valid.
+1. run `python tools/verify_project_structure.py`;
+2. run `python tools/verify_card_assets.py` when artwork or artwork paths changed;
+3. compile the GameMaker project;
+4. open the setup screen and start a match;
+5. exercise the changed rule or content; and
+6. confirm the Player and Enemy deck-composition checks remain valid.
