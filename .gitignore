@@ -88,3 +88,9 @@ options.ini
 *.apk
 *.aab
 /*.zip
+
+# Android signing secrets and local SDK configuration
+*.jks
+*.keystore
+keystore.properties
+local.properties

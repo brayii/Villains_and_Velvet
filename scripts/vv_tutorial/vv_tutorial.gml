@@ -279,7 +279,7 @@ function vv_tutorial_continue() {
                 "Corgi escaped because Red Panda pushed it out of Area 2. A Minion never escapes merely by waiting there.", true);
             return true;
         case TutorialStep.T3_EscapeResult:
-            vv_tutorial_set_state(TutorialStep.T3_EscapeEffectRead, "read", "READ THIS CARD",
+            vv_tutorial_set_state(TutorialStep.T3_EscapeEffectRead, "read", "ESCAPE EFFECT",
                 "Corgi's Escape effect heals the Enemy Leader. Escape effects happen after the Minion is pushed out.", true);
             return true;
         case TutorialStep.T3_EscapeEffectRead:
