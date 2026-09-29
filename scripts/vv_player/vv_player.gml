@@ -258,7 +258,7 @@ function command_attack_leader() {
     if (tutorial_mode && turn_number >= 3) tutorial_final_leader_attacked = true;
     enemy_ai_baseline_record_leader_damage(actual_damage);
     attack_left = 0;
-    log_add("Enemy Leader takes " + string(damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
+    log_add("Enemy Leader takes " + string(actual_damage) + " damage (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
     vv_tutorial_after_leader_attack(damage);
     if (leader_hp == 0) {
         enemy_ai_conditional_learning_finish_attack();

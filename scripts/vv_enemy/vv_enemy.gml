@@ -196,12 +196,18 @@ function start_queued_attack() {
     return false;
 }
 
+// Full Assault attacks the Build only. CORE_GAME_RULES section 5 defines a normal
+// enemy attack as targeting the Build, and the Full Assault card text ("The Queen
+// and every Minion in play attack.") grants no Hand targeting, so this stays false.
+#macro ENEMY_FULL_ASSAULT_MAY_TARGET_HAND false
+
 function begin_full_assault(_source) {
     full_assault_source = _source;
     full_assault_minions = full_assault_capture_minions(minions);
     full_assault_index = -1;
     log_add("Full Assault begins. The Queen and every Minion in play will attack.");
-    queue_enemy_attack(enemy_leader.attack, _source + ": " + enemy_leader.name, true);
+    queue_enemy_attack(enemy_leader.attack, _source + ": " + enemy_leader.name,
+        ENEMY_FULL_ASSAULT_MAY_TARGET_HAND);
     resume_action = "continue_full_assault";
 }
 
@@ -224,7 +230,7 @@ function queue_full_assault_minion_attacks(_minion, _source) {
         var attack_source = _source + ": " + _minion.name;
         if (attack_count > 1) attack_source += " (" + string(attack_i + 1)
             + " of " + string(attack_count) + ")";
-        queue_enemy_attack(_minion.atk, attack_source, true);
+        queue_enemy_attack(_minion.atk, attack_source, ENEMY_FULL_ASSAULT_MAY_TARGET_HAND);
     }
 }
 
@@ -237,6 +243,15 @@ function run_full_assault_self_checks(_scenarios, _minion_sets) {
     || array_length(wrath.twists[0].card.effects) != 1
     || wrath.twists[0].card.effects[0].id != EFFECT_FULL_ASSAULT) {
         return content_validation_result(false, "Full Assault Scenario definition check failed.");
+    }
+    // Full Assault must not gain undocumented behaviour. If the card text ever
+    // claims Hand targeting, ENEMY_FULL_ASSAULT_MAY_TARGET_HAND must be revisited
+    // and CORE_GAME_RULES section 5 updated in the same change.
+    if (ENEMY_FULL_ASSAULT_MAY_TARGET_HAND != false) {
+        return content_validation_result(false, "Full Assault Hand targeting must stay disabled until the card text grants it.");
+    }
+    if (string_length(string_replace(string_lower(wrath.twists[0].card.text), "hand", "")) != string_length(string_lower(wrath.twists[0].card.text))) {
+        return content_validation_result(false, "Full Assault card text mentions the Hand but Hand targeting is disabled.");
     }
     if (array_length(_minion_sets) <= 0) {
         return content_validation_result(false, "Full Assault checks require a Minion Set.");
@@ -353,7 +368,10 @@ function heal_leader(_amount) {
     var overflow = _amount - healed;
     leader_hp += healed;
     vv_tutorial_note_leader_heal(heal_before, leader_hp);
-    log_add("Leader heals " + string(healed) + " HP (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
+    // A Leader already at maximum is not healed, so do not claim a heal happened.
+    if (healed > 0) {
+        log_add("Leader heals " + string(healed) + " HP (" + string(leader_hp) + "/" + string(enemy_leader.max_hp) + ").");
+    }
     if (overflow > 0) {
         log_add(string(overflow) + " excess healing becomes Overflow Attack.");
         queue_enemy_attack(overflow, "Overflow");
