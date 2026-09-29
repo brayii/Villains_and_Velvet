@@ -52,6 +52,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
+# Scratch space for the long-path mirror lives inside the project so this tool
+# creates no files outside the repository. See Remove-Tree below.
+$StagingRoot = Join-Path $ProjectRoot 'tools\.clean-staging'
+
 $Targets = @('.build_temp', '.build_cache', '.build_output', '.runtime_test', 'Build', 'cache', 'output', '.release')
 
 function Get-TreeSize([string]$Path) {
@@ -88,8 +92,12 @@ function Test-Ignored([string]$RelativePath) {
 # Windows MAX_PATH blocks Remove-Item on deep Android intermediates, so an empty
 # directory is mirrored over the target. robocopy clears those long entries
 # without touching the paths PowerShell cannot open.
+#
+# The empty staging directory is created inside the project rather than in the
+# OS temp directory, so this tool never writes outside the repository. It sits
+# under tools/ and is gitignored, and is removed in the finally block.
 function Remove-Tree([string]$Path) {
-    $staging = Join-Path ([System.IO.Path]::GetTempPath()) ('vv-clean-' + [Guid]::NewGuid().ToString('N'))
+    $staging = Join-Path $StagingRoot ([Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Force -Path $staging | Out-Null
     try {
         $previous = $ErrorActionPreference
@@ -146,10 +154,15 @@ if (-not $Execute) {
 }
 
 Write-Output ''
-foreach ($entry in $plan) {
-    if (Remove-Tree $entry.Path) {
-        Write-Output ('removed: {0} ({1} files, {2} MB)' -f $entry.Name, $entry.Files, $entry.Megabytes)
-    } else {
-        Write-Warning ('incomplete removal: {0}' -f $entry.Name)
+New-Item -ItemType Directory -Force -Path $StagingRoot | Out-Null
+try {
+    foreach ($entry in $plan) {
+        if (Remove-Tree $entry.Path) {
+            Write-Output ('removed: {0} ({1} files, {2} MB)' -f $entry.Name, $entry.Files, $entry.Megabytes)
+        } else {
+            Write-Warning ('incomplete removal: {0}' -f $entry.Name)
+        }
     }
+} finally {
+    Remove-Item -LiteralPath $StagingRoot -Recurse -Force -ErrorAction SilentlyContinue
 }

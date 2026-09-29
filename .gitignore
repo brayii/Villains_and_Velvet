@@ -70,6 +70,9 @@ Build
 /cache/
 /output/
 
+# Scratch directory used by tools/clean_build_artifacts.ps1
+tools/.clean-staging/
+
 # GameMaker files generated beside the project during local builds
 *.win
 *.yydebug
