@@ -61,7 +61,20 @@ To replace one image, overwrite its file in `datafiles/card_art/` without changi
 
 The optional `tools/extract_card_assets.py` utility crops the current workspace source sheets from `../card_assets/` directly into the authoritative folder. It no longer creates or synchronizes a second project copy.
 
-Run `python tools/verify_card_assets.py` after artwork changes. It verifies that every PNG is readable, every file has a GameMaker Included Files entry, and every artwork path used by the game exists.
+Run `python tools/verify_card_assets.py` after artwork changes. It verifies that every PNG is readable, every file has a GameMaker Included Files entry, and any artwork path used by the game exists.
+
+## Build Artifact Cleanup
+
+Local verification and build runs write their scratch directories into `.build_temp/`. Because each run picks a new directory name, that tree grows without bound. Once it is large, Git commands that walk the work tree start failing with `Filename too long` warnings, since deep Android build intermediates exceed the legacy Windows path limit.
+
+Clear it with the dry-run-by-default cleanup tool:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\clean_build_artifacts.ps1
+powershell -ExecutionPolicy Bypass -File tools\clean_build_artifacts.ps1 -Execute
+```
+
+Use `-Keep <name>` to preserve a target, for example `-Keep .release` while a release package is still needed. The tool only considers paths that Git already ignores, and it refuses to delete any path Git tracks, so source files and artwork are never at risk.
 
 ## Audio Workflow
 
@@ -78,3 +91,7 @@ Application icons are platform-option assets, not Sprite resources. They therefo
 ## License
 
 No license has been specified. Unless and until a license is added, the code and artwork remain under their respective owners' default copyright.
+
+## Third-Party Assets
+
+Font and any other bundled third-party asset notices are collected in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
