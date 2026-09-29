@@ -1,5 +1,60 @@
 /// Versioned player preferences. Match state and future AI learning data are kept separate.
 
+function vv_text_file_read(_filename) {
+    var text_file = -1;
+    var text = "";
+    try {
+        if (!file_exists(_filename)) return {success:false, text:""};
+        text_file = file_text_open_read(_filename);
+        while (!file_text_eof(text_file)) {
+            text += file_text_read_string(text_file);
+            file_text_readln(text_file);
+        }
+        file_text_close(text_file);
+        return {success:true, text:text};
+    } catch (_error) {
+        if (text_file >= 0) file_text_close(text_file);
+        return {success:false, text:""};
+    }
+}
+
+/// Writes a complete temporary file before replacing the live file. The prior
+/// valid file remains as a backup so an interrupted replacement can recover.
+function vv_atomic_text_write(_filename, _text) {
+    var temp_filename = _filename + ".tmp";
+    var backup_filename = _filename + ".bak";
+    var text_file = -1;
+    try {
+        if (file_exists(temp_filename)) file_delete(temp_filename);
+        text_file = file_text_open_write(temp_filename);
+        file_text_write_string(text_file, _text);
+        file_text_close(text_file);
+        text_file = -1;
+        if (!file_exists(temp_filename)) return false;
+
+        if (file_exists(backup_filename)) file_delete(backup_filename);
+        if (file_exists(_filename)) {
+            file_rename(_filename, backup_filename);
+            if (file_exists(_filename) || !file_exists(backup_filename)) {
+                file_delete(temp_filename);
+                return false;
+            }
+        }
+        file_rename(temp_filename, _filename);
+        if (file_exists(_filename)) return true;
+
+        if (file_exists(backup_filename)) file_rename(backup_filename, _filename);
+        return false;
+    } catch (_error) {
+        if (text_file >= 0) file_text_close(text_file);
+        if (file_exists(temp_filename)) file_delete(temp_filename);
+        if (!file_exists(_filename) && file_exists(backup_filename)) {
+            file_rename(backup_filename, _filename);
+        }
+        return false;
+    }
+}
+
 function vv_settings_defaults() {
     return {
         settings_version: 9,
@@ -95,24 +150,24 @@ function vv_settings_load() {
     hint_inspect = false;
     hint_attack = false;
     settings_dirty = true;
-    if (!file_exists(settings_filename)) return false;
-
-    var settings_text = "";
-    var settings_file = -1;
-    try {
-        settings_file = file_text_open_read(settings_filename);
-        while (!file_text_eof(settings_file)) {
-            settings_text += file_text_read_string(settings_file);
-            file_text_readln(settings_file);
+    var loaded = vv_text_file_read(settings_filename);
+    var decoded = loaded.success
+        ? vv_settings_decode(loaded.text) : {valid:false, enemy_auto_play:true};
+    var recovered_from_backup = false;
+    if (!decoded.valid) {
+        var backup = vv_text_file_read(settings_filename + ".bak");
+        if (backup.success) {
+            decoded = vv_settings_decode(backup.text);
+            recovered_from_backup = decoded.valid;
         }
-        file_text_close(settings_file);
-        settings_file = -1;
-    } catch (_error) {
-        if (settings_file >= 0) file_text_close(settings_file);
-        return false;
     }
-
-    var decoded = vv_settings_decode(settings_text);
+    if (!decoded.valid) {
+        var temporary = vv_text_file_read(settings_filename + ".tmp");
+        if (temporary.success) {
+            decoded = vv_settings_decode(temporary.text);
+            recovered_from_backup = decoded.valid;
+        }
+    }
     enemy_auto_play = decoded.enemy_auto_play;
     if (decoded.valid) {
         audio_enabled = decoded.audio_enabled;
@@ -124,7 +179,8 @@ function vv_settings_load() {
         hint_inspect = decoded.hint_inspect;
         hint_attack = decoded.hint_attack;
     }
-    settings_dirty = !decoded.valid || (decoded.valid && decoded.upgraded);
+    settings_dirty = recovered_from_backup || !decoded.valid
+        || (decoded.valid && decoded.upgraded);
     return decoded.valid;
 }
 
@@ -142,16 +198,14 @@ function vv_settings_save_if_dirty() {
         hint_inspect: hint_inspect,
         hint_attack: hint_attack
     };
-    var settings_file = -1;
     try {
-        settings_file = file_text_open_write(settings_filename);
-        file_text_write_string(settings_file, json_stringify(settings_data));
-        file_text_close(settings_file);
-        settings_file = -1;
+        if (!vv_atomic_text_write(settings_filename, json_stringify(settings_data))) {
+            settings_dirty = true;
+            return false;
+        }
         settings_dirty = false;
         return true;
     } catch (_error) {
-        if (settings_file >= 0) file_text_close(settings_file);
         settings_dirty = true;
         return false;
     }

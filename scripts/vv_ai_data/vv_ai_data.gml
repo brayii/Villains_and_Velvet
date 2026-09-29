@@ -165,43 +165,43 @@ function vv_ai_data_init() {
 function vv_ai_data_load() {
     vv_ai_data_apply(vv_ai_data_defaults());
     ai_data_dirty = true;
-    if (!file_exists(ai_data_filename)) return false;
-
-    var data_text = "";
-    var data_file = -1;
-    try {
-        data_file = file_text_open_read(ai_data_filename);
-        while (!file_text_eof(data_file)) {
-            data_text += file_text_read_string(data_file);
-            file_text_readln(data_file);
+    var loaded = vv_text_file_read(ai_data_filename);
+    var decoded = loaded.success
+        ? vv_ai_data_decode(loaded.text) : {valid:false, data:vv_ai_data_defaults()};
+    var recovered_from_backup = false;
+    if (!decoded.valid) {
+        var backup = vv_text_file_read(ai_data_filename + ".bak");
+        if (backup.success) {
+            decoded = vv_ai_data_decode(backup.text);
+            recovered_from_backup = decoded.valid;
         }
-        file_text_close(data_file);
-        data_file = -1;
-    } catch (_error) {
-        if (data_file >= 0) file_text_close(data_file);
-        return false;
     }
-
-    var decoded = vv_ai_data_decode(data_text);
+    if (!decoded.valid) {
+        var temporary = vv_text_file_read(ai_data_filename + ".tmp");
+        if (temporary.success) {
+            decoded = vv_ai_data_decode(temporary.text);
+            recovered_from_backup = decoded.valid;
+        }
+    }
     vv_ai_data_apply(decoded.data);
-    ai_data_dirty = !decoded.valid;
+    ai_data_dirty = recovered_from_backup || !decoded.valid;
     return decoded.valid;
 }
 
 function vv_ai_data_save_if_dirty() {
     if (!ai_data_dirty) return true;
-    var data_file = -1;
     try {
-        data_file = file_text_open_write(ai_data_filename);
-        file_text_write_string(data_file, json_stringify(vv_ai_data_current()));
-        file_text_close(data_file);
-        data_file = -1;
+        if (!vv_atomic_text_write(ai_data_filename,
+        json_stringify(vv_ai_data_current()))) {
+            ai_data_dirty = true;
+            ai_data_dirty_frames = 0;
+            return false;
+        }
         ai_data_dirty = false;
         ai_data_dirty_frames = 0;
         ai_data_write_count++;
         return true;
     } catch (_error) {
-        if (data_file >= 0) file_text_close(data_file);
         ai_data_dirty = true;
         // Back off before retrying. Otherwise, after a delayed save fails once,
         // every following Step frame attempts another write.

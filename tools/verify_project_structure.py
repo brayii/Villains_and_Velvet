@@ -85,6 +85,12 @@ def main() -> int:
     ai_data_source = (PROJECT_ROOT / "scripts/vv_ai_data/vv_ai_data.gml").read_text(
         encoding="utf-8-sig"
     )
+    settings_source = (PROJECT_ROOT / "scripts/vv_settings/vv_settings.gml").read_text(
+        encoding="utf-8-sig"
+    )
+    ai_source = (PROJECT_ROOT / "scripts/vv_ai/vv_ai.gml").read_text(
+        encoding="utf-8-sig"
+    )
     save_function = re.search(
         r"function vv_ai_data_save_if_dirty\(\) \{(.*?)\n\}", ai_data_source, re.S
     )
@@ -92,6 +98,40 @@ def main() -> int:
         r"catch \(_error\).*?ai_data_dirty_frames = 0;", save_function.group(1), re.S
     ):
         errors.append("AI-data save failure does not reset its retry timer")
+    if "function vv_atomic_text_write" not in settings_source:
+        errors.append("Atomic persistence helper is missing")
+    if "vv_atomic_text_write(settings_filename" not in settings_source:
+        errors.append("Settings persistence bypasses atomic replacement")
+    if "vv_atomic_text_write(ai_data_filename" not in ai_data_source:
+        errors.append("AI-data persistence bypasses atomic replacement")
+
+    reward_function = re.search(
+        r"function enemy_ai_reward_finish_player_response\(_terminal_result\) \{(.*?)\n\}",
+        ai_source, re.S)
+    if not reward_function or "ai_games_won_auto" in reward_function.group(1) \
+    or "ai_games_lost_auto" in reward_function.group(1):
+        errors.append("Auto match counters are coupled to reward eligibility")
+    if not re.search(
+        r"function enemy_ai_record_auto_match_result\(_enemy_won\).*?"
+        r"started_in_auto.*?mode_changed.*?ai_games_won_auto\+\+.*?"
+        r"ai_games_lost_auto\+\+", ai_source, re.S):
+        errors.append("Auto match counters do not require an unchanged all-Auto match")
+    submit_function = re.search(
+        r"function enemy_ai_submit_current_target\(\) \{(.*?)\n\}", ai_source, re.S)
+    if not submit_function or not re.search(
+        r"if \(!submitted\) return false;.*?enemy_ai_visual_stage = \"result\";",
+        submit_function.group(1), re.S):
+        errors.append("Failed AI submission can enter the result animation")
+
+    turn_source = (PROJECT_ROOT / "scripts/vv_turn/vv_turn.gml").read_text(
+        encoding="utf-8-sig"
+    )
+    player_source = (PROJECT_ROOT / "scripts/vv_player/vv_player.gml").read_text(
+        encoding="utf-8-sig"
+    )
+    if "enemy_ai_record_auto_match_result(true);" not in turn_source \
+    or "enemy_ai_record_auto_match_result(false);" not in player_source:
+        errors.append("Auto match results are not recorded at both match endings")
 
     if errors:
         print("Project structure verification failed:")

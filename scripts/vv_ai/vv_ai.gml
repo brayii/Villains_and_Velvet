@@ -242,6 +242,16 @@ function enemy_ai_policy_reward_should_update(_meaningful_choice_count) {
     return _meaningful_choice_count > 0;
 }
 
+function enemy_ai_record_auto_match_result(_enemy_won) {
+    if (tutorial_mode || !enemy_ai_baseline_match.started_in_auto
+    || enemy_ai_baseline_match.mode_changed) return false;
+    if (_enemy_won) ai_games_won_auto++;
+    else ai_games_lost_auto++;
+    vv_ai_data_mark_dirty();
+    vv_ai_data_save_if_dirty();
+    return true;
+}
+
 /// _terminal_result: +1 Enemy win, -1 Enemy loss, 0 non-terminal.
 function enemy_ai_reward_finish_player_response(_terminal_result) {
     if (tutorial_mode) {
@@ -279,10 +289,7 @@ function enemy_ai_reward_finish_player_response(_terminal_result) {
     ai_meaningful_choice_count += meaningful_choice_count;
     ai_reward_ema = overall_ema_update.new_ema;
     ai_auto_turn_count++;
-    if (_terminal_result > 0) ai_games_won_auto++;
-    else if (_terminal_result < 0) ai_games_lost_auto++;
     vv_ai_data_mark_dirty();
-    if (_terminal_result != 0) vv_ai_data_save_if_dirty();
     if (ENEMY_AI_DEBUG_LOGS) show_debug_message("ENEMY AI REWARD | turn=" + string(turn_number)
         + " | hp_before=" + string(enemy_ai_reward_hp_before)
         + " | hp_end=" + string(leader_hp)
@@ -846,7 +853,8 @@ function enemy_ai_submit_current_target() {
     enemy_ai_cancel_pending_targeting();
     var submitted = pending_zone == "hand"
         ? command_prompt_hand(selected_slot) : command_prompt_build(selected_slot);
-    if (submitted && !is_undefined(decision_record)
+    if (!submitted) return false;
+    if (!is_undefined(decision_record)
     && decision_record.turn_id == enemy_ai_policy_turn_number) {
         array_push(enemy_ai_policy_decisions, decision_record);
     }

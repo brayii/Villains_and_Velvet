@@ -266,6 +266,7 @@ function command_attack_leader() {
         game_over = true;
         victory = true;
         phase = "game_over";
+        enemy_ai_record_auto_match_result(false);
         enemy_ai_baseline_finish_match(false);
         log_add("Victory! The Enemy Leader has been defeated.");
     }

@@ -171,6 +171,7 @@ function finish_turn() {
         game_over = true;
         victory = false;
         phase = "game_over";
+        enemy_ai_record_auto_match_result(true);
         enemy_ai_baseline_finish_match(true);
         log_add("Defeat. The Enemy Deck is empty, but the Leader still stands.");
     } else {
