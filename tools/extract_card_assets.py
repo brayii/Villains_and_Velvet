@@ -22,6 +22,18 @@ HERO_CROPS = {
     "hero_c_special_orc.png": (689, 734, 1073, 1021),
 }
 
+HERO_SET_2_CROPS = {
+    "hero_d_normal_vampire.png": (8, 100, 342, 425),
+    "hero_d_ability_vampire.png": (350, 100, 682, 425),
+    "hero_d_special_vampire.png": (689, 100, 1073, 425),
+    "hero_e_normal_witch.png": (8, 428, 342, 732),
+    "hero_e_ability_witch.png": (350, 428, 682, 732),
+    "hero_e_special_witch.png": (689, 428, 1073, 732),
+    "hero_f_normal_troll.png": (8, 734, 342, 1021),
+    "hero_f_ability_troll.png": (350, 734, 682, 1021),
+    "hero_f_special_troll.png": (689, 734, 1073, 1021),
+}
+
 ENEMY_CROPS = {
     "minion_na_bunny.png": (30, 102, 284, 489),
     "minion_nb_corgi.png": (298, 102, 547, 489),
@@ -68,6 +80,7 @@ def make_preview(files: list[Path], output_file: Path) -> None:
 def main() -> None:
     created = []
     created += extract(SOURCE / "heroes" / "hero_set_1.png", OUTPUT / "heroes", HERO_CROPS)
+    created += extract(SOURCE / "heroes" / "hero_set_2.png", OUTPUT / "heroes", HERO_SET_2_CROPS)
     created += extract(SOURCE / "enemies" / "enemy_set_1.png", OUTPUT / "enemies", ENEMY_CROPS)
 
     background_dir = OUTPUT / "backgrounds"

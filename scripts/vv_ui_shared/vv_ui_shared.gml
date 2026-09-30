@@ -70,6 +70,15 @@ function vv_ui_init() {
     vv_ui_reset_match_interaction();
 }
 
+function drain_choice_rect(_index) {
+    var columns = min(4, max(1, array_length(drain_recovery_candidates)));
+    var card_width = 190;
+    var gap = 14;
+    var total_width = columns * card_width + (columns - 1) * gap;
+    return {x:640 - total_width / 2 + (_index mod columns) * (card_width + gap),
+            y:180 + floor(_index / columns) * 190, w:card_width, h:170};
+}
+
 function vv_ui_cleanup() {
     var ui_fonts = [UI_FONT_SMALL, UI_FONT_BODY, UI_FONT_TITLE];
     for (var font_i = 0; font_i < array_length(ui_fonts); font_i++) {
@@ -534,6 +543,17 @@ function draw_card(_card, _rect, _selected, _legal) {
     if (!is_undefined(_card)) {
         if (variable_struct_exists(_card, "theme_color")) fill = _card.theme_color;
         else fill = make_color_rgb(92, 47, 48);
+    }
+    if (!is_undefined(_card) && card_has_ability(_card, ABILITY_TROLL_UNBREAKABLE)
+    && variable_struct_exists(_card, "unbreakable_used") && _card.unbreakable_used) {
+        vv_ui_set_font(UI_FONT_SMALL);
+        draw_set_alpha(0.92);
+        draw_set_color(COL_DANGER);
+        draw_rectangle(card_rect.x + card_rect.w - 62, card_rect.y + 6,
+            card_rect.x + card_rect.w - 6, card_rect.y + 30, false);
+        draw_center("USED", card_rect.x + card_rect.w - 34, card_rect.y + 18, COL_TEXT);
+        draw_set_alpha(1);
+        vv_ui_set_font(UI_FONT_BODY);
     }
     var outline = COL_EDGE;
     if (_legal) outline = COL_LEGAL;

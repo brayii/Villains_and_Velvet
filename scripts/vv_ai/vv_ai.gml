@@ -851,6 +851,7 @@ function enemy_ai_submit_current_target() {
     var decision_record = enemy_ai_pending_decision_record;
     var pending_zone = enemy_ai_pending_zone;
     enemy_ai_cancel_pending_targeting();
+    enemy_attack_target_survived = false;
     var submitted = pending_zone == "hand"
         ? command_prompt_hand(selected_slot) : command_prompt_build(selected_slot);
     if (!submitted) return false;
@@ -862,7 +863,11 @@ function enemy_ai_submit_current_target() {
     enemy_ai_visual_timer = ENEMY_AI_RESULT_DELAY_FRAMES;
     var attack_prompt_active = prompt_mode == "enemy_attack"
         || prompt_mode == "enemy_attack_hand";
-    if (attack_prompt_active && enemy_attack_prompt_id == submitted_prompt_id) {
+    if (enemy_attack_target_survived) {
+        enemy_ai_result_heading = "ATTACK ABSORBED";
+        enemy_ai_result_text = "Unbreakable was used. The Troll remains in play.";
+        enemy_attack_target_survived = false;
+    } else if (attack_prompt_active && enemy_attack_prompt_id == submitted_prompt_id) {
         enemy_ai_result_heading = "CARD DESTROYED";
         enemy_ai_result_text = string(prompt_value) + " Attack remains.\nThe same attack continues.";
     } else if (attack_prompt_active || array_length(full_assault_minions) > 0

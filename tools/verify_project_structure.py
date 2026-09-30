@@ -77,10 +77,26 @@ def main() -> int:
     state_source = (PROJECT_ROOT / "scripts/vv_state/vv_state.gml").read_text(
         encoding="utf-8-sig"
     )
-    if not re.search(r"array_length\(hand\) == CORE_HAND_SIZE", state_source):
+    if not re.search(r"array_length\(hand\) >= CORE_HAND_SIZE", state_source):
         errors.append("Runtime state validation duplicates the Hand-size literal")
     if not re.search(r"array_length\(build\) == CORE_BUILD_SIZE", state_source):
         errors.append("Runtime state validation duplicates the Build-size literal")
+
+    data_source = (PROJECT_ROOT / "scripts/vv_data/vv_data.gml").read_text(
+        encoding="utf-8-sig"
+    )
+    player_source = (PROJECT_ROOT / "scripts/vv_player/vv_player.gml").read_text(
+        encoding="utf-8-sig"
+    )
+    controller_source = (PROJECT_ROOT / "objects/obj_controller/Create_0.gml").read_text(
+        encoding="utf-8-sig"
+    )
+    for hero_id in ("vampire", "witch", "troll"):
+        if f'id: "{hero_id}"' not in data_source:
+            errors.append(f"Hero Set 02 is missing {hero_id}")
+    if "function hero_set_2_run_self_checks" not in player_source \
+    or "hero_set_2_run_self_checks(available_heroes)" not in controller_source:
+        errors.append("Hero Set 02 startup self-check is not wired")
 
     ai_data_source = (PROJECT_ROOT / "scripts/vv_ai_data/vv_ai_data.gml").read_text(
         encoding="utf-8-sig"

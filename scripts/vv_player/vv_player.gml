@@ -8,6 +8,123 @@ function recycle_player_deck() {
     }
 }
 
+function hero_card_entered_build(_card) {
+    if (!is_undefined(_card) && card_has_ability(_card, ABILITY_TROLL_UNBREAKABLE)) {
+        _card.unbreakable_used = false;
+    }
+}
+
+function player_draw_one_to_hand() {
+    recycle_player_deck();
+    if (array_length(player_deck) <= 0) return false;
+    array_push(hand, array_pop(player_deck));
+    return true;
+}
+
+function witch_minion_cost_reduction() {
+    var reduction = 0;
+    for (var build_i = 0; build_i < array_length(build); build_i++) {
+        if (is_undefined(build[build_i])) continue;
+        reduction = max(reduction, card_ability_param_total(
+            build[build_i], "minion_cost_reduction"));
+    }
+    return reduction;
+}
+
+function player_minion_attack_cost(_minion) {
+    return max(1, _minion.hp - witch_minion_cost_reduction());
+}
+
+function hero_set_2_run_self_checks(_heroes) {
+    var vampire = find_hero_definition(_heroes, "vampire");
+    var witch = find_hero_definition(_heroes, "witch");
+    var troll = find_hero_definition(_heroes, "troll");
+    if (is_undefined(vampire) || is_undefined(witch) || is_undefined(troll)) {
+        return {valid:false, message:"Hero Set 02 definitions are missing."};
+    }
+    var drain = find_card_ability(vampire.ability, ABILITY_VAMPIRE_DRAIN);
+    var feast = find_card_ability(vampire.special, ABILITY_VAMPIRE_FEAST);
+    var hex = find_card_ability(witch.ability, ABILITY_WITCH_HEX);
+    var curse = find_card_ability(witch.special, ABILITY_WITCH_CURSE);
+    if (vampire.normal.atk != 5 || vampire.normal.hp != 3
+    || ability_param_value(drain, "amount", 0) != 2
+    || ability_param_value(feast, "amount", 0) != 3
+    || ability_param_value(hex, "minion_cost_reduction", 0) != 2
+    || ability_param_value(curse, "minion_cost_reduction", 0) != 3
+    || card_enemy_destruction_cost(troll.ability) != 8
+    || !card_has_ability(troll.special, ABILITY_TROLL_UNBREAKABLE)) {
+        return {valid:false, message:"Hero Set 02 behavior check failed."};
+    }
+    return {valid:true, message:""};
+}
+
+function vampire_lowest_discard_indices() {
+    var candidates = [];
+    var lowest_hp = 999999;
+    for (var discard_i = 0; discard_i < array_length(player_discard); discard_i++) {
+        var card = player_discard[discard_i];
+        if (is_undefined(card) || !variable_struct_exists(card, "hp")) continue;
+        if (card.hp < lowest_hp) { lowest_hp = card.hp; candidates = [discard_i]; }
+        else if (card.hp == lowest_hp) array_push(candidates, discard_i);
+    }
+    return candidates;
+}
+
+function vampire_continue_defeat_triggers() {
+    while (drain_recovery_queue > 0) {
+        drain_recovery_queue--;
+        drain_recovery_candidates = vampire_lowest_discard_indices();
+        if (array_length(drain_recovery_candidates) == 0) continue;
+        if (array_length(drain_recovery_candidates) == 1) {
+            var recovered_index = drain_recovery_candidates[0];
+            var recovered = player_discard[recovered_index];
+            player_discard = array_remove_index(player_discard, recovered_index);
+            array_push(hand, recovered);
+            log_add("Drain returns " + recovered.name + " to your Hand.");
+            continue;
+        }
+        prompt_mode = "drain_recover";
+        prompt_source = "Drain: choose a lowest-Health discard to recover.";
+        return true;
+    }
+    while (feast_draw_queue > 0) {
+        feast_draw_queue--;
+        if (player_draw_one_to_hand()) log_add("Feast draws 1 card.");
+    }
+    return false;
+}
+
+function command_drain_recover(_choice) {
+    if (prompt_mode != "drain_recover" || _choice < 0
+    || _choice >= array_length(drain_recovery_candidates)) return false;
+    var recovered_index = drain_recovery_candidates[_choice];
+    var recovered = player_discard[recovered_index];
+    player_discard = array_remove_index(player_discard, recovered_index);
+    array_push(hand, recovered);
+    log_add("Drain returns " + recovered.name + " to your Hand.");
+    prompt_mode = "";
+    prompt_source = "";
+    drain_recovery_candidates = [];
+    vampire_continue_defeat_triggers();
+    validate_state("Drain recovery");
+    return true;
+}
+
+function resolve_hero_minion_defeat_triggers() {
+    var drain_count = 0;
+    var feast_count = 0;
+    for (var build_i = 0; build_i < array_length(build); build_i++) {
+        if (is_undefined(build[build_i])) continue;
+        if (card_has_ability(build[build_i], ABILITY_VAMPIRE_DRAIN)) drain_count++;
+        if (card_has_ability(build[build_i], ABILITY_VAMPIRE_FEAST)) feast_count++;
+    }
+    if (drain_count > 0) attack_left += drain_count * 2;
+    if (feast_count > 0) attack_left += feast_count * 3;
+    drain_recovery_queue = drain_count;
+    feast_draw_queue = feast_count;
+    vampire_continue_defeat_triggers();
+}
+
 function draw_player_hand() {
     if (count_occupied_hand() > 0) {
         log_add("Cards left in your Hand were discarded.");
@@ -108,6 +225,7 @@ function command_select_hand(_index) {
         var build_card = build[selected_build];
         var hand_card = hand[_index];
         build[selected_build] = hand_card;
+        hero_card_entered_build(hand_card);
         hand[_index] = build_card;
         log_add("Swapped " + build_card.name + " with " + hand_card.name + ".");
         selected_build = -1;
@@ -134,11 +252,13 @@ function command_select_build(_index) {
         var hand_card = hand[selected_hand];
         if (is_undefined(build[_index])) {
             build[_index] = hand_card;
+            hero_card_entered_build(hand_card);
             hand[selected_hand] = undefined;
             log_add("Placed " + hand_card.name + " in Build " + string(_index + 1) + ".");
         } else {
             var build_card = build[_index];
             build[_index] = hand_card;
+            hero_card_entered_build(hand_card);
             hand[selected_hand] = build_card;
             log_add("Swapped " + build_card.name + " with " + hand_card.name + ".");
         }
@@ -177,7 +297,7 @@ function command_drag_card(_source_area, _source_index, _target_area, _target_in
     if (_source_area == "hand") hand[_source_index] = target_card;
     else build[_source_index] = target_card;
     if (_target_area == "hand") hand[_target_index] = source_card;
-    else build[_target_index] = source_card;
+    else { build[_target_index] = source_card; hero_card_entered_build(source_card); }
     selected_hand = -1;
     selected_build = -1;
     build_changed = true;
@@ -206,8 +326,9 @@ function command_attack_minion(_index) {
     if (tutorial_mode && turn_number == 3
     && (tutorial_step != TutorialStep.T3_AttackBunny || minions[_index].id != "bunny")) return false;
     attack_finish_confirm = false;
-    if (attack_left >= minions[_index].hp) {
-        var defeat_cost = minions[_index].hp;
+    var minion_cost = player_minion_attack_cost(minions[_index]);
+    if (attack_left >= minion_cost) {
+        var defeat_cost = minion_cost;
         attack_left -= defeat_cost;
         var defeated_name = minions[_index].name;
         enemy_ai_conditional_learning_note_minion_defeated();
@@ -219,8 +340,9 @@ function command_attack_minion(_index) {
             log_add("Defeating " + defeated_name + " activates your card abilities: +"
                 + string(kill_bonus) + " Attack.");
         }
+        resolve_hero_minion_defeat_triggers();
     } else {
-        log_add("You need " + string(minions[_index].hp) + " Attack to defeat "
+        log_add("You need " + string(minion_cost) + " Attack to defeat "
             + minions[_index].name + ", but you only have " + string(attack_left)
             + ". Your Attack was not spent.");
         vv_tutorial_after_failed_minion_attack();

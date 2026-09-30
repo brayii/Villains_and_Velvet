@@ -76,6 +76,12 @@ function core_minion_slots_are_valid(_minion_set) {
 #macro ABILITY_UNITY "unity"
 #macro ABILITY_GUARD "guard"
 #macro ABILITY_FORTRESS "fortress"
+#macro ABILITY_VAMPIRE_DRAIN "vampire_drain"
+#macro ABILITY_VAMPIRE_FEAST "vampire_feast"
+#macro ABILITY_WITCH_HEX "witch_hex"
+#macro ABILITY_WITCH_CURSE "witch_curse"
+#macro ABILITY_TROLL_THICK_HIDE "troll_thick_hide"
+#macro ABILITY_TROLL_UNBREAKABLE "troll_unbreakable"
 #macro ABILITY_DISRUPT "disrupt"
 #macro ABILITY_CRUSH "crush"
 #macro ABILITY_PROTECTOR "protector"
@@ -136,6 +142,10 @@ function card_has_enemy_target_priority(_card) {
 function card_enemy_destruction_cost(_card) {
     if (is_undefined(_card)) return 0;
     return max(0, _card.hp + card_ability_param_total(_card, "enemy_destruction_cost_delta"));
+}
+
+function card_enemy_hand_destruction_cost(_card) {
+    return is_undefined(_card) ? 0 : max(0, _card.hp);
 }
 
 function effect_entry(_id, _params) {
@@ -218,6 +228,9 @@ function make_hero_definitions() {
     var goblin_color = make_color_rgb(91, 42, 53);
     var skeleton_color = make_color_rgb(54, 67, 112);
     var orc_color = make_color_rgb(42, 91, 74);
+    var vampire_color = make_color_rgb(120, 35, 46);
+    var witch_color = make_color_rgb(88, 47, 126);
+    var troll_color = make_color_rgb(54, 92, 48);
     return [
         {
             id: "goblin",
@@ -239,6 +252,27 @@ function make_hero_definitions() {
             normal: card_player("orc", "Orc", "Normal", 3, 5, [], "", "card_art/heroes/hero_c_normal_orc.png", orc_color),
             ability: card_player("orc", "Orc", "Ability", 2, 6, [ability_entry(ABILITY_GUARD, "Guard", "Enemies must attack this card first.", {})], "Enemies must attack this card first.", "card_art/heroes/hero_c_ability_orc.png", orc_color),
             special: card_player("orc", "Orc", "Special", 2, 8, [ability_entry(ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first.", {})], "Enemies must attack this card first.", "card_art/heroes/hero_c_special_orc.png", orc_color)
+        },
+        {
+            id: "vampire",
+            name: "Vampire",
+            normal: card_player("vampire", "Vampire", "Normal", 5, 3, [], "", "card_art/heroes/hero_d_normal_vampire.png", vampire_color),
+            ability: card_player("vampire", "Vampire", "Ability", 4, 3, [ability_entry(ABILITY_VAMPIRE_DRAIN, "Drain", "After you defeat a Minion, gain +2 Attack and return the lowest-Health card in your Discard Pile to your Hand.", {amount:2, conditional_trigger:CONDITIONAL_TRIGGER_MINION_DEFEATED})], "After you defeat a Minion, gain +2 Attack and recover the lowest-Health discard.", "card_art/heroes/hero_d_ability_vampire.png", vampire_color),
+            special: card_player("vampire", "Vampire", "Special", 6, 3, [ability_entry(ABILITY_VAMPIRE_FEAST, "Feast", "After you defeat a Minion, gain +3 Attack and draw 1 card.", {amount:3, conditional_trigger:CONDITIONAL_TRIGGER_MINION_DEFEATED})], "After you defeat a Minion, gain +3 Attack and draw 1 card.", "card_art/heroes/hero_d_special_vampire.png", vampire_color)
+        },
+        {
+            id: "witch",
+            name: "Witch",
+            normal: card_player("witch", "Witch", "Normal", 4, 4, [], "", "card_art/heroes/hero_e_normal_witch.png", witch_color),
+            ability: card_player("witch", "Witch", "Ability", 3, 4, [ability_entry(ABILITY_WITCH_HEX, "Hex", "Minions cost 2 less Attack to defeat.", {minion_cost_reduction:2})], "Minions cost 2 less Attack to defeat.", "card_art/heroes/hero_e_ability_witch.png", witch_color),
+            special: card_player("witch", "Witch", "Special", 3, 5, [ability_entry(ABILITY_WITCH_CURSE, "Curse", "Minions cost 3 less Attack to defeat.", {minion_cost_reduction:3})], "Minions cost 3 less Attack to defeat.", "card_art/heroes/hero_e_special_witch.png", witch_color)
+        },
+        {
+            id: "troll",
+            name: "Troll",
+            normal: card_player("troll", "Troll", "Normal", 3, 5, [], "", "card_art/heroes/hero_f_normal_troll.png", troll_color),
+            ability: card_player("troll", "Troll", "Ability", 5, 6, [ability_entry(ABILITY_TROLL_THICK_HIDE, "Thick Hide", "Enemies need +2 Attack to destroy this card.", {enemy_destruction_cost_delta:2})], "Enemies need +2 Attack to destroy this card.", "card_art/heroes/hero_f_ability_troll.png", troll_color),
+            special: card_player("troll", "Troll", "Special", 6, 7, [ability_entry(ABILITY_TROLL_UNBREAKABLE, "Unbreakable", "The first enemy attack that would destroy this card does not destroy it.", {})], "The first enemy attack that would destroy this card does not destroy it.", "card_art/heroes/hero_f_special_troll.png", troll_color)
         }
     ];
 }

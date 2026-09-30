@@ -325,6 +325,18 @@ function vv_ui_handle_input() {
 
     if (vv_tutorial_blocks_player_input()) return;
 
+    if (prompt_mode == "drain_recover") {
+        if (!pointer_pressed) return;
+        for (var drain_choice_i = 0; drain_choice_i < array_length(drain_recovery_candidates);
+        drain_choice_i++) {
+            if (point_in_rect(pointer_x, pointer_y, drain_choice_rect(drain_choice_i))) {
+                command_drain_recover(drain_choice_i);
+                return;
+            }
+        }
+        return;
+    }
+
     if (!setup_active && !game_over && pointer_pressed) {
         if (phase == "build" && selected_hand >= 0) {
             for (var empty_build_i = 0; empty_build_i < CORE_BUILD_SIZE; empty_build_i++) {
@@ -685,6 +697,10 @@ for (var hand_i = 0; hand_i < CORE_HAND_SIZE; hand_i++) {
     draw_card(hand_card, ui_card_visual_rect("hand", hand_i, hand_rects[hand_i]),
         selected_hand == hand_i || auto_hand_selected, legal_hand);
 }
+if (array_length(hand) > CORE_HAND_SIZE) {
+    draw_center_shadow("+" + string(array_length(hand) - CORE_HAND_SIZE)
+        + " EFFECT CARD(S) IN HAND", 640, 704, COL_GOLD);
+}
 
 var choice_reminder_stage = vv_required_choice_stage();
 if (choice_reminder_stage > 0) {
@@ -738,6 +754,7 @@ else if (prompt_mode == "full_assault_disrupt") instruction = "Disrupt: choose a
 else if (prompt_mode == "full_assault_shatter") instruction = "Shatter: choose a highlighted lowest-HP card.";
 else if (prompt_mode == "destroy_hand") instruction = prompt_source + "\nChoose a highlighted Hand card.\n"
     + string(escape_cards_remaining) + " remaining.";
+else if (prompt_mode == "drain_recover") instruction = prompt_source;
 else if (phase == "step1_ready") {
     if (tutorial_mode && turn_number == 1) instruction = "Draw your opening hand.";
     else if (turn_number == 1) instruction = "Draw three cards to begin.";
@@ -805,6 +822,18 @@ if ((enemy_auto_play || tutorial_mode) && enemy_ai_visual_stage == "result") {
 if (choice_reminder_stage > 0) {
     instruction = (choice_reminder_stage >= 2 ? "ACTION REQUIRED" : "YOUR CHOICE")
         + "\n" + prompt_source + "\nTap a glowing card to continue.";
+}
+if (prompt_mode == "drain_recover") {
+    draw_set_alpha(0.94);
+    draw_set_color(COL_BG);
+    draw_rectangle(180, 125, 1100, 690, false);
+    draw_set_alpha(1);
+    draw_center_shadow("DRAIN — CHOOSE A CARD", 640, 145, COL_GOLD);
+    for (var drain_draw_i = 0; drain_draw_i < array_length(drain_recovery_candidates);
+    drain_draw_i++) {
+        draw_card(player_discard[drain_recovery_candidates[drain_draw_i]],
+            drain_choice_rect(drain_draw_i), false, true);
+    }
 }
 if (tutorial_mode && !tutorial_pause && tutorial_heading != "") {
     instruction = tutorial_heading + "\n" + tutorial_body;

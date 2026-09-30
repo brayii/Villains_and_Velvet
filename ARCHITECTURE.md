@@ -67,7 +67,18 @@ Minion Sets are registered independently. Each complete set supplies one card fo
 
 Full Assault snapshots the Minions currently in play, then resolves the Leader and each captured Minion in order. Every queued attack follows the normal enemy-attack rule and targets the Build only. The dormant Hand-targeting machinery is retained for possible future card text but is disabled for Full Assault by `ENEMY_FULL_ASSAULT_MAY_TARGET_HAND` and guarded by startup self-checks.
 
-Hero identities use stable lowercase content IDs: `goblin`, `skeleton`, and `orc`. Minions likewise use character IDs such as `bunny` and `red_panda`, while `minion_slot` separately records the structural NA/NB/NC/AA/AB/SA/SB/SC deck position. Minion Set validation requires every structural slot exactly once and rejects missing or duplicate character IDs. Player-facing messages continue to use display names rather than IDs or slot codes.
+Hero identities use stable lowercase content IDs: `goblin`, `skeleton`, `orc`,
+`vampire`, `witch`, and `troll`. Minions likewise use character IDs such as
+`bunny` and `red_panda`, while `minion_slot` separately records the structural
+NA/NB/NC/AA/AB/SA/SB/SC deck position. Minion Set validation requires every
+structural slot exactly once and rejects missing or duplicate character IDs.
+Player-facing messages continue to use display names rather than IDs or slot codes.
+
+Hero Set 02 adds three shared rule extensions. Vampire defeat triggers queue
+discard recovery before card draws; Witch applies the strongest active Minion-cost
+reduction without changing printed Health; Troll uses the shared enemy destruction
+cost and per-card `unbreakable_used` state. None of these rules branch on a
+Scenario name.
 
 ## Enemy Event Resolution
 

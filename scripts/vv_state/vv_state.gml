@@ -193,7 +193,9 @@ function validate_ability_entries(_abilities, _allowed_ids, _owner_label) {
             return content_validation_result(false, _owner_label + " ability '"
                 + ability.id + "' has an unsupported conditional trigger.");
         }
-        if (ability.id == ABILITY_OVERPOWER || ability.id == ABILITY_RELENTLESS || ability.id == ABILITY_RALLY) {
+        if (ability.id == ABILITY_OVERPOWER || ability.id == ABILITY_RELENTLESS
+        || ability.id == ABILITY_RALLY || ability.id == ABILITY_VAMPIRE_DRAIN
+        || ability.id == ABILITY_VAMPIRE_FEAST) {
             if (!variable_struct_exists(ability.params, "amount")
             || !content_number_is_valid(ability.params.amount, 0, false)) {
                 return content_validation_result(false, _owner_label + " ability '" + ability.id + "' needs a nonnegative numeric amount.");
@@ -202,6 +204,18 @@ function validate_ability_entries(_abilities, _allowed_ids, _owner_label) {
             if (!variable_struct_exists(ability.params, "amount_per_hero")
             || !content_number_is_valid(ability.params.amount_per_hero, 0, false)) {
                 return content_validation_result(false, _owner_label + " ability '" + ability.id + "' needs a nonnegative numeric amount_per_hero.");
+            }
+        } else if (ability.id == ABILITY_WITCH_HEX || ability.id == ABILITY_WITCH_CURSE) {
+            if (!variable_struct_exists(ability.params, "minion_cost_reduction")
+            || !content_number_is_valid(ability.params.minion_cost_reduction, 0, false)) {
+                return content_validation_result(false, _owner_label + " ability '"
+                    + ability.id + "' needs a nonnegative minion_cost_reduction.");
+            }
+        } else if (ability.id == ABILITY_TROLL_THICK_HIDE) {
+            if (!variable_struct_exists(ability.params, "enemy_destruction_cost_delta")
+            || !content_number_is_valid(ability.params.enemy_destruction_cost_delta, 0, false)) {
+                return content_validation_result(false, _owner_label + " ability '"
+                    + ability.id + "' needs a nonnegative enemy_destruction_cost_delta.");
             }
         }
     }
@@ -416,7 +430,10 @@ function validate_content_registries(_leaders, _scenarios, _minion_sets, _heroes
                 return content_validation_result(false, "Hero '" + hero.id + "' has invalid " + kinds[template_i] + " Attack, Health, name, or artwork values.");
             }
             result = validate_ability_entries(template.abilities,
-                [ABILITY_OVERPOWER, ABILITY_RELENTLESS, ABILITY_RALLY, ABILITY_UNITY, ABILITY_GUARD, ABILITY_FORTRESS],
+                [ABILITY_OVERPOWER, ABILITY_RELENTLESS, ABILITY_RALLY, ABILITY_UNITY,
+                 ABILITY_GUARD, ABILITY_FORTRESS, ABILITY_VAMPIRE_DRAIN,
+                 ABILITY_VAMPIRE_FEAST, ABILITY_WITCH_HEX, ABILITY_WITCH_CURSE,
+                 ABILITY_TROLL_THICK_HIDE, ABILITY_TROLL_UNBREAKABLE],
                 "Hero '" + hero.id + "' " + kinds[template_i]);
             if (!result.valid) return result;
         }
@@ -662,7 +679,7 @@ function validate_state(_context) {
     var enemy_total = array_length(enemy_cards);
     var valid_player_composition = validate_player_composition(player_cards);
     var valid_enemy_composition = validate_enemy_composition(enemy_cards, enemy_minion_set);
-    var valid_spaces = array_length(hand) == CORE_HAND_SIZE
+    var valid_spaces = array_length(hand) >= CORE_HAND_SIZE
         && array_length(build) == CORE_BUILD_SIZE
         && array_length(minions) == 2;
     var valid = valid_player_composition && valid_enemy_composition
@@ -728,6 +745,10 @@ function reset_game() {
     full_assault_minions = [];
     full_assault_index = -1;
     full_assault_current_minion = undefined;
+    drain_recovery_queue = 0;
+    drain_recovery_candidates = [];
+    feast_draw_queue = 0;
+    enemy_attack_target_survived = false;
     entry_minion = undefined;
     entry_ability_index = 0;
     entry_has_attack_pattern = false;

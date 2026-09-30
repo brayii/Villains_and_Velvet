@@ -17,6 +17,8 @@ function enemy_target_is_legal_in_build(_build_snapshot, _index, _amount) {
     || is_undefined(_build_snapshot[_index])) return false;
     if (build_snapshot_has_priority(_build_snapshot)
     && !card_has_enemy_target_priority(_build_snapshot[_index])) return false;
+    if (variable_struct_exists(_build_snapshot[_index], "unbreakable_attack_id")
+    && _build_snapshot[_index].unbreakable_attack_id == enemy_attack_prompt_id) return false;
     return _amount >= card_enemy_destruction_cost(_build_snapshot[_index]);
 }
 
@@ -41,7 +43,7 @@ function enemy_legal_build_target_count(_amount) {
 
 function enemy_hand_target_is_legal_in_hand(_hand, _index, _amount) {
     return _index >= 0 && _index < array_length(_hand) && !is_undefined(_hand[_index])
-        && _amount >= card_enemy_destruction_cost(_hand[_index]);
+        && _amount >= card_enemy_hand_destruction_cost(_hand[_index]);
 }
 
 function enemy_hand_target_is_legal(_index, _amount) {
@@ -111,6 +113,15 @@ function destroy_build_card(_index, _source) {
     log_add(build[_index].name + " destroyed by " + _source + ".");
     array_push(player_discard, build[_index]);
     build[_index] = undefined;
+}
+
+function hero_card_absorbs_enemy_attack(_card) {
+    if (is_undefined(_card) || !card_has_ability(_card, ABILITY_TROLL_UNBREAKABLE)) return false;
+    if (!variable_struct_exists(_card, "unbreakable_used")) _card.unbreakable_used = false;
+    if (_card.unbreakable_used) return false;
+    _card.unbreakable_used = true;
+    _card.unbreakable_attack_id = enemy_attack_prompt_id;
+    return true;
 }
 
 function discard_build_card(_index, _source) {
@@ -640,7 +651,7 @@ function draw_next_enemy_card() {
 function command_prompt_hand(_index) {
     if (prompt_mode == "enemy_attack_hand") {
         if (!enemy_hand_target_is_legal(_index, prompt_value)) return false;
-        prompt_value -= card_enemy_destruction_cost(hand[_index]);
+        prompt_value -= card_enemy_hand_destruction_cost(hand[_index]);
         destroy_hand_card(_index, "enemy Attack");
         if (prompt_value > 0 && count_occupied_hand() <= 0) draw_full_assault_hand();
         if (prompt_value > 0 && enemy_has_legal_hand_target(prompt_value)) {
@@ -678,10 +689,17 @@ function command_prompt_build(_index) {
         return false;
     }
     if (prompt_mode == "enemy_attack") {
-        enemy_ai_baseline_record_destroyed_card(copy_build_snapshot(build), _index);
-        prompt_value -= card_enemy_destruction_cost(build[_index]);
+        var target_card = build[_index];
+        var target_cost = card_enemy_destruction_cost(target_card);
+        var target_survived = hero_card_absorbs_enemy_attack(target_card);
+        if (!target_survived) enemy_ai_baseline_record_destroyed_card(
+            copy_build_snapshot(build), _index);
+        prompt_value -= target_cost;
         vv_tutorial_note_enemy_attack_remaining(prompt_value);
-        destroy_build_card(_index, "enemy Attack");
+        enemy_attack_target_survived = target_survived;
+        if (target_survived) {
+            log_add(target_card.name + "'s Unbreakable prevents its destruction. The Attack is spent.");
+        } else destroy_build_card(_index, "enemy Attack");
         if (prompt_value > 0 && enemy_has_legal_target(prompt_value)) {
             log_add(string(prompt_value) + " Attack remains. Choose another highlighted target.");
             return true;
