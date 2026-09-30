@@ -184,6 +184,26 @@ function vv_ui_draw_setup() {
         battle_settings.x + battle_settings.w / 2,
         battle_settings.y + battle_settings.h / 2, COL_TEXT);
 
+    var progress_text = "HERO PROGRESS  " + string(hero_victories) + " "
+        + (hero_victories == 1 ? "VICTORY" : "VICTORIES");
+    var locked_text = "";
+    for (var unlock_i = 0; unlock_i < array_length(available_heroes); unlock_i++) {
+        var unlock_hero = available_heroes[unlock_i];
+        if (vv_progress_hero_unlocked(unlock_hero)) continue;
+        if (locked_text != "") locked_text += "   ·   ";
+        locked_text += string_upper(unlock_hero.name) + " "
+            + string(unlock_hero.unlock_wins) + " "
+            + (unlock_hero.unlock_wins == 1 ? "WIN" : "WINS");
+    }
+    if (locked_text != "") {
+        progress_text += "   ·   LOCKED: " + locked_text;
+    } else {
+        progress_text += "   ·   ALL HEROES UNLOCKED";
+    }
+    vv_ui_set_font(UI_FONT_SMALL);
+    draw_center(progress_text, 640, 94, locked_text == "" ? COL_LEGAL : COL_GOLD);
+    vv_ui_set_font(UI_FONT_BODY);
+
     if (!content_registry_validation.valid) {
         var content_error_panel = {x:290, y:190, w:700, h:230};
         draw_set_alpha(0.94);

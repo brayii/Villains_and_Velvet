@@ -235,6 +235,7 @@ function make_hero_definitions() {
         {
             id: "goblin",
             name: "Goblin",
+            unlock_wins: 0,
             normal: card_player("goblin", "Goblin", "Normal", 5, 3, [], "", "card_art/heroes/hero_a_normal_goblin.png", goblin_color),
             ability: card_player("goblin", "Goblin", "Ability", 4, 2, [ability_entry(ABILITY_OVERPOWER, "Overpower", "After you defeat a Minion, gain +2 Attack.", {amount:2, conditional_trigger:CONDITIONAL_TRIGGER_MINION_DEFEATED})], "After you defeat a Minion, gain +2 Attack.", "card_art/heroes/hero_a_ability_goblin.png", goblin_color),
             special: card_player("goblin", "Goblin", "Special", 7, 2, [ability_entry(ABILITY_RELENTLESS, "Relentless", "After you defeat a Minion, gain +3 Attack.", {amount:3, conditional_trigger:CONDITIONAL_TRIGGER_MINION_DEFEATED})], "After you defeat a Minion, gain +3 Attack.", "card_art/heroes/hero_a_special_goblin.png", goblin_color)
@@ -242,6 +243,7 @@ function make_hero_definitions() {
         {
             id: "skeleton",
             name: "Skeleton",
+            unlock_wins: 0,
             normal: card_player("skeleton", "Skeleton", "Normal", 4, 4, [], "", "card_art/heroes/hero_b_normal_skeleton.png", skeleton_color),
             ability: card_player("skeleton", "Skeleton", "Ability", 3, 4, [ability_entry(ABILITY_RALLY, "Rally", "Your other Build cards gain +1 Attack.", {amount:1})], "Your other Build cards gain +1 Attack.", "card_art/heroes/hero_b_ability_skeleton.png", skeleton_color),
             special: card_player("skeleton", "Skeleton", "Special", 4, 4, [ability_entry(ABILITY_UNITY, "Unity", "Gain +2 Attack for each other Hero type in your Build.", {amount_per_hero:2})], "Gain +2 Attack for each other Hero type in your Build.", "card_art/heroes/hero_b_special_skeleton.png", skeleton_color)
@@ -249,6 +251,7 @@ function make_hero_definitions() {
         {
             id: "orc",
             name: "Orc",
+            unlock_wins: 0,
             normal: card_player("orc", "Orc", "Normal", 3, 5, [], "", "card_art/heroes/hero_c_normal_orc.png", orc_color),
             ability: card_player("orc", "Orc", "Ability", 2, 6, [ability_entry(ABILITY_GUARD, "Guard", "Enemies must attack this card first.", {})], "Enemies must attack this card first.", "card_art/heroes/hero_c_ability_orc.png", orc_color),
             special: card_player("orc", "Orc", "Special", 2, 8, [ability_entry(ABILITY_FORTRESS, "Fortress", "Enemies must attack this card first.", {})], "Enemies must attack this card first.", "card_art/heroes/hero_c_special_orc.png", orc_color)
@@ -256,6 +259,7 @@ function make_hero_definitions() {
         {
             id: "vampire",
             name: "Vampire",
+            unlock_wins: 1,
             normal: card_player("vampire", "Vampire", "Normal", 5, 3, [], "", "card_art/heroes/hero_d_normal_vampire.png", vampire_color),
             ability: card_player("vampire", "Vampire", "Ability", 4, 3, [ability_entry(ABILITY_VAMPIRE_DRAIN, "Drain", "After you defeat a Minion, gain +2 Attack and return the lowest-Health card in your Discard Pile to your Hand.", {amount:2, conditional_trigger:CONDITIONAL_TRIGGER_MINION_DEFEATED})], "After you defeat a Minion, gain +2 Attack and recover the lowest-Health discard.", "card_art/heroes/hero_d_ability_vampire.png", vampire_color),
             special: card_player("vampire", "Vampire", "Special", 6, 3, [ability_entry(ABILITY_VAMPIRE_FEAST, "Feast", "After you defeat a Minion, gain +3 Attack and draw 1 card.", {amount:3, conditional_trigger:CONDITIONAL_TRIGGER_MINION_DEFEATED})], "After you defeat a Minion, gain +3 Attack and draw 1 card.", "card_art/heroes/hero_d_special_vampire.png", vampire_color)
@@ -263,6 +267,7 @@ function make_hero_definitions() {
         {
             id: "witch",
             name: "Witch",
+            unlock_wins: 2,
             normal: card_player("witch", "Witch", "Normal", 4, 4, [], "", "card_art/heroes/hero_e_normal_witch.png", witch_color),
             ability: card_player("witch", "Witch", "Ability", 3, 4, [ability_entry(ABILITY_WITCH_HEX, "Hex", "Minions cost 2 less Attack to defeat.", {minion_cost_reduction:2})], "Minions cost 2 less Attack to defeat.", "card_art/heroes/hero_e_ability_witch.png", witch_color),
             special: card_player("witch", "Witch", "Special", 3, 5, [ability_entry(ABILITY_WITCH_CURSE, "Curse", "Minions cost 3 less Attack to defeat.", {minion_cost_reduction:3})], "Minions cost 3 less Attack to defeat.", "card_art/heroes/hero_e_special_witch.png", witch_color)
@@ -270,6 +275,7 @@ function make_hero_definitions() {
         {
             id: "troll",
             name: "Troll",
+            unlock_wins: 3,
             normal: card_player("troll", "Troll", "Normal", 3, 5, [], "", "card_art/heroes/hero_f_normal_troll.png", troll_color),
             ability: card_player("troll", "Troll", "Ability", 5, 6, [ability_entry(ABILITY_TROLL_THICK_HIDE, "Thick Hide", "Enemies need +2 Attack to destroy this card.", {enemy_destruction_cost_delta:2})], "Enemies need +2 Attack to destroy this card.", "card_art/heroes/hero_f_ability_troll.png", troll_color),
             special: card_player("troll", "Troll", "Special", 6, 7, [ability_entry(ABILITY_TROLL_UNBREAKABLE, "Unbreakable", "The first enemy attack that would destroy this card does not destroy it.", {})], "The first enemy attack that would destroy this card does not destroy it.", "card_art/heroes/hero_f_special_troll.png", troll_color)

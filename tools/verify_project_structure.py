@@ -107,7 +107,6 @@ def main() -> int:
     )
     if '!setup_active && prompt_mode == "drain_recover"' not in ui_match_source:
         errors.append("Drain recovery input is not restricted to an active match")
-
     ai_data_source = (PROJECT_ROOT / "scripts/vv_ai_data/vv_ai_data.gml").read_text(
         encoding="utf-8-sig"
     )
@@ -128,6 +127,20 @@ def main() -> int:
         errors.append("Atomic persistence helper is missing")
     if "vv_atomic_text_write(settings_filename" not in settings_source:
         errors.append("Settings persistence bypasses atomic replacement")
+    if "settings_version: 10" not in settings_source \
+    or "hero_victories: hero_victories" not in settings_source:
+        errors.append("Hero unlock progress is not versioned and persisted")
+    if "function vv_progress_record_victory" not in settings_source:
+        errors.append("Hero victory progression is missing")
+    if "function vv_progress_run_self_checks" not in settings_source \
+    or "vv_progress_run_self_checks(available_heroes)" not in controller_source:
+        errors.append("Hero progression startup self-check is not wired")
+    if "vv_progress_hero_unlocked(candidate)" not in state_source:
+        errors.append("Hero selection does not exclude locked heroes")
+    for hero_id, wins in (("vampire", 1), ("witch", 2), ("troll", 3)):
+        hero_pattern = rf'id: "{hero_id}".*?unlock_wins: {wins}'
+        if not re.search(hero_pattern, data_source, re.S):
+            errors.append(f"{hero_id.title()} unlock requirement is not {wins} victories")
     if "vv_atomic_text_write(ai_data_filename" not in ai_data_source:
         errors.append("AI-data persistence bypasses atomic replacement")
 

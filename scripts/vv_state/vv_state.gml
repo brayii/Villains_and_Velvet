@@ -610,8 +610,10 @@ function command_cycle_hero_slot(_slot, _change) {
     }
     for (var offset = 1; offset <= array_length(available_heroes); offset++) {
         var candidate_index = wrap_content_index(current_index + offset * _change, array_length(available_heroes));
-        var candidate_id = available_heroes[candidate_index].id;
-        if (!array_has_value(selected_hero_ids, candidate_id)) {
+        var candidate = available_heroes[candidate_index];
+        var candidate_id = candidate.id;
+        if (vv_progress_hero_unlocked(candidate)
+        && !array_has_value(selected_hero_ids, candidate_id)) {
             selected_hero_ids[_slot] = candidate_id;
             refresh_setup_validation();
             return true;

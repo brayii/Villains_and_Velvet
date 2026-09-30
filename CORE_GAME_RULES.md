@@ -139,3 +139,13 @@ Card text may add to or override these rules. When card text directly conflicts 
 Leaders may define different starting Health, maximum Health, Attack, abilities, and Leader Strikes. Scenarios may provide different Twists and setup rules. Minion Sets provide the Minion portion of the Enemy Deck independently of the Scenario. Future Heroes and Minion Sets may introduce new statistics, abilities, and interactions without changing this core document.
 
 Content-specific values and ability explanations belong with the data or documentation for that content set, not in the core rules.
+
+## 10. Hero Progression
+
+Goblin, Skeleton, and Orc are the original Hero team and are available from the first launch. Victories in normal battles permanently unlock additional Heroes:
+
+- first victory: Vampire;
+- second victory: Witch; and
+- third victory: Troll.
+
+Training does not count toward Hero unlocks. Locked Heroes cannot be selected, and the battle setup screen shows every remaining requirement. Unlock progress is stored with player settings; it changes available team-building options without increasing card statistics.

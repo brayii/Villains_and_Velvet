@@ -1078,6 +1078,9 @@ if (game_over) {
     vv_ui_set_font(UI_FONT_SMALL);
     draw_center("TURNS " + string(turn_number) + "   ·   LEADER HP " + string(leader_hp)
         + " / " + string(enemy_leader.max_hp), 640, 356, COL_MUTED);
+    if (victory && hero_unlock_notice != "") {
+        draw_center("NEW HERO UNLOCKED: " + string_upper(hero_unlock_notice), 640, 382, COL_GOLD);
+    }
     vv_ui_set_font(UI_FONT_BODY);
     draw_panel(result_play_rect, COL_ACCENT, COL_TEXT);
     draw_center("PLAY AGAIN", 640, result_play_rect.y + result_play_rect.h / 2, COL_BG);

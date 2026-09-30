@@ -52,7 +52,8 @@ function hero_set_2_run_self_checks(_heroes) {
     || ability_param_value(hex, "minion_cost_reduction", 0) != 2
     || ability_param_value(curse, "minion_cost_reduction", 0) != 3
     || card_enemy_destruction_cost(troll.ability) != 8
-    || !card_has_ability(troll.special, ABILITY_TROLL_UNBREAKABLE)) {
+    || !card_has_ability(troll.special, ABILITY_TROLL_UNBREAKABLE)
+    || vampire.unlock_wins != 1 || witch.unlock_wins != 2 || troll.unlock_wins != 3) {
         return {valid:false, message:"Hero Set 02 behavior check failed."};
     }
     return {valid:true, message:""};
@@ -388,6 +389,7 @@ function command_attack_leader() {
         game_over = true;
         victory = true;
         phase = "game_over";
+        if (!tutorial_mode) hero_unlock_notice = vv_progress_record_victory(available_heroes);
         enemy_ai_record_auto_match_result(false);
         enemy_ai_baseline_finish_match(false);
         log_add("Victory! The Enemy Leader has been defeated.");

@@ -57,7 +57,7 @@ function vv_atomic_text_write(_filename, _text) {
 
 function vv_settings_defaults() {
     return {
-        settings_version: 9,
+        settings_version: 10,
         enemy_targeting_mode: "auto",
         audio_enabled: true,
         guided_tutorial_complete: false,
@@ -66,7 +66,8 @@ function vv_settings_defaults() {
         hint_build: false,
         hint_drag: false,
         hint_inspect: false,
-        hint_attack: false
+        hint_attack: false,
+        hero_victories: 0
     };
 }
 
@@ -93,7 +94,10 @@ function vv_settings_decode(_text) {
         || !vv_settings_bool_field_is_valid(loaded, "hint_build")
         || !vv_settings_bool_field_is_valid(loaded, "hint_drag")
         || !vv_settings_bool_field_is_valid(loaded, "hint_inspect")
-        || !vv_settings_bool_field_is_valid(loaded, "hint_attack")) {
+        || !vv_settings_bool_field_is_valid(loaded, "hint_attack")
+        || (variable_struct_exists(loaded, "hero_victories")
+            && (!is_real(loaded.hero_victories) || loaded.hero_victories < 0
+                || loaded.hero_victories != floor(loaded.hero_victories)))) {
             return {valid:false, enemy_auto_play:true};
         }
         var mode = string_lower(loaded.enemy_targeting_mode);
@@ -114,7 +118,9 @@ function vv_settings_decode(_text) {
             hint_build:version >= 4 && variable_struct_exists(loaded, "hint_build") ? loaded.hint_build : false,
             hint_drag:version >= 2 && variable_struct_exists(loaded, "hint_drag") ? loaded.hint_drag : false,
             hint_inspect:version >= 2 && variable_struct_exists(loaded, "hint_inspect") ? loaded.hint_inspect : false,
-            hint_attack:version >= 4 && variable_struct_exists(loaded, "hint_attack") ? loaded.hint_attack : false
+            hint_attack:version >= 4 && variable_struct_exists(loaded, "hint_attack") ? loaded.hint_attack : false,
+            hero_victories:version >= 10 && variable_struct_exists(loaded, "hero_victories")
+                ? loaded.hero_victories : 0
         };
     } catch (_error) {
         return {valid:false, enemy_auto_play:true};
@@ -123,7 +129,7 @@ function vv_settings_decode(_text) {
 
 function vv_settings_init() {
     settings_filename = "villains_and_velvet_settings.json";
-    settings_version = 9;
+    settings_version = 10;
     settings_dirty = true;
     enemy_auto_play = true;
     audio_enabled = true;
@@ -134,6 +140,8 @@ function vv_settings_init() {
     hint_drag = false;
     hint_inspect = false;
     hint_attack = false;
+    hero_victories = 0;
+    hero_unlock_notice = "";
     vv_settings_load();
     vv_settings_save_if_dirty();
     vv_feedback_apply_audio_enabled();
@@ -149,6 +157,7 @@ function vv_settings_load() {
     hint_drag = false;
     hint_inspect = false;
     hint_attack = false;
+    hero_victories = 0;
     settings_dirty = true;
     var loaded = vv_text_file_read(settings_filename);
     var decoded = loaded.success
@@ -178,6 +187,7 @@ function vv_settings_load() {
         hint_drag = decoded.hint_drag;
         hint_inspect = decoded.hint_inspect;
         hint_attack = decoded.hint_attack;
+        hero_victories = decoded.hero_victories;
     }
     settings_dirty = recovered_from_backup || !decoded.valid
         || (decoded.valid && decoded.upgraded);
@@ -196,7 +206,8 @@ function vv_settings_save_if_dirty() {
         hint_build: hint_build,
         hint_drag: hint_drag,
         hint_inspect: hint_inspect,
-        hint_attack: hint_attack
+        hint_attack: hint_attack,
+        hero_victories: hero_victories
     };
     try {
         if (!vv_atomic_text_write(settings_filename, json_stringify(settings_data))) {
@@ -232,6 +243,61 @@ function vv_settings_complete_guided_tutorial() {
     settings_dirty = true;
     vv_settings_save_if_dirty();
     return true;
+}
+
+function vv_progress_hero_unlocked(_hero) {
+    return !variable_struct_exists(_hero, "unlock_wins")
+        || hero_victories >= _hero.unlock_wins;
+}
+
+function vv_progress_next_unlock(_heroes) {
+    var next_hero = undefined;
+    for (var hero_i = 0; hero_i < array_length(_heroes); hero_i++) {
+        var hero = _heroes[hero_i];
+        if (vv_progress_hero_unlocked(hero)) continue;
+        if (is_undefined(next_hero) || hero.unlock_wins < next_hero.unlock_wins) next_hero = hero;
+    }
+    return next_hero;
+}
+
+function vv_progress_record_victory(_heroes) {
+    var previous_wins = hero_victories;
+    hero_victories++;
+    settings_dirty = true;
+    vv_settings_save_if_dirty();
+    for (var hero_i = 0; hero_i < array_length(_heroes); hero_i++) {
+        var hero = _heroes[hero_i];
+        if (hero.unlock_wins > previous_wins && hero.unlock_wins <= hero_victories) {
+            return hero.name;
+        }
+    }
+    return "";
+}
+
+function vv_progress_run_self_checks(_heroes) {
+    var migrated = vv_settings_decode("{\"settings_version\":9,\"enemy_targeting_mode\":\"auto\"}");
+    var invalid = vv_settings_decode("{\"settings_version\":10,\"enemy_targeting_mode\":\"auto\",\"hero_victories\":1.5}");
+    if (!migrated.valid || migrated.hero_victories != 0 || invalid.valid) {
+        return {valid:false, message:"Hero progression save migration check failed."};
+    }
+    var vampire = find_hero_definition(_heroes, "vampire");
+    var witch = find_hero_definition(_heroes, "witch");
+    var troll = find_hero_definition(_heroes, "troll");
+    var original_victories = hero_victories;
+    hero_victories = 0;
+    var zero_valid = !vv_progress_hero_unlocked(vampire)
+        && !vv_progress_hero_unlocked(witch) && !vv_progress_hero_unlocked(troll);
+    hero_victories = 1;
+    var one_valid = vv_progress_hero_unlocked(vampire)
+        && !vv_progress_hero_unlocked(witch) && !vv_progress_hero_unlocked(troll);
+    hero_victories = 3;
+    var three_valid = vv_progress_hero_unlocked(vampire)
+        && vv_progress_hero_unlocked(witch) && vv_progress_hero_unlocked(troll);
+    hero_victories = original_victories;
+    if (!zero_valid || !one_valid || !three_valid) {
+        return {valid:false, message:"Hero progression unlock threshold check failed."};
+    }
+    return {valid:true, message:""};
 }
 
 function vv_settings_set_enemy_auto(_enabled) {

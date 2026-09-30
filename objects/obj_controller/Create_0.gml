@@ -19,6 +19,10 @@ if (content_registry_validation.valid) {
     if (!hero_set_2_self_checks.valid) content_registry_validation = hero_set_2_self_checks;
 }
 if (content_registry_validation.valid) {
+    var hero_progress_self_checks = vv_progress_run_self_checks(available_heroes);
+    if (!hero_progress_self_checks.valid) content_registry_validation = hero_progress_self_checks;
+}
+if (content_registry_validation.valid) {
     var tutorial_self_checks = vv_tutorial_run_self_checks(
         available_leaders, available_scenarios, available_minion_sets, available_heroes);
     if (!tutorial_self_checks.valid) content_registry_validation = tutorial_self_checks;
