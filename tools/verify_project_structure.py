@@ -98,6 +98,16 @@ def main() -> int:
     or "hero_set_2_run_self_checks(available_heroes)" not in controller_source:
         errors.append("Hero Set 02 startup self-check is not wired")
 
+    prompt_init = controller_source.find('prompt_mode = "";')
+    setup_init = controller_source.find("setup_active = true;")
+    if prompt_init < 0 or setup_init < 0 or prompt_init > setup_init:
+        errors.append("Prompt state is not initialized before setup input begins")
+    ui_match_source = (PROJECT_ROOT / "scripts/vv_ui_match/vv_ui_match.gml").read_text(
+        encoding="utf-8-sig"
+    )
+    if '!setup_active && prompt_mode == "drain_recover"' not in ui_match_source:
+        errors.append("Drain recovery input is not restricted to an active match")
+
     ai_data_source = (PROJECT_ROOT / "scripts/vv_ai_data/vv_ai_data.gml").read_text(
         encoding="utf-8-sig"
     )

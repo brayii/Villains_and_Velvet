@@ -70,6 +70,11 @@ enemy_event_selection = content_registry_validation.valid
     ? make_default_enemy_event_selection(enemy_leader, enemy_scenario)
     : {leader_strikes:[], twists:[]};
 log_lines = [];
+// Match-only prompt state must exist before the first Step event. The setup
+// screen also uses vv_ui_handle_input(), before reset_game() initializes it.
+prompt_mode = "";
+prompt_source = "";
+prompt_value = 0;
 setup_active = true;
 phase = "setup";
 refresh_setup_validation();

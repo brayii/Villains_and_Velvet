@@ -325,7 +325,7 @@ function vv_ui_handle_input() {
 
     if (vv_tutorial_blocks_player_input()) return;
 
-    if (prompt_mode == "drain_recover") {
+    if (!setup_active && prompt_mode == "drain_recover") {
         if (!pointer_pressed) return;
         for (var drain_choice_i = 0; drain_choice_i < array_length(drain_recovery_candidates);
         drain_choice_i++) {
