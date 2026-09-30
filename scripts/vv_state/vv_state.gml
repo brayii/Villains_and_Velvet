@@ -764,6 +764,7 @@ function reset_game() {
     victory = false;
     enemy_exhausted = false;
     if (!variable_instance_exists(id, "tutorial_mode")) tutorial_mode = false;
+    if (!tutorial_mode) tutorial_pause = false;
     if (tutorial_mode) vv_tutorial_configure_match();
     else {
         tutorial_escape_seen = false;

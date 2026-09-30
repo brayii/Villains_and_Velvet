@@ -21,14 +21,18 @@ function player_draw_one_to_hand() {
     return true;
 }
 
-function witch_minion_cost_reduction() {
+function witch_minion_cost_reduction_from_build(_build) {
     var reduction = 0;
-    for (var build_i = 0; build_i < array_length(build); build_i++) {
-        if (is_undefined(build[build_i])) continue;
+    for (var build_i = 0; build_i < array_length(_build); build_i++) {
+        if (is_undefined(_build[build_i])) continue;
         reduction = max(reduction, card_ability_param_total(
-            build[build_i], "minion_cost_reduction"));
+            _build[build_i], "minion_cost_reduction"));
     }
     return reduction;
+}
+
+function witch_minion_cost_reduction() {
+    return witch_minion_cost_reduction_from_build(build);
 }
 
 function player_minion_attack_cost(_minion) {

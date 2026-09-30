@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 from pathlib import Path
 import re
@@ -14,6 +15,20 @@ ANDROID_OPTIONS = PROJECT_ROOT / "options/android/options_android.yy"
 WINDOWS_OPTIONS = PROJECT_ROOT / "options/windows/options_windows.yy"
 PROJECT_FILE = PROJECT_ROOT / "VillainsAndVelvet.yyp"
 GITIGNORE = PROJECT_ROOT / ".gitignore"
+
+
+def gitignore_protects(text: str, candidate: str) -> bool:
+    ignored = False
+    candidate = candidate.replace("\\", "/")
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        negated = line.startswith("!")
+        pattern = line[1:] if negated else line
+        if fnmatch.fnmatch(candidate, pattern) or fnmatch.fnmatch(Path(candidate).name, pattern):
+            ignored = not negated
+    return ignored
 
 
 def load_gamemaker_json(path: Path) -> dict:
@@ -58,8 +73,14 @@ def verify_release_config(root: Path = PROJECT_ROOT) -> list[str]:
     if not str(windows.get("option_windows_copyright_info", "")).strip():
         errors.append("Windows copyright metadata is empty")
 
-    for pattern in ("*.jks", "*.keystore", "keystore.properties", "local.properties"):
-        if pattern not in ignore_text.splitlines():
+    protected_files = {
+        "*.jks": "release-signing.jks",
+        "*.keystore": "release-signing.keystore",
+        "keystore.properties": "keystore.properties",
+        "local.properties": "local.properties",
+    }
+    for pattern, candidate in protected_files.items():
+        if not gitignore_protects(ignore_text, candidate):
             errors.append(f".gitignore does not protect {pattern}")
 
     resources = {
@@ -86,8 +107,12 @@ def verify_release_config(root: Path = PROJECT_ROOT) -> list[str]:
 
     included_files = project.get("IncludedFiles", [])
     for included in included_files:
-        file_path = str(included.get("filePath", "")).replace("\\", "/").lower()
-        name = str(included.get("name", "")).lower()
+        original_path = str(included.get("filePath", "")).replace("\\", "/")
+        original_name = str(included.get("name", ""))
+        file_path = original_path.lower()
+        name = original_name.lower()
+        if not (root / original_path / original_name).is_file():
+            errors.append(f"Included File is missing: {original_path}/{original_name}")
         if file_path.startswith("datafiles/audio") or name.endswith((".wav", ".ogg", ".mp3")):
             errors.append(f"Obsolete audio Included File remains: {file_path}/{name}")
 

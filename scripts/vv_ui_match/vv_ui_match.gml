@@ -865,14 +865,14 @@ draw_set_alpha(1);
 vv_ui_set_font(UI_FONT_BODY);
 
 // Short current instruction remains separate from the permanent step list.
-if (!tutorial_pause && build_finish_confirm && phase == "build") {
+if ((!tutorial_mode || !tutorial_pause) && build_finish_confirm && phase == "build") {
     var build_warning_rect = {x:985, y:199, w:280, h:105};
     draw_glass_panel(build_warning_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.48);
     draw_set_color(COL_GOLD);
     draw_text_ext(1000, 214, build_confirm_heading, 18, 250);
     draw_set_color(COL_TEXT);
     draw_text_ext(1000, 244, instruction, 18, 250);
-} else if (!tutorial_pause && ((attack_finish_confirm && phase == "attack") || phase == "attack_complete_wait")) {
+} else if ((!tutorial_mode || !tutorial_pause) && ((attack_finish_confirm && phase == "attack") || phase == "attack_complete_wait")) {
     var attack_warning_rect = {x:985, y:199, w:280, h:105};
     draw_glass_panel(attack_warning_rect, make_color_rgb(42, 35, 24), COL_GOLD, 0.48);
     draw_set_color(COL_GOLD);
@@ -885,7 +885,7 @@ if (!tutorial_pause && build_finish_confirm && phase == "build") {
         ? attack_notice_text
         : "Confirm the end of your Attack step or attack a target.";
     draw_text_ext(1000, 244, attack_warning_text, 18, 250);
-} else if (!tutorial_pause) {
+} else if (!tutorial_mode || !tutorial_pause) {
     var instruction_panel = {x:985, y:199, w:280, h:116};
     var reminder_panel_color = choice_reminder_stage > 0 ? make_color_rgb(42, 35, 24)
         : make_color_rgb(24, 33, 46);
@@ -903,7 +903,7 @@ if (selected_hand >= 0 && selected_hand < array_length(hand)) detail_card = hand
 else if (selected_build >= 0 && selected_build < 3) detail_card = build[selected_build];
 else detail_card = detail_card_selected;
 
-if (!tutorial_pause && !is_undefined(detail_card)) {
+if ((!tutorial_mode || !tutorial_pause) && !is_undefined(detail_card)) {
     var detail_panel = {x:985, y:326, w:280, h:162};
     draw_glass_panel(detail_panel, make_color_rgb(24, 33, 46), COL_EDGE, 0.84);
     draw_set_halign(fa_left);

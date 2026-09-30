@@ -261,7 +261,7 @@ function run_full_assault_self_checks(_scenarios, _minion_sets) {
     if (ENEMY_FULL_ASSAULT_MAY_TARGET_HAND != false) {
         return content_validation_result(false, "Full Assault Hand targeting must stay disabled until the card text grants it.");
     }
-    if (string_length(string_replace(string_lower(wrath.twists[0].card.text), "hand", "")) != string_length(string_lower(wrath.twists[0].card.text))) {
+    if (string_pos("hand", string_lower(wrath.twists[0].card.effect)) > 0) {
         return content_validation_result(false, "Full Assault card text mentions the Hand but Hand targeting is disabled.");
     }
     if (array_length(_minion_sets) <= 0) {

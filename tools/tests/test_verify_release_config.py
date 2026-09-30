@@ -26,6 +26,10 @@ class ReleaseConfigTests(unittest.TestCase):
         errors = MODULE.verify_release_config()
         self.assertFalse(any("Sound" in error or "audio Included" in error for error in errors))
 
+    def test_gitignore_negation_is_honored(self):
+        self.assertFalse(MODULE.gitignore_protects("*.jks\n!release-signing.jks\n", "release-signing.jks"))
+        self.assertTrue(MODULE.gitignore_protects("*.jks\n", "release-signing.jks"))
+
 
 if __name__ == "__main__":
     unittest.main()

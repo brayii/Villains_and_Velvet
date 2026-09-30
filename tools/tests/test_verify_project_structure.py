@@ -24,6 +24,15 @@ class ProjectStructureTests(unittest.TestCase):
         }
         self.assertEqual(duplicates, {})
 
+    def test_resource_order_missing_file_fails(self):
+        project = '{"resources":[{"id":{"name":"x","path":"scripts/x/x.yy"}}]}'
+        self.assertIn("Missing tracked resource-order file", MODULE.resource_order_errors(project, None)[0])
+
+    def test_resource_order_missing_entry_fails(self):
+        project = '{"resources":[{"id":{"name":"x","path":"scripts/x/x.yy"}}]}'
+        errors = MODULE.resource_order_errors(project, '{"ResourceOrderSettings":[]}')
+        self.assertEqual(errors, ["Missing resource-order entry: scripts/x/x.yy"])
+
 
 if __name__ == "__main__":
     unittest.main()

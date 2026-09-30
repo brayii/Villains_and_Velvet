@@ -1,7 +1,9 @@
 from pathlib import Path
+import binascii
 import re
 import struct
 import sys
+import zlib
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -32,11 +34,45 @@ def referenced_art_files() -> set[str]:
 
 
 def png_dimensions(file: Path) -> tuple[int, int]:
-    with file.open("rb") as image:
-        header = image.read(24)
-    if len(header) != 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
+    data = file.read_bytes()
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         raise ValueError("not a valid PNG")
-    return struct.unpack(">II", header[16:24])
+    offset = 8
+    width = height = 0
+    idat = bytearray()
+    saw_ihdr = saw_iend = False
+    while offset + 12 <= len(data):
+        length = struct.unpack(">I", data[offset:offset + 4])[0]
+        chunk_type = data[offset + 4:offset + 8]
+        chunk_end = offset + 12 + length
+        if chunk_end > len(data):
+            raise ValueError("truncated PNG chunk")
+        payload = data[offset + 8:offset + 8 + length]
+        expected_crc = struct.unpack(">I", data[offset + 8 + length:chunk_end])[0]
+        if binascii.crc32(chunk_type + payload) & 0xFFFFFFFF != expected_crc:
+            raise ValueError("invalid PNG checksum")
+        if chunk_type == b"IHDR":
+            if saw_ihdr or length != 13 or offset != 8:
+                raise ValueError("invalid PNG header")
+            width, height = struct.unpack(">II", payload[:8])
+            saw_ihdr = True
+        elif chunk_type == b"IDAT":
+            idat.extend(payload)
+        elif chunk_type == b"IEND":
+            if length != 0:
+                raise ValueError("invalid PNG end chunk")
+            saw_iend = True
+            offset = chunk_end
+            break
+        offset = chunk_end
+    if not saw_ihdr or not idat or not saw_iend or offset != len(data):
+        raise ValueError("incomplete PNG")
+    try:
+        if not zlib.decompress(bytes(idat)):
+            raise ValueError("empty PNG image data")
+    except zlib.error as error:
+        raise ValueError("invalid PNG image data") from error
+    return width, height
 
 
 def main() -> int:

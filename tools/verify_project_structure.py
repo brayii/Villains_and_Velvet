@@ -11,6 +11,19 @@ PROJECT_FILE = PROJECT_ROOT / "VillainsAndVelvet.yyp"
 RESOURCE_ORDER_FILE = PROJECT_ROOT / "VillainsAndVelvet.resource_order"
 
 
+def resource_order_errors(project_text: str, order_text: str | None) -> list[str]:
+    resource_paths = set(re.findall(
+        r'"id":\{"name":"[^"]+","path":"([^"]+\.yy)"', project_text
+    ))
+    if order_text is None:
+        return ["Missing tracked resource-order file: VillainsAndVelvet.resource_order"]
+    order_paths = set(re.findall(r'"path":"([^"]+\.yy)"', order_text))
+    return (
+        [f"Stale resource-order entry: {path}" for path in sorted(order_paths - resource_paths)]
+        + [f"Missing resource-order entry: {path}" for path in sorted(resource_paths - order_paths)]
+    )
+
+
 def script_functions() -> dict[str, list[str]]:
     owners: dict[str, list[str]] = {}
     pattern = re.compile(r"(?m)^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(")
@@ -24,7 +37,8 @@ def script_functions() -> dict[str, list[str]]:
 def main() -> int:
     errors: list[str] = []
     project_text = PROJECT_FILE.read_text(encoding="utf-8-sig")
-    order_text = RESOURCE_ORDER_FILE.read_text(encoding="utf-8-sig")
+    order_text = RESOURCE_ORDER_FILE.read_text(encoding="utf-8-sig") \
+        if RESOURCE_ORDER_FILE.is_file() else None
 
     resource_paths = re.findall(
         r'"id":\{"name":"[^"]+","path":"([^"]+\.yy)"', project_text
@@ -36,9 +50,7 @@ def main() -> int:
         if count > 1:
             errors.append(f"Duplicate project resource: {path}")
 
-    order_paths = set(re.findall(r'"path":"([^"]+\.yy)"', order_text))
-    for path in sorted(order_paths - set(resource_paths)):
-        errors.append(f"Stale resource-order entry: {path}")
+    errors.extend(resource_order_errors(project_text, order_text))
 
     declared_groups = set(re.findall(r'"folderPath":"(folders/[^"]+\.yy)"', project_text))
     for metadata in sorted(PROJECT_ROOT.glob("scripts/*/*.yy")):
@@ -138,7 +150,10 @@ def main() -> int:
     if "vv_progress_hero_unlocked(candidate)" not in state_source:
         errors.append("Hero selection does not exclude locked heroes")
     for hero_id, wins in (("vampire", 1), ("witch", 2), ("troll", 3)):
-        hero_pattern = rf'id: "{hero_id}".*?unlock_wins: {wins}'
+        hero_pattern = (
+            rf'id: "{hero_id}",(?:(?!\n        \{{\n            id:).)*?'
+            rf'unlock_wins:\s*{wins}\b'
+        )
         if not re.search(hero_pattern, data_source, re.S):
             errors.append(f"{hero_id.title()} unlock requirement is not {wins} victories")
     if "vv_atomic_text_write(ai_data_filename" not in ai_data_source:

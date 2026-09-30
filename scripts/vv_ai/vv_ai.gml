@@ -327,9 +327,10 @@ function enemy_ai_conditional_weight() {
 
 function enemy_ai_count_exposed_conditional_abilities(_build_snapshot, _attack_amount, _minion_snapshot) {
     var can_trigger = false;
+    var minion_cost_reduction = witch_minion_cost_reduction_from_build(_build_snapshot);
     for (var minion_i = 0; minion_i < array_length(_minion_snapshot); minion_i++) {
         if (!is_undefined(_minion_snapshot[minion_i])
-        && _attack_amount >= _minion_snapshot[minion_i].hp) {
+        && _attack_amount >= max(1, _minion_snapshot[minion_i].hp - minion_cost_reduction)) {
             can_trigger = true;
             break;
         }
@@ -1555,8 +1556,9 @@ function enemy_ai_run_future_content_self_checks() {
 
 function enemy_ai_run_conditional_learning_self_checks(_hero_definitions) {
     var goblin = find_hero_definition(_hero_definitions, "goblin");
-    if (is_undefined(goblin)) {
-        return content_validation_result(false, "Enemy AI learning checks require Goblin.");
+    var witch = find_hero_definition(_hero_definitions, "witch");
+    if (is_undefined(goblin) || is_undefined(witch)) {
+        return content_validation_result(false, "Enemy AI learning checks require Goblin and Witch.");
     }
     var affordable_minion = card_minion("learning_target", "Learning Target", "Normal",
         1, 4, [], "", [], "");
@@ -1571,7 +1573,12 @@ function enemy_ai_run_conditional_learning_self_checks(_hero_definitions) {
     var absent = enemy_ai_count_exposed_conditional_abilities(
         [goblin.normal, undefined, undefined], 8,
         [affordable_minion, undefined]);
-    if (exposed != 2 || blocked != 0 || absent != 0) {
+    var reduced_target = card_minion("learning_reduced", "Learning Reduced", "Normal",
+        1, 12, [], "", [], "");
+    var witch_reduced = enemy_ai_count_exposed_conditional_abilities(
+        [goblin.ability, witch.special, undefined], 10,
+        [reduced_target, undefined]);
+    if (exposed != 2 || blocked != 0 || absent != 0 || witch_reduced != 1) {
         return content_validation_result(false, "Enemy AI conditional exposure check failed.");
     }
     var activated = enemy_ai_conditional_learning_apply_observation(5, 2, 2, true);

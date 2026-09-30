@@ -4,13 +4,13 @@ Enemy Targeting can be switched between Manual and Auto during a match.
 
 ## Manual
 
-The player chooses legal targets for enemy attacks in both the Build Area and the Hand. Manual choices never update AI target-preference learning because the AI did not make those choices.
+The player chooses legal targets for enemy attacks in the Build Area. Manual choices never update AI target-preference learning because the AI did not make those choices.
 
 ## Auto
 
 Auto chooses legal Build targets using the Enemy Attack AI and submits them through the same combat commands used by Manual targeting.
 
-Every Auto attack is recorded, including blocked attacks, forced targets, and attacks against the Hand. During Full Assault, Auto selects the lowest-Health legal Hand card and uses the leftmost slot to break ties. Only genuine Build Area choices train the Build targeting preference; Hand and forced attacks remain useful attack observations without distorting that preference.
+Every Auto attack is recorded, including blocked attacks and forced targets. Only genuine Build Area choices train the Build targeting preference; forced attacks remain useful attack observations without distorting that preference. Full Assault follows the same Build-only targeting rule as every other enemy attack.
 
 Build scoring uses each card's actual Enemy destruction cost, including card effects that modify that cost. Overall Auto performance and genuine Build-choice performance use separate reward histories so forced and blocked turns do not distort Build targeting.
 

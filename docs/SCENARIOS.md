@@ -38,7 +38,7 @@ The Enemy Leader attacks the Build Area using her normal Attack value.
 
 The Enemy Leader attacks first. Every Minion currently in play then performs its full attack, including applicable abilities.
 
-Attacks target the Build Area first. When the Build Area becomes empty, remaining Full Assault attacks target the Hand. If the Hand becomes empty during Full Assault, draw three cards and continue. Keep any cards remaining in the Hand when Full Assault ends.
+Every Full Assault attack targets the Build Area. If no Build card can be defeated, that attack is blocked and its unused Attack is lost. Full Assault never targets the Hand.
 
 ## Shared Structure
 
