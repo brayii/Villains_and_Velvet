@@ -196,8 +196,8 @@ function start_queued_attack() {
             continue;
         }
         enemy_attack_notice = "";
-        enemy_ai_baseline_begin_attack(copy_build_snapshot(build), next_attack.amount);
         enemy_attack_prompt_id++;
+        enemy_ai_baseline_begin_attack(copy_build_snapshot(build), next_attack.amount);
         prompt_mode = "enemy_attack";
         prompt_value = next_attack.amount;
         prompt_source = next_attack.source;
