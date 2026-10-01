@@ -18,6 +18,20 @@ no requested ZIP. `verify_release_archive.py` independently opens the archive,
 checks CRCs and required Windows/GameMaker payloads, and prints the SHA-256 used
 to identify the verified artifact.
 
+If the LTS 2026 worker fails after `DoVersion` and `DoIcon` with a sharing
+violation on `igor_output.zip`, preserve the build staging directory. Confirm
+the staged executable's publisher and copyright metadata, then recover the
+finished payload with:
+
+```powershell
+python tools/package_windows_staging.py .build_temp .release\VillainsAndVelvet-Windows-RC.zip
+python tools/verify_release_archive.py .release\VillainsAndVelvet-Windows-RC.zip
+```
+
+The recovery tool requires the finalized executable and `data.win`, excludes
+compiler cache directories, writes through a temporary archive, and validates
+the finished ZIP before reporting success.
+
 ## Repository-controlled configuration
 
 - Android Compile SDK and Target SDK: 36.
@@ -77,10 +91,16 @@ Android device was attached and this runtime attempted to query the connected
 device for its target architecture. This is a build-environment limitation, not
 evidence that Android compilation passed or failed for the current source.
 
-The same current project compiled for Windows VM and entered the runner's main
-loop after the hero progression test and interface changes. Repository structure,
-artwork, and tool tests also pass. Android VM, Android YYC, signed AAB packaging,
-Play delivery, and physical-device behavior remain unverified for this revision.
+On October 1, 2026, the current project compiled for Windows VM. GameMaker's
+ZIP finalization hit its known sharing violation after version and icon
+processing, so the completed staging payload was recovered with the repository
+tool. The resulting 35-file release candidate passed CRC and payload validation,
+and the exact extracted package remained in the runner's main loop throughout
+an eight-second startup smoke test. Its SHA-256 is
+`5F0B14CE17845BB412BB959D33EE88CCD907B68ABC2617C5390B45494CE6C001`.
+Repository structure, artwork, and all 14 tool tests also pass. Android VM,
+Android YYC, signed AAB packaging, Play delivery, extended Windows gameplay,
+and physical-device behavior remain unverified for this revision.
 
 For the next Android build session, attach an authorized device with USB
 debugging enabled before invoking the command-line worker, or run the build from
