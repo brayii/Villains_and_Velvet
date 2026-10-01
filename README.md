@@ -65,9 +65,9 @@ The optional `tools/extract_card_assets.py` utility crops the current workspace 
 Run `python tools/verify_card_assets.py` after artwork changes. It verifies that every PNG is readable, every file has a GameMaker Included Files entry, and any artwork path used by the game exists.
 
 Before a release candidate, run `python tools/verify_release_config.py` and
-follow [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md). The verifier
-remains red until the permanent Android package ID and Windows publisher
-metadata have been chosen.
+follow [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md). The Android
+package ID is configured; the verifier remains red until the Windows publisher
+metadata has been chosen.
 
 Run `python tools/verify_project_structure.py` after source or resource-tree changes. It checks project and resource-order consistency, missing resources, Script parent groups, duplicate global functions, Script metadata pairs, and critical cleanup and retry invariants.
 

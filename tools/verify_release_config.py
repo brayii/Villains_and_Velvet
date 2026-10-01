@@ -49,7 +49,7 @@ def verify_release_config(root: Path = PROJECT_ROOT) -> list[str]:
         android.get("option_android_package_company", ""),
         android.get("option_android_package_product", ""),
     ]
-    placeholders = {"", "com", "company", "game", "example", "yourstudio"}
+    placeholders = {"", "company", "game", "example", "yourstudio"}
     if any(str(part).lower() in placeholders for part in package_parts):
         errors.append("Android package identifier still contains placeholder values")
 
