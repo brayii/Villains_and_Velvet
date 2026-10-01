@@ -65,6 +65,25 @@ needed for the current GameMaker LTS 2026 requirements:
 - Android NDK 30.0.15729638 is installed.
 - Android Studio's bundled JBR is OpenJDK 21.0.10.
 
+## Current build verification
+
+On September 30, 2026, the GameMaker LTS 2026 command-line worker loaded and
+serialized the current project using the configured SDK, NDK, and JBR paths.
+The unattended Android compile then stopped before source generation because no
+Android device was attached and this runtime attempted to query the connected
+device for its target architecture. This is a build-environment limitation, not
+evidence that Android compilation passed or failed for the current source.
+
+The same current project compiled for Windows VM and entered the runner's main
+loop after the hero progression test and interface changes. Repository structure,
+artwork, and tool tests also pass. Android VM, Android YYC, signed AAB packaging,
+Play delivery, and physical-device behavior remain unverified for this revision.
+
+For the next Android build session, attach an authorized device with USB
+debugging enabled before invoking the command-line worker, or run the build from
+the GameMaker IDE with an explicit target architecture. Record the source commit
+and artifact hash with the result.
+
 The current shell also contains stale compatibility variables pointing at
 `C:\Users\angel\AppData\Local\Android\Sdk` and `D:\NVPACK\android-ndk-r14b`.
 Build scripts should set `ANDROID_SDK_HOME` and `ANDROID_NDK_ROOT` to the verified
