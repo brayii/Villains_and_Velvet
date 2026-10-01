@@ -11,15 +11,9 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ReleaseConfigTests(unittest.TestCase):
-    def test_current_project_has_only_windows_publisher_blockers(self):
+    def test_current_project_release_configuration_passes(self):
         errors = MODULE.verify_release_config()
-        self.assertEqual(
-            errors,
-            [
-                "Windows company/publisher metadata is empty",
-                "Windows copyright metadata is empty",
-            ],
-        )
+        self.assertEqual(errors, [])
 
     def test_all_sound_resources_are_registered(self):
         errors = MODULE.verify_release_config()

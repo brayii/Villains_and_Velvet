@@ -66,8 +66,8 @@ Run `python tools/verify_card_assets.py` after artwork changes. It verifies that
 
 Before a release candidate, run `python tools/verify_release_config.py` and
 follow [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md). The Android
-package ID is configured; the verifier remains red until the Windows publisher
-metadata has been chosen.
+package ID and Windows publisher metadata are configured; the verifier should
+pass before packaging.
 
 Run `python tools/verify_project_structure.py` after source or resource-tree changes. It checks project and resource-order consistency, missing resources, Script parent groups, duplicate global functions, Script metadata pairs, and critical cleanup and retry invariants.
 

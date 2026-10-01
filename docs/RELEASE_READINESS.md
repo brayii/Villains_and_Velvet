@@ -8,19 +8,15 @@ python tools/verify_card_assets.py
 python tools/verify_release_config.py
 ```
 
-The release-config verifier intentionally remains red until the remaining
-Windows publisher decisions below are entered. Do not replace them with guessed
-values.
-
-## Publisher decisions required
-
-- Fill the Windows company/publisher and copyright fields with the legal
-  publishing identity.
+The repository-controlled release configuration now passes its verifier.
+Packaging and store-delivery checks below remain required for a release.
 
 ## Repository-controlled configuration
 
 - Android Compile SDK and Target SDK: 36.
 - Android package identity: `com.borii.VillainsAndVelvet`.
+- Windows publisher: `BORII Games`.
+- Windows copyright: `Copyright © 2026 BORII Games. All rights reserved.`
 - Android ARM64: enabled.
 - LTS 2026 Gradle: 8.13.
 - LTS 2026 Android Gradle Plugin: 8.13.0.
