@@ -31,6 +31,7 @@ Installable Windows and Android builds are published on the repository's GitHub 
 - [Enemy Targeting](docs/ENEMY_TARGETING.md) — Manual and Auto targeting behavior, including Full Assault.
 - [Architecture](ARCHITECTURE.md) — code organization and guidance about where changes belong.
 - [Adding Content](docs/ADDING_CONTENT.md) — the tested workflow for extending cards, Leaders, Scenarios, effects, and artwork.
+- [Balance Baseline](docs/BALANCE_BASELINE.md) — current Hero statistics and the evidence required before changing card values.
 
 ## Basic Controls
 
