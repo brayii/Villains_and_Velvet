@@ -6,10 +6,17 @@ Run the release checks from the game repository:
 python tools/verify_project_structure.py
 python tools/verify_card_assets.py
 python tools/verify_release_config.py
+python tools/verify_release_archive.py path\to\VillainsAndVelvet-Windows.zip
 ```
 
 The repository-controlled release configuration now passes its verifier.
 Packaging and store-delivery checks below remain required for a release.
+
+Do not trust the packaging process exit code alone. The LTS 2026 command-line
+worker has returned success after creating an unreadable ZIP and after creating
+no requested ZIP. `verify_release_archive.py` independently opens the archive,
+checks CRCs and required Windows/GameMaker payloads, and prints the SHA-256 used
+to identify the verified artifact.
 
 ## Repository-controlled configuration
 
