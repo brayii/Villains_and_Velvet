@@ -15,6 +15,9 @@ ANDROID_OPTIONS = PROJECT_ROOT / "options/android/options_android.yy"
 WINDOWS_OPTIONS = PROJECT_ROOT / "options/windows/options_windows.yy"
 PROJECT_FILE = PROJECT_ROOT / "VillainsAndVelvet.yyp"
 GITIGNORE = PROJECT_ROOT / ".gitignore"
+EXPECTED_ANDROID_PACKAGE = "com.borii.VillainsAndVelvet"
+EXPECTED_WINDOWS_COMPANY = "BORII Games"
+EXPECTED_WINDOWS_COPYRIGHT = "Copyright © 2026 BORII Games. All rights reserved."
 
 
 def gitignore_protects(text: str, candidate: str) -> bool:
@@ -37,6 +40,22 @@ def load_gamemaker_json(path: Path) -> dict:
     return json.loads(text)
 
 
+def verify_release_identity(android: dict, windows: dict) -> list[str]:
+    package = ".".join(str(android.get(key, "")) for key in (
+        "option_android_package_domain",
+        "option_android_package_company",
+        "option_android_package_product",
+    ))
+    errors: list[str] = []
+    if package != EXPECTED_ANDROID_PACKAGE:
+        errors.append(f"Android package identifier must be {EXPECTED_ANDROID_PACKAGE}")
+    if windows.get("option_windows_company_info") != EXPECTED_WINDOWS_COMPANY:
+        errors.append(f"Windows company/publisher must be {EXPECTED_WINDOWS_COMPANY}")
+    if windows.get("option_windows_copyright_info") != EXPECTED_WINDOWS_COPYRIGHT:
+        errors.append("Windows copyright metadata does not match the approved release text")
+    return errors
+
+
 def verify_release_config(root: Path = PROJECT_ROOT) -> list[str]:
     errors: list[str] = []
     android = load_gamemaker_json(root / "options/android/options_android.yy")
@@ -44,14 +63,7 @@ def verify_release_config(root: Path = PROJECT_ROOT) -> list[str]:
     project = load_gamemaker_json(root / "VillainsAndVelvet.yyp")
     ignore_text = (root / ".gitignore").read_text(encoding="utf-8-sig")
 
-    package_parts = [
-        android.get("option_android_package_domain", ""),
-        android.get("option_android_package_company", ""),
-        android.get("option_android_package_product", ""),
-    ]
-    placeholders = {"", "company", "game", "example", "yourstudio"}
-    if any(str(part).lower() in placeholders for part in package_parts):
-        errors.append("Android package identifier still contains placeholder values")
+    errors.extend(verify_release_identity(android, windows))
 
     expected_android = {
         "option_android_compile_sdk": "36",
@@ -67,11 +79,6 @@ def verify_release_config(root: Path = PROJECT_ROOT) -> list[str]:
     for key, expected in expected_android.items():
         if android.get(key) != expected:
             errors.append(f"Android option {key} must be {expected!r}")
-
-    if not str(windows.get("option_windows_company_info", "")).strip():
-        errors.append("Windows company/publisher metadata is empty")
-    if not str(windows.get("option_windows_copyright_info", "")).strip():
-        errors.append("Windows copyright metadata is empty")
 
     protected_files = {
         "*.jks": "release-signing.jks",
