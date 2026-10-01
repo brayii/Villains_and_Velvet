@@ -290,11 +290,14 @@ function vv_progress_run_self_checks(_heroes) {
     hero_victories = 1;
     var one_valid = vv_progress_hero_unlocked(vampire)
         && !vv_progress_hero_unlocked(witch) && !vv_progress_hero_unlocked(troll);
+    hero_victories = 2;
+    var two_valid = vv_progress_hero_unlocked(vampire)
+        && vv_progress_hero_unlocked(witch) && !vv_progress_hero_unlocked(troll);
     hero_victories = 3;
     var three_valid = vv_progress_hero_unlocked(vampire)
         && vv_progress_hero_unlocked(witch) && vv_progress_hero_unlocked(troll);
     hero_victories = original_victories;
-    if (!zero_valid || !one_valid || !three_valid) {
+    if (!zero_valid || !one_valid || !two_valid || !three_valid) {
         return {valid:false, message:"Hero progression unlock threshold check failed."};
     }
     return {valid:true, message:""};

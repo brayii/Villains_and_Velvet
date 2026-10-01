@@ -21,6 +21,9 @@ if (content_registry_validation.valid) {
 if (content_registry_validation.valid) {
     var hero_progress_self_checks = vv_progress_run_self_checks(available_heroes);
     if (!hero_progress_self_checks.valid) content_registry_validation = hero_progress_self_checks;
+
+    var hero_selection_self_checks = run_hero_selection_self_checks(available_heroes);
+    if (!hero_selection_self_checks.valid) content_registry_validation = hero_selection_self_checks;
 }
 if (content_registry_validation.valid) {
     var tutorial_self_checks = vv_tutorial_run_self_checks(

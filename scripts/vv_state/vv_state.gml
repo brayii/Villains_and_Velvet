@@ -600,24 +600,51 @@ function command_restore_enemy_event_defaults() {
     return true;
 }
 
-function command_cycle_hero_slot(_slot, _change) {
-    if (_slot < 0 || _slot >= CORE_HERO_COUNT || array_length(available_heroes) <= CORE_HERO_COUNT) return false;
-    var current = find_hero_definition(available_heroes, selected_hero_ids[_slot]);
-    if (is_undefined(current)) return false;
+function next_selectable_hero_id(_heroes, _selected_ids, _current_id, _change) {
+    if (array_length(_heroes) <= CORE_HERO_COUNT || _change == 0) return "";
+    var current = find_hero_definition(_heroes, _current_id);
+    if (is_undefined(current)) return "";
     var current_index = 0;
-    for (var hero_i = 0; hero_i < array_length(available_heroes); hero_i++) {
-        if (available_heroes[hero_i].id == current.id) current_index = hero_i;
+    for (var hero_i = 0; hero_i < array_length(_heroes); hero_i++) {
+        if (_heroes[hero_i].id == current.id) current_index = hero_i;
     }
-    for (var offset = 1; offset <= array_length(available_heroes); offset++) {
-        var candidate_index = wrap_content_index(current_index + offset * _change, array_length(available_heroes));
-        var candidate = available_heroes[candidate_index];
+    for (var offset = 1; offset <= array_length(_heroes); offset++) {
+        var candidate_index = wrap_content_index(current_index + offset * _change, array_length(_heroes));
+        var candidate = _heroes[candidate_index];
         var candidate_id = candidate.id;
         if (vv_progress_hero_unlocked(candidate)
-        && !array_has_value(selected_hero_ids, candidate_id)) {
-            selected_hero_ids[_slot] = candidate_id;
-            refresh_setup_validation();
-            return true;
-        }
+        && !array_has_value(_selected_ids, candidate_id)) return candidate_id;
+    }
+    return "";
+}
+
+function run_hero_selection_self_checks(_heroes) {
+    var original_victories = hero_victories;
+    var original_team = ["goblin", "skeleton", "orc"];
+    hero_victories = 0;
+    var locked_skipped = next_selectable_hero_id(_heroes, original_team, "goblin", 1) == "";
+    hero_victories = 1;
+    var vampire_available = next_selectable_hero_id(_heroes, original_team, "goblin", 1) == "vampire";
+    hero_victories = 2;
+    var witch_available = next_selectable_hero_id(_heroes,
+        ["vampire", "skeleton", "orc"], "vampire", 1) == "witch";
+    var duplicate_skipped = next_selectable_hero_id(_heroes,
+        ["goblin", "vampire", "orc"], "goblin", 1) == "skeleton";
+    hero_victories = original_victories;
+    if (!locked_skipped || !vampire_available || !witch_available || !duplicate_skipped) {
+        return content_validation_result(false, "Hero setup selection progression check failed.");
+    }
+    return content_validation_result(true, "");
+}
+
+function command_cycle_hero_slot(_slot, _change) {
+    if (_slot < 0 || _slot >= CORE_HERO_COUNT) return false;
+    var candidate_id = next_selectable_hero_id(available_heroes, selected_hero_ids,
+        selected_hero_ids[_slot], _change);
+    if (candidate_id != "") {
+        selected_hero_ids[_slot] = candidate_id;
+        refresh_setup_validation();
+        return true;
     }
     return false;
 }
